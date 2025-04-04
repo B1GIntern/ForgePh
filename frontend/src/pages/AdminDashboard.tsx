@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { 
   Award, 
@@ -46,6 +47,8 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { useEffect } from 'react';
+import axios from "axios";
+
 
 const mockRetailers = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,
@@ -107,8 +110,8 @@ const AdminDashboard: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [featuredGame, setFeaturedGame] = useState<number | null>(null);
-  const [newReward, setNewReward] = useState({ name: "", pointsRequired: 0, stockAvailable: 0,  type: ""});
-  const [rewards, setRewards] = useState<Array<{ id: number, name: string, points: number, stock: number ,type: string}>>([]);
+  const [newReward, setNewReward] = useState({ name: "", pointsRequired: 0, stockAvailable: 0, type: "" });
+  const [rewards, setRewards] = useState<Array<{ id: number, name: string, points: number, stock: number, type: string }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [prizes, setPrizes] = useState([
@@ -126,7 +129,28 @@ const AdminDashboard: React.FC = () => {
     totalWinners: 0,
     active: false
   });
+  
+  // Declare state for retailers
+  const [retailers, setRetailers] = useState<any[]>([]); // <== Add this line to declare retailers state
 
+  useEffect(() => {
+    const fetchRetailers = async () => {
+      try {
+        const response = await axios.get("/api/users/top-retailers");
+        console.log(response.data); // Log response to check data format
+        setRetailers(response.data);
+      } catch (error) {
+        console.error("Error fetching retailers:", error);
+      }
+    };
+    fetchRetailers();
+  }, []);
+
+  const filteredRetailers = retailers.filter((retailer) =>
+    retailer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  //Top 50 Retailers
   const handleLogout = () => {
     localStorage.removeItem("isAdmin");
     toast({
@@ -136,6 +160,7 @@ const AdminDashboard: React.FC = () => {
     navigate("/admin");
   };
 
+
   const handleFeatureGame = (gameId: number) => {
     setFeaturedGame(gameId);
     toast({
@@ -143,6 +168,8 @@ const AdminDashboard: React.FC = () => {
       description: `${mockGames.find(g => g.id === gameId)?.name} is now featured!`,
     });
   };
+
+  //FETCHING OF REWARDS
   const fetchRewards = async () => {
     try {
       const response = await fetch("http://localhost:5001/api/auth/rewards");
@@ -253,7 +280,7 @@ const AdminDashboard: React.FC = () => {
         });
       });
   };
-
+  //END OF REWARDS FEATURE
   const refreshData = () => {
     setIsRefreshing(true);
     setTimeout(() => {
@@ -351,11 +378,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const filteredRetailers = searchQuery 
-    ? mockRetailers.filter(retailer => 
-        retailer.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : mockRetailers;
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-xforge-darkgray to-xforge-dark">
@@ -446,8 +469,8 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-xl font-bold text-white">Top 50 Retailers by Points</h2>
               <div className="relative w-72">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xforge-gray" size={16} />
-                <Input 
-                  placeholder="Search retailers..." 
+                <Input
+                  placeholder="Search retailers..."
                   className="pl-10 bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -471,7 +494,7 @@ const AdminDashboard: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredRetailers.map((retailer, index) => (
-                    <TableRow key={retailer.id} className="hover:bg-xforge-teal/5 border-b border-xforge-darkgray/50">
+                    <TableRow key={retailer.userId} className="hover:bg-xforge-teal/5 border-b border-xforge-darkgray/50">
                       <TableCell className="font-medium">
                         {index < 3 ? (
                           <span className={`flex items-center justify-center h-6 w-6 rounded-full text-xs ${

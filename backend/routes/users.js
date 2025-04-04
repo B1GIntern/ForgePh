@@ -29,5 +29,16 @@ router.post("/register", async (req, res) => {
     res.status(500).send({ message: "Internal Server Error In Creating User" });
   }
 });
+// Fetch Top 50 Retailers by Points (Using userId)
+router.get("/top-retailers", async (req, res) => {
+  try {
+    const retailers = await User.find({ userType: "Retailer" })
+      .sort({ points: -1 }) // Sort by points in descending order
+      .limit(50); // Limit to top 50 retailers
 
+    res.status(200).send(retailers);
+  } catch (error) {
+    res.status(500).send({ message: "Error fetching retailers" });
+  }
+});
 module.exports = router;
