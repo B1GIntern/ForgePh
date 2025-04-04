@@ -366,7 +366,7 @@ const AdminDashboard: React.FC = () => {
               <BarChart3 size={20} className="text-xforge-dark" />
             </div>
             <h1 className="text-xl font-bold text-white">
-              <span className="text-xforge-teal">X</span>ForgePhilippines Admin
+              <span className="text-xforge-teal">Forge</span> Philippines Admin
             </h1>
           </div>
           
