@@ -162,7 +162,7 @@ const ProductsPage: React.FC = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="min-h-[calc(100vh-64px)] pt-16 flex items-center justify-center relative overflow-hidden pb-16">
+      <section className="min-h-[calc(100vh-64px)] pt-50 flex items-center justify-center relative overflow-hidden pb-16">
         <div className="absolute inset-0 bg-[#292929] -z-10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,236,207,0.1),transparent_70%)] -z-10"></div>
 
