@@ -106,6 +106,9 @@ const Rewards: React.FC = () => {
         sessionStorage.setItem("user", JSON.stringify(fullUser));
       }
       
+      window.dispatchEvent(new Event("authChange"));
+
+
       console.log("Updated user data from server:", fullUser);
       
     } catch (error) {
@@ -304,6 +307,8 @@ const handleRedeemReward = async (rewardId: string, rewardName: string, pointsRe
     // Fetch fresh user data after redemption
     fetchUserData();
     
+    window.dispatchEvent(new Event("userUpdated"));
+
   } catch (error) {
     // Log and display any errors encountered during the redeem process
     console.error("Error redeeming reward:", error);
