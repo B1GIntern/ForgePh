@@ -108,7 +108,7 @@ const Header: React.FC = () => {
       window.removeEventListener("storage", fetchUserData);
     };
   }, []);
-  
+
   useEffect(() => {
     const handleUserUpdate = () => {
       fetchUserData(); // Re-fetch user data to update the header
@@ -120,14 +120,14 @@ const Header: React.FC = () => {
       window.removeEventListener("userUpdated", handleUserUpdate);
     };
   }, []);
-  
+
   // Update state whenever user object changes
   useEffect(() => {
     if (user) {
       setCurrentPoints(user.points);
     }
   }, [user]);
-  
+
   // Initialize socket connection
   useEffect(() => {
     // Connect to the socket server
@@ -411,7 +411,7 @@ const Header: React.FC = () => {
               >
                 Login
               </a>
-              <a href="#register" className="btn btn-primary">
+              <a href="/home#register" className="btn btn-primary">
                 Sign Up
               </a>
             </div>
@@ -531,7 +531,10 @@ const Header: React.FC = () => {
       />
 
       {/* Logout Confirmation Dialog */}
-      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+      <AlertDialog
+        open={isLogoutDialogOpen}
+        onOpenChange={setIsLogoutDialogOpen}
+      >
         <AlertDialogContent className="bg-xforge-dark border border-xforge-teal/20 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
@@ -543,7 +546,7 @@ const Header: React.FC = () => {
             <AlertDialogCancel className="bg-xforge-darkgray text-white border-xforge-gray hover:bg-xforge-darkgray/80 hover:text-white">
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleLogout}
               className="bg-xforge-teal text-xforge-dark hover:bg-xforge-teal/90"
             >
