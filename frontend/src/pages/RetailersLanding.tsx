@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import Milestones from "@/components/Milestone";
 import TermsConditions from "@/components/TermsConditions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,7 +158,6 @@ const RetailersLanding: React.FC = () => {
         <TermsConditions />
       </main>
       
-      <Footer />
     </div>
   );
 };
