@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import LoginModal from "./LoginModal";
 import io from "socket.io-client"; // Make sure to import socket.io-client
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Define User interface
 interface User {
@@ -17,24 +27,26 @@ const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-    const [currentPoints, setCurrentPoints] = useState(0);
+  const [currentPoints, setCurrentPoints] = useState(0);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const location = useLocation();
-  
 
-   // Enhanced user data loading that also fetches fresh user data from the API
-   const fetchUserData = async () => {
+  // Enhanced user data loading that also fetches fresh user data from the API
+  const fetchUserData = async () => {
     try {
       // Get auth token from storage
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      
+      const token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
+
       if (!token) {
         console.log("No token found");
         return;
       }
 
       // Get basic user data from storage first to display something quickly
-      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      const storedUser =
+        localStorage.getItem("user") || sessionStorage.getItem("user");
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
@@ -48,8 +60,8 @@ const Header: React.FC = () => {
       // Then, fetch fresh user data from the server
       const response = await fetch("http://localhost:5001/api/users/me", {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -57,7 +69,7 @@ const Header: React.FC = () => {
       }
 
       const userData = await response.json();
-      
+
       // Create a proper user object with the correct structure
       const fullUser: User = {
         id: userData._id,
@@ -70,56 +82,57 @@ const Header: React.FC = () => {
       // Update state with fresh user data
       setUser(fullUser);
       setCurrentPoints(fullUser.points);
-      
+
       // Update localStorage/sessionStorage with fresh data
       if (localStorage.getItem("user")) {
         localStorage.setItem("user", JSON.stringify(fullUser));
       } else if (sessionStorage.getItem("user")) {
         sessionStorage.setItem("user", JSON.stringify(fullUser));
       }
-      
+
       window.dispatchEvent(new Event("authChange"));
 
-
       console.log("Updated user data from server:", fullUser);
-      
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
   };
 
   // Call this function when the component mounts and after redeeming rewards
-    useEffect(() => {
+  useEffect(() => {
     fetchUserData();
-  
+
     window.addEventListener("storage", fetchUserData);
-    
+
     return () => {
       window.removeEventListener("storage", fetchUserData);
     };
   }, []);
+  
   useEffect(() => {
     const handleUserUpdate = () => {
       fetchUserData(); // Re-fetch user data to update the header
     };
-  
+
     window.addEventListener("userUpdated", handleUserUpdate);
-    
+
     return () => {
       window.removeEventListener("userUpdated", handleUserUpdate);
     };
   }, []);
-    // Update state whenever user object changes
-    useEffect(() => {
-      if (user) {
-        setCurrentPoints(user.points);
-      }
-    }, [user]);
+  
+  // Update state whenever user object changes
+  useEffect(() => {
+    if (user) {
+      setCurrentPoints(user.points);
+    }
+  }, [user]);
+  
   // Initialize socket connection
   useEffect(() => {
     // Connect to the socket server
     const socket = io(process.env.REACT_APP_API_URL || "http://localhost:5000");
-    
+
     // Listen for point updates
     socket.on("pointsUpdated", (data) => {
       if (user && data.userId === user.id) {
@@ -127,7 +140,7 @@ const Header: React.FC = () => {
         updateUserPoints(data.points);
       }
     });
-    
+
     // Listen for reward redemption events
     socket.on("rewardRedeemed", (data) => {
       if (user && data.userId === user.id) {
@@ -135,7 +148,7 @@ const Header: React.FC = () => {
         refreshUserData();
       }
     });
-    
+
     return () => {
       // Disconnect socket when component unmounts
       socket.disconnect();
@@ -146,35 +159,39 @@ const Header: React.FC = () => {
     if (user) {
       // Create updated user object
       const updatedUser = { ...user, points: newPoints };
-      
+
       // Update local state
       setUser(updatedUser);
-      
+
       // Update storage
-      const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
+      const storage = localStorage.getItem("user")
+        ? localStorage
+        : sessionStorage;
       storage.setItem("user", JSON.stringify(updatedUser));
-      
+
       // Dispatch event to notify other components
       window.dispatchEvent(new Event("authChange"));
     }
   };
-  
+
   const refreshUserData = async () => {
     if (!user) return;
-    
+
     try {
       // Fetch fresh user data from API
       const response = await fetch(`/api/users/${user.id}`);
       if (response.ok) {
         const userData = await response.json();
-        
+
         // Update user in state and storage
         setUser(userData);
-        
+
         // Update storage based on where the user was originally stored
-        const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
+        const storage = localStorage.getItem("user")
+          ? localStorage
+          : sessionStorage;
         storage.setItem("user", JSON.stringify(userData));
-        
+
         // Notify other components
         window.dispatchEvent(new Event("authChange"));
       }
@@ -226,24 +243,31 @@ const Header: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const openLogoutDialog = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
   const handleLogout = () => {
     // Clear user data from storage
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
     setUser(null);
-    
-    // Refresh the page to reset state seamlessly
-    window.location.reload();
+    setIsLogoutDialogOpen(false);
 
     // Dispatch event to notify other components
     window.dispatchEvent(new Event("authChange"));
+
+    // Redirect to home page
+    window.location.href = "/home";
   };
 
   // Function to determine if a link is active
   const isLinkActive = (path: string) => {
     return location.pathname === path;
   };
-  
+
   // Determine navigation links based on user type
   const getNavLinks = () => {
     if (!user) {
@@ -251,29 +275,29 @@ const Header: React.FC = () => {
       return [
         { path: "/home", label: "Home" },
         { path: "/products", label: "Products" },
-        { path: "/news", label: "News" }
+        { path: "/news", label: "News" },
       ];
     }
-    
+
     if (user.userType === "Retailer") {
       // Links for Retailer users
       return [
         { path: "/retailers", label: "Home" },
         { path: "/products", label: "Products" },
-        { path: "/ExclusiveNews", label: "News" }
+        { path: "/ExclusiveNews", label: "News" },
       ];
     }
-    
+
     // Links for Consumer users (default)
     return [
       { path: "/home", label: "Home" },
       { path: "/products", label: "Products" },
       { path: "/news", label: "News" },
       { path: "/rewards", label: "Rewards" },
-      { path: "/promo-code", label: "Promo Code" }
+      { path: "/promo-code", label: "Promo Code" },
     ];
   };
-  
+
   const navLinks = getNavLinks();
 
   return (
@@ -369,7 +393,7 @@ const Header: React.FC = () => {
                     </Link>
                     <div className="border-t border-xforge-lightgray my-1"></div>
                     <button
-                      onClick={handleLogout}
+                      onClick={openLogoutDialog}
                       className="block w-full text-left px-4 py-2 text-white hover:bg-xforge-lightgray hover:text-xforge-teal"
                     >
                       Logout
@@ -473,10 +497,7 @@ const Header: React.FC = () => {
           <div className="flex flex-col items-center mt-10 space-y-4">
             {user ? (
               <button
-                onClick={() => {
-                  handleLogout();
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={openLogoutDialog}
                 className="btn btn-outline w-44 text-center"
               >
                 Logout
@@ -508,6 +529,29 @@ const Header: React.FC = () => {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
       />
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <AlertDialogContent className="bg-xforge-dark border border-xforge-teal/20 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription className="text-xforge-gray">
+              Are you sure you want to logout?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-xforge-darkgray text-white border-xforge-gray hover:bg-xforge-darkgray/80 hover:text-white">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLogout}
+              className="bg-xforge-teal text-xforge-dark hover:bg-xforge-teal/90"
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

@@ -157,7 +157,7 @@ const RetailersLanding: React.FC = () => {
         <TermsConditions />
       </main>
       
-      <Footer />
+      
     </div>
   );
 };

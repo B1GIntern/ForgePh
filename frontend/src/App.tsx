@@ -3,9 +3,18 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+
+// Components
 import Layout from "./components/Layout";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
+
+
+
+// Pages
+import RetailersLanding from "./pages/RetailersLanding";
+import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailers
+import News from "./pages/News";
 import Products from "./pages/Products";
 import AgeVerification from "./pages/AgeVerification";
 import AgeRestricted from "./pages/AgeRestricted";
@@ -13,10 +22,10 @@ import Rewards from "./pages/Rewards";
 import PromoCode from "./pages/PromoCode";  // Import PromoCode Page
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminProtectedRoute from "./components/AdminProtectedRoute";
-import RetailersLanding from "./pages/RetailersLanding";
-import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailers
-import News from "./pages/News";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+
+
 import { NotificationsProvider } from "./context/NotificationsContext";
 
 const queryClient = new QueryClient();
@@ -33,6 +42,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <ScrollToTop />
           <Routes>
             <Route path="/" element={<AgeVerification />} />
             <Route path="/age-restricted" element={<AgeRestricted />} />

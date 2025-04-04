@@ -136,11 +136,11 @@ const ProductsPage: React.FC = () => {
 
   const showNext = () => {
     const maxIndex = Math.max(0, flavorPods.length - getPodsPerPage());
-    setCurrentIndex((prevIndex) => Math.min(prevIndex + 5, maxIndex));
+    setCurrentIndex((prevIndex) => Math.min(prevIndex + 1, maxIndex));
   };
 
   const showPrev = () => {
-    setCurrentIndex((prevIndex) => Math.max(prevIndex - 5, 0));
+    setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
   };
 
   const getPodsPerPage = () => {
@@ -162,7 +162,7 @@ const ProductsPage: React.FC = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="min-h-[calc(100vh-64px)] pt-50 flex items-center justify-center relative overflow-hidden pb-16">
+      <section className="min-h-screen flex items-center justify-center relative overflow-hidden pt-24 pb-16">
         <div className="absolute inset-0 bg-[#292929] -z-10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,236,207,0.1),transparent_70%)] -z-10"></div>
 
@@ -249,7 +249,7 @@ const ProductsPage: React.FC = () => {
       {/* Battery Options Section */}
       <section
         id="products"
-        className="section min-h-screen flex items-center justify-center relative overflow-hidden py-24"
+        className="section min-h-screen flex items-center justify-center relative overflow-hidden pt-24"
       >
         <div className="absolute inset-0 bg-[#292929] -z-10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,236,207,0.1),transparent_70%)] -z-10"></div>
@@ -346,7 +346,7 @@ const ProductsPage: React.FC = () => {
       {/* Flavor Pods Section */}
       <section
         id="flavors"
-        className="section min-h-screen flex items-center justify-center relative overflow-hidden py-24"
+        className="section min-h-screen flex items-center justify-center relative overflow-hidden pt-0 sm:pt-24 pb-0 sm:pb-24"
       >
         <div className="absolute inset-0 bg-[#292929] -z-10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,236,207,0.1),transparent_70%)] -z-10"></div>
