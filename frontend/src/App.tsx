@@ -10,10 +10,10 @@ import Products from "./pages/Products";
 import AgeVerification from "./pages/AgeVerification";
 import AgeRestricted from "./pages/AgeRestricted";
 import Rewards from "./pages/Rewards";  {/* Import Rewards Page */}
-import AccountSettings from "./pages/AccountSettings";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import RetailersLanding from "./pages/RetailersLanding";
 import { NotificationsProvider } from "./context/NotificationsContext";  // Import NotificationsProvider
 import News from "./pages/News";
 
@@ -76,6 +76,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/retailers" element={<RetailersLanding />} />
 
              {/* Admin routes */}
              <Route path="/admin" element={<AdminLogin />} />

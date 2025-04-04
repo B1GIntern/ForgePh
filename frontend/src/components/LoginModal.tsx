@@ -102,8 +102,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       setEmail(""); // Reset email field
       setPassword(""); // Reset password field
   
-      // Optional: Redirect user
-      window.location.href = "/home"; // Redirect after login success
+      // Replace this line in your handleLogin function:
+        if (userData.userType === "Retailer") {
+          window.location.href = "/retailers"; // Changed from "/RetailerLanding" to "/retailers"
+        } else {
+          // Default for Consumer
+          window.location.href = "/home";
+        }
   
     } catch (error) {
       console.error("Login error:", error);

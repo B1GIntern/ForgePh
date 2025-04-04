@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import SpinWheel from "../components/SpinWheel";
+import SlotMachine from "../components/SlotMachine";
 import { Award, ChevronDown, ChevronUp, Check, Gift, Star, Sparkles, Tag, Clock, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
@@ -559,9 +561,11 @@ const handleRedeemReward = async (rewardId: string, rewardName: string, pointsRe
             
             <div className="relative z-10">
               <div className={`transition-all duration-500 ${activeGameTab === 'wheel' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 absolute pointer-events-none'}`}>
+              <SpinWheel />
               </div>
               
               <div className={`transition-all duration-500 ${activeGameTab === 'slots' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 absolute pointer-events-none'}`}>
+              <SlotMachine />
               </div>
               
               {/* Memory Game (Coming Soon) */}
