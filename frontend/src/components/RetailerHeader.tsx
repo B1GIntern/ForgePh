@@ -78,38 +78,6 @@ const Header: React.FC = () => {
   const isLinkActive = (path: string) => {
     return location.pathname === path;
   };
-  
-  // Determine navigation links based on user type
-  const getNavLinks = () => {
-    if (!user) {
-      // Default links for non-logged in users
-      return [
-        { path: "/home", label: "Home" },
-        { path: "/products", label: "Products" },
-        { path: "/news", label: "News" }
-      ];
-    }
-    
-    if (user.userType === "Retailer") {
-      // Links for Retailer users
-      return [
-        { path: "/retailers", label: "Home" },
-        { path: "/products", label: "Products" },
-        { path: "/ExclusiveNews", label: "News" }
-      ];
-    }
-    
-    // Links for Consumer users (default)
-    return [
-      { path: "/home", label: "Home" },
-      { path: "/products", label: "Products" },
-      { path: "/news", label: "News" },
-      { path: "/rewards", label: "Rewards" },
-      { path: "/promo-code", label: "Promo Code" }
-    ];
-  };
-  
-  const navLinks = getNavLinks();
 
   return (
     <>
@@ -134,21 +102,30 @@ const Header: React.FC = () => {
         </div>
         <div className="container flex items-center justify-between">
           <div className="flex items-center">
-            <Link to="/home" className="text-2xl font-bold text-white">
+            <Link to="/retailers" className="text-2xl font-bold text-white">
               <span className="text-teal-400">FORGE</span> PHILIPPINES
             </Link>
           </div>
           {/* Desktop Navigation */}
           <nav className="hidden space-x-8 md:flex">
-            {navLinks.map((link) => (
+            <Link
+              to="/retailers"
+              className={`nav-link ${isLinkActive("/home") ? "text-xforge-teal" : ""}`}
+            >
+              Home
+            </Link>
+            <Link
+              to="/products"
+              className={`nav-link ${isLinkActive("/products") ? "text-xforge-teal" : ""}`}
+            >
+              Products
+            </Link>
               <Link
-                key={link.path}
-                to={link.path}
-                className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""}`}
+                to="/news"
+                className={`nav-link ${isLinkActive("/news") ? "text-xforge-teal" : ""}`}
               >
-                {link.label}
+                News
               </Link>
-            ))}
           </nav>
 
           {/* Login/Sign Up Buttons or User Profile */}
@@ -195,12 +172,6 @@ const Header: React.FC = () => {
                       className="block px-4 py-2 text-white hover:bg-xforge-lightgray hover:text-xforge-teal"
                     >
                       Profile
-                    </Link>
-                    <Link
-                      to="/orders"
-                      className="block px-4 py-2 text-white hover:bg-xforge-lightgray hover:text-xforge-teal"
-                    >
-                      Orders
                     </Link>
                     <div className="border-t border-xforge-lightgray my-1"></div>
                     <button
@@ -263,16 +234,28 @@ const Header: React.FC = () => {
           )}
 
           <nav className="flex flex-col items-center space-y-6 text-lg">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Link
+              to="/home"
+              className={`nav-link ${isLinkActive("/home") ? "text-xforge-teal" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              to="/products"
+              className={`nav-link ${isLinkActive("/products") ? "text-xforge-teal" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Products
+            </Link>
+            <Link
+              to="/news"
+              className={`nav-link ${isLinkActive("/news") ? "text-xforge-teal" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              News
+            </Link>
+            
 
             {user && (
               <>
@@ -283,13 +266,7 @@ const Header: React.FC = () => {
                 >
                   My Profile
                 </Link>
-                <Link
-                  to="/orders"
-                  className="nav-link"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  My Orders
-                </Link>
+
               </>
             )}
           </nav>

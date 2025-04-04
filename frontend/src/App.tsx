@@ -9,13 +9,15 @@ import Layout from "./components/Layout";
 import Products from "./pages/Products";
 import AgeVerification from "./pages/AgeVerification";
 import AgeRestricted from "./pages/AgeRestricted";
-import Rewards from "./pages/Rewards";  {/* Import Rewards Page */}
+import Rewards from "./pages/Rewards";
+import PromoCode from "./pages/PromoCode";  // Import PromoCode Page
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import RetailersLanding from "./pages/RetailersLanding";
-import { NotificationsProvider } from "./context/NotificationsContext";  // Import NotificationsProvider
+import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailers
 import News from "./pages/News";
+import { NotificationsProvider } from "./context/NotificationsContext";
 
 const queryClient = new QueryClient();
 
@@ -27,14 +29,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <NotificationsProvider>  {/* Wrap the app with NotificationsProvider */}
+      <NotificationsProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AgeVerification />} />
             <Route path="/age-restricted" element={<AgeRestricted />} />
-
+            
             {/* Protected Routes */}
             <Route
               path="/home"
@@ -67,6 +69,16 @@ const App = () => (
               }
             />
             <Route
+              path="/promo-code"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <PromoCode />  
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/news"
               element={
                 <ProtectedRoute>
@@ -76,16 +88,37 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/retailers" element={<RetailersLanding />} />
-
-             {/* Admin routes */}
-             <Route path="/admin" element={<AdminLogin />} />
+            
+            {/* Retailer Routes */}
+            <Route
+              path="/retailers"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RetailersLanding />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ExclusiveNews"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ExclusiveNews />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Admin routes */}
+            <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={
               <AdminProtectedRoute>
                 <AdminDashboard />
               </AdminProtectedRoute>
-            } />  
-
+            } />
+              
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
