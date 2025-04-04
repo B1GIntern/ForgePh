@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema({
     {
       rewardsid: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Reward", // Reference to the Reward model
+        ref: "Reward",
         required: true,
       },
       rewardsname: {
@@ -62,16 +62,22 @@ const userSchema = new mongoose.Schema({
       },
     },
   ],
+  registrationDate: {
+    type: String,
+    default: () => {
+      const date = new Date();
+      return `${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}`;
+    },
+  },
 });
 
-// Method to generate authentication token - FIXED to use JWT_SECRET instead of SECRET_KEY
+// Method to generate authentication token
 userSchema.methods.generateAuthToken = function () {
   const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, {
     expiresIn: "24h",
   });
   return token;
 };
-const phoneRegex = /^\+?[1-9]\d{1,14}$/; // Example regex for international phone numbers
 
 // Validation schema
 const validateUser = (data) => {
@@ -93,6 +99,9 @@ const validateUser = (data) => {
       .label("User Type"),
     points: Joi.number().optional().default(325).label("Points"),
     verified: Joi.boolean().optional().default(false).label("Verified"),
+    registrationDate: Joi.string()
+      .pattern(/^\d{2}\/\d{2}\/\d{4}$/) // Match MM/DD/YYYY format
+      .label("Registration Date"),
   });
   return schema.validate(data);
 };

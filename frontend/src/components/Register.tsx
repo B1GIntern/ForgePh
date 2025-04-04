@@ -14,7 +14,9 @@ interface RegistrationData {
     city: string;
   };
   userType: string;
+  registrationDate: string; // Added registrationDate
 }
+
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -137,16 +139,18 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-
+  
     setIsSubmitting(true);
     setSubmitMessage({ text: "", type: "" });
-    try{
+    try {
+      const registrationDate = new Date().toLocaleDateString('en-GB'); // Format to DD-MM-YYYY
+  
       const submitData: RegistrationData = {
         name: formData.name,
         email: formData.email,
@@ -155,18 +159,19 @@ const Register: React.FC = () => {
         birthdate: formData.birthdate,
         location: formData.location,
         userType: formData.userType,
+        registrationDate: registrationDate, // Set the formatted date
       };
-
+  
       // Send data to the backend for account registration
       const response = await axios.post("/api/users/register", submitData); // Ensure the correct API path
-
+  
       // Handle successful registration
       setIsSubmitting(false);
       setSubmitMessage({
         text: "Account created successfully! Welcome to XForge.",
         type: "success",
       });
-
+  
       // Reset form after successful submission
       setFormData({
         name: "",
@@ -190,6 +195,7 @@ const Register: React.FC = () => {
       });
     }
   };
+  
   return (
     <section
       id="register"

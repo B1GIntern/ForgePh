@@ -3,7 +3,6 @@ const { User, validateUser } = require("../models/Users.js");
 const bcrypt = require("bcrypt");
 
 router.post("/register", async (req, res) => {
-  // Adjust endpoint
   try {
     const { error } = validateUser(req.body);
     if (error)
@@ -18,8 +17,13 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(Number(process.env.SALT));
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-    // Create and save the user
-    await new User({ ...req.body, password: hashedPassword }).save();
+    // Create and save the user with the registration date
+    await new User({
+      ...req.body,
+      password: hashedPassword,
+      registrationDate: new Date().toLocaleDateString("en-US"), // MM/DD/YYYY format
+    }).save();
+
     res.status(201).send({ message: "User Created Successfully" });
   } catch (error) {
     res.status(500).send({ message: "Internal Server Error In Creating User" });
