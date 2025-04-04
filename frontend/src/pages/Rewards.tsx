@@ -856,7 +856,6 @@ const handleRedeemReward = async (rewardId: string, rewardName: string, pointsRe
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };
