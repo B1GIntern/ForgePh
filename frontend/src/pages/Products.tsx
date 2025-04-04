@@ -9,15 +9,12 @@ import {
 } from "lucide-react";
 import image from "../assets/image.png";
 
-
-
-
 const flavorPods = [
   {
     id: 1,
     name: "B1G RED",
     description: "A vibrant and refreshing burst of sweet, sun-kissed energy.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GSparkle.png",
   },
   {
@@ -25,7 +22,7 @@ const flavorPods = [
     name: "B1G HEART",
     description:
       "A playful and smooth sensation that captures a sweet, lively essence.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GHeart.png",
   },
   {
@@ -40,7 +37,7 @@ const flavorPods = [
     name: "B1G FROST",
     description:
       "A cool, invigorating breeze that awakens and refreshes with a crisp clarity.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GFrost.png",
   },
   {
@@ -48,7 +45,7 @@ const flavorPods = [
     name: "B1G BLUE",
     description:
       "A calm, deep sensation that gently balances sweetness with a refreshing coolness.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GBlue.png",
   },
   {
@@ -64,7 +61,7 @@ const flavorPods = [
     name: "B1G PURPLE",
     description:
       "A rich, bold experience that evokes a sense of sophistication and indulgence.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GPurple.png",
   },
   {
@@ -80,7 +77,7 @@ const flavorPods = [
     name: "B1G BLACK",
     description:
       "A bold, intense sensation with a deep and slightly tart edge that lingers.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GBlack.png",
   },
   {
@@ -88,7 +85,7 @@ const flavorPods = [
     name: "B1G SPARKLE",
     description:
       "A bright, fizzy explosion of zest and zestful energy that tingles with excitement.",
-    color: "#02ECCF", 
+    color: "#02ECCF",
     image: "/images/B1GSparkle.png",
   },
 ];
@@ -165,7 +162,7 @@ const ProductsPage: React.FC = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="min-h-screen flex items-center justify-center relative overflow-hidden pt-24 pb-16">
+      <section className="min-h-[calc(100vh-64px)] pt-16 flex items-center justify-center relative overflow-hidden pb-16">
         <div className="absolute inset-0 bg-[#292929] -z-10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,236,207,0.1),transparent_70%)] -z-10"></div>
 

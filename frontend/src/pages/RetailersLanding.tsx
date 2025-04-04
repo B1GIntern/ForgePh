@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import Milestones from "@/components/Milestone";
 import TermsConditions from "@/components/TermsConditions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,9 +99,7 @@ const RetailersLanding: React.FC = () => {
                     <div className="text-white font-bold">12 people</div>
                   </div>
                 </div>
-                <Button className="w-full" onClick={() => navigate("/rewards")}>
-                  View Rewards
-                </Button>
+                
               </div>
             </div>
           </div>
@@ -159,7 +157,7 @@ const RetailersLanding: React.FC = () => {
         <TermsConditions />
       </main>
       
-      <Footer />
+      
     </div>
   );
 };
