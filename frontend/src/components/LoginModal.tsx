@@ -95,7 +95,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       // Show success message with username
       toast({
         title: "Login successful",
-        description: `Welcome back ${userData.name} to ForgePhilippines!`,
+        description: `Welcome back ${userData.name} to Forge Philippines!`,
       });
   
       onClose(); // Close the modal
