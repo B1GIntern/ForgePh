@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios"; // Make sure to install axios: npm install axios
 import LoginModal from "./LoginModal"; // Adjust the import path as needed
+import { Loader2, X, Eye, EyeOff } from "lucide-react"; // Import icons
 
 // Define the interface first
 interface RegistrationData {
@@ -33,10 +34,24 @@ const Register: React.FC = () => {
     agreeTerms: false,
   });
 
+  // Add states for password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [submitMessage, setSubmitMessage] = useState({ text: "", type: "" });
+
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // Toggle confirm password visibility
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -68,6 +83,7 @@ const Register: React.FC = () => {
     }
   };
 
+  // Rest of your functions unchanged...
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -408,22 +424,36 @@ const Register: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <div>
+                <div className="mb-4">
                   <label
                     htmlFor="password"
                     className="block mb-2 text-sm font-medium text-xforge-gray"
                   >
                     Password
                   </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    className={`input-field ${errors.password ? "border-red-500" : ""}`}
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      className={`input-field pr-10 ${errors.password ? "border-red-500" : ""}`}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleChange}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-xforge-teal hover:text-xforge-teal/80 focus:outline-none"
+                      onClick={togglePasswordVisibility}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="mt-1 text-sm text-red-400">
                       {errors.password}
@@ -431,28 +461,43 @@ const Register: React.FC = () => {
                   )}
                 </div>
 
-                <div>
+                <div className="mb-6">
                   <label
                     htmlFor="confirmPassword"
                     className="block mb-2 text-sm font-medium text-xforge-gray"
                   >
                     Confirm Password
                   </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    className={`input-field ${errors.confirmPassword ? "border-red-500" : ""}`}
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      className={`input-field pr-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-xforge-teal hover:text-xforge-teal/80 focus:outline-none"
+                      onClick={toggleConfirmPasswordVisibility}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                   {errors.confirmPassword && (
                     <p className="mt-1 text-sm text-red-400">
                       {errors.confirmPassword}
                     </p>
                   )}
                 </div>
+
                 <div className="mb-6">
                   <div className="flex items-start">
                     <div className="flex items-center h-5">
@@ -499,26 +544,7 @@ const Register: React.FC = () => {
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 mr-2 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Creating Account...
                     </span>
                   ) : (

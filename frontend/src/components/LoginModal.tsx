@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { Loader2, X, Eye, EyeOff } from "lucide-react";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -23,6 +22,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false); // Added state for password visibility
   const { toast } = useToast();
 
   if (!isOpen) return null;
@@ -43,7 +43,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
     
     try {
-      // Fixed endpoint path to match the backend router
       const response = await fetch("http://localhost:5001/api/auth/login", {
         method: "POST",
         headers: {
@@ -51,18 +50,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         },
         body: JSON.stringify({ email, password }),
       });
-      
-      // Error handling before parsing JSON
+
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = "Login failed";
         
         try {
-          // Try to parse as JSON in case it's a structured error
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
-          // If not JSON, use text or fallback
           errorMessage = errorText || errorMessage;
         }
         
@@ -71,9 +67,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   
       const data = await response.json();
   
-      // Store the user data and token
       const userData: User = {
-        id: data.user.id, // Use id instead of _id to match your interface
+        id: data.user.id,
         name: data.user.name,
         email: data.user.email,
         userType: data.user.userType,
@@ -81,34 +76,30 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       };
       const token = data.token;
   
-      // Store user data and token based on rememberMe
       if (rememberMe) {
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", token);
-        console.log("Stored Token in Local Storage:", token); // Log the token
+        console.log("Stored Token in Local Storage:", token);
       } else {
         sessionStorage.setItem("user", JSON.stringify(userData));
         sessionStorage.setItem("token", token);
-        console.log("Stored Token in Session Storage:", token); // Log the token
+        console.log("Stored Token in Session Storage:", token);
       }
   
-      // Show success message with username
       toast({
         title: "Login successful",
-        description: `Welcome back ${userData.name} to Forge Philippines!`,
+        description: `Welcome back ${userData.name} to ForgePhilippines!`,
       });
   
-      onClose(); // Close the modal
-      setEmail(""); // Reset email field
-      setPassword(""); // Reset password field
+      onClose();
+      setEmail("");
+      setPassword("");
   
-      // Replace this line in your handleLogin function:
-        if (userData.userType === "Retailer") {
-          window.location.href = "/retailers"; // Changed from "/RetailerLanding" to "/retailers"
-        } else {
-          // Default for Consumer
-          window.location.href = "/home";
-        }
+      if (userData.userType === "Retailer") {
+        window.location.href = "/retailers";
+      } else {
+        window.location.href = "/home";
+      }
   
     } catch (error) {
       console.error("Login error:", error);
@@ -118,7 +109,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false); // Stop loading state
+      setIsLoading(false);
     }
   };
 
@@ -152,15 +143,24 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           
           <div>
             <label htmlFor="password" className="block mb-2 text-xforge-gray">Password</label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="input-field"
-              required
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={passwordVisible ? "text" : "password"} // Toggle password visibility
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="input-field pr-10" // Add padding-right for the icon
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setPasswordVisible(!passwordVisible)} // Toggle password visibility
+                className="absolute top-1/2 right-3 transform -translate-y-1/2 text-xforge-gray"
+              >
+                {passwordVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
           
           <div className="flex justify-between items-center text-sm">
