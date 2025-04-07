@@ -1,14 +1,8 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
-}
 
 @layer base {
   :root {
@@ -95,4 +89,200 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
+
+  .glow {
+    box-shadow: 0 0 15px rgba(2, 236, 207, 0.4);
+  }
+  
+  /* Glass effect utility classes */
+  .glass-dark {
+    @apply bg-xforge-dark/80 backdrop-blur-lg border border-white/5;
+  }
+  
+  .glass-teal {
+    @apply bg-xforge-teal/10 backdrop-blur-lg border border-xforge-teal/20;
+  }
+  
+  /* 3D card effect */
+  .card-3d {
+    @apply transition-transform duration-300 perspective-1000;
+  }
+  
+  .card-3d:hover {
+    transform: translateY(-5px) rotateX(2deg) rotateY(2deg);
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2), 0 0 15px rgba(2, 236, 207, 0.2);
+  }
+  
+  /* Text gradient */
+  .text-gradient-teal {
+    @apply bg-gradient-to-r from-xforge-teal via-teal-400 to-xforge-teal bg-clip-text text-transparent;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes jackpot-flash {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-jackpot-flash {
+  animation: jackpot-flash 0.5s ease-in-out infinite;
+}
+
+.transition-transform {
+  transition-property: transform;
+}
+
+.duration-5000 {
+  transition-duration: 5000ms;
+}
+
+.ease-out {
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+.slot-reel {
+  transition: all 0.2s ease;
+}
+
+.slot-symbol {
+  transition: transform 0.3s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+}
+
+/* Add perspective for 3D effects */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Text hover effects */
+.hover-underline {
+  @apply relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-xforge-teal after:transition-all after:duration-300 hover:after:w-full;
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Fix for the error in AccountSettings.tsx */
+.prose {
+  @apply max-w-none;
+}
+
+.prose-lg {
+  @apply text-lg;
+}
+
+.prose-invert {
+  @apply text-white;
+}
+
+/* Memory Game Styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.card-inner {
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card-3d {
+  transition: all 0.3s;
+  transform-style: preserve-3d;
+}
+
+/* Animation for card matching */
+@keyframes cardMatch {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.card-matched {
+  animation: cardMatch 0.5s ease-in-out;
+}
+
+/* Float animation for background elements */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-light {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  opacity: 0.8;
 }
