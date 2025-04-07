@@ -653,7 +653,7 @@ const Rewards: React.FC = () => {
                     <Zap className="h-16 w-16 text-[#8B5CF6]" />
                   </div>
                   <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                    XForge Knowledge Quiz
+                    Forge Knowledge Quiz
                   </h3>
                   <p className="text-xforge-gray text-center max-w-md mb-8">
                     Test your knowledge about XForge products and earn points
