@@ -24,6 +24,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import AccountSettings from "./pages/AccountSettings";
 
 
 import { NotificationsProvider } from "./context/NotificationsContext";
@@ -98,7 +99,16 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            
+             <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AccountSettings />  
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
             {/* Retailer Routes */}
             <Route
               path="/retailers"

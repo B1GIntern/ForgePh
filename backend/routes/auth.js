@@ -44,16 +44,23 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Send response including token and user data
+    // Send response including token and all user data
     res.status(200).send({
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        phoneNumber: user.phoneNumber || "", // Ensure phoneNumber is included
+        location: {
+          province: user.location?.province || "", // Include province and city in location
+          city: user.location?.city || "",
+        },
         userType: user.userType,
         points: user.points,
         rewardsclaimed: user.rewardsclaimed || [],
+        birthdate: user.birthdate || "", // Include optional fields if they exist
+        registrationDate: user.registrationDate || "", // Include registrationDate if available
       },
       message: "Logged In Successfully",
     });
@@ -305,6 +312,36 @@ router.post("/redeem-reward", async (req, res) => {
     return res
       .status(500)
       .send({ message: "Internal Server Error", error: error.message });
+  }
+});
+// Fetch user information without authentication
+router.get("/me", async (req, res) => {
+  try {
+    // Fetch the user from the database (you can adjust the query based on your needs)
+    const user = await User.findOne(); // Adjust this if you want to fetch by a specific criterion
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    // Send the user details, including phoneNumber and location (province and city)
+    res.status(200).send({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        location: user.location, // Send full location object (province and city)
+        phoneNumber: user.phoneNumber, // Send phoneNumber field
+        birthdate: user.birthdate,
+        userType: user.userType,
+        points: user.points,
+        rewardsclaimed: user.rewardsclaimed,
+        registrationDate: user.registrationDate,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    res.status(500).send({ message: "Internal Server Error" });
   }
 });
 

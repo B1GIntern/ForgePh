@@ -13,9 +13,18 @@ interface User {
   id: string;
   name: string;
   email: string;
+  phoneNumber: string;  // Add phoneNumber field
+  location: {
+    province: string;  // Add province and city under location
+    city: string;
+  };
   userType: string;
   points: number;
+  rewardsclaimed: any[];  // Add rewardsclaimed field (use an array type)
+  birthdate?: string;  // Optional field for birthdate
+  registrationDate?: string;  // Optional field for registration date
 }
+
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState("");
@@ -71,9 +80,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         id: data.user.id,
         name: data.user.name,
         email: data.user.email,
+        phoneNumber: data.user.phoneNumber || "", // Ensure phoneNumber is included
+        location: {
+          province: data.user.location?.province || "",  // Include province and city in location
+          city: data.user.location?.city || ""
+        },
         userType: data.user.userType,
         points: data.user.points,
+        rewardsclaimed: data.user.rewardsclaimed || [],  // Ensure rewardsclaimed is included
+        birthdate: data.user.birthdate || "",  // Include birthdate if available
+        registrationDate: data.user.registrationDate || "",  // Include registrationDate if available
       };
+      
       const token = data.token;
   
       if (rememberMe) {
