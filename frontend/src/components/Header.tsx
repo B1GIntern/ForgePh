@@ -385,12 +385,6 @@ const Header: React.FC = () => {
                     >
                       Profile
                     </Link>
-                    <Link
-                      to="/orders"
-                      className="block px-4 py-2 text-white hover:bg-xforge-lightgray hover:text-xforge-teal"
-                    >
-                      Orders
-                    </Link>
                     <div className="border-t border-xforge-lightgray my-1"></div>
                     <button
                       onClick={openLogoutDialog}
@@ -442,6 +436,14 @@ const Header: React.FC = () => {
             isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
+          {/* Close Button */}
+          <button
+            className="absolute top-6 right-6 text-white text-3xl focus:outline-none"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            &times;
+          </button>
+          
           {user && (
             <div className="text-center text-white mb-6">
               <p>Welcome,</p>
@@ -482,13 +484,6 @@ const Header: React.FC = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   My Profile
-                </Link>
-                <Link
-                  to="/orders"
-                  className="nav-link"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  My Orders
                 </Link>
               </>
             )}
