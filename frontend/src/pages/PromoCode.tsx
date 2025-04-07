@@ -285,7 +285,7 @@ const PromoCodes: React.FC = () => {
               </div>
               <h3 className="text-white font-bold text-xl mb-3">Find a Promo Code</h3>
               <p className="text-xforge-gray">
-                Locate promo codes on product packaging, social media, or during XForge events.
+                Locate promo codes on product packaging, social media, or during ForgePh events.
               </p>
             </div>
             

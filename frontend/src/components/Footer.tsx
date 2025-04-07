@@ -5,7 +5,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-forge-dark text-white py-16">
+    <footer className="bg-forge-dark text-white py-16 relative z-5">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
           <div>
@@ -18,7 +18,7 @@ const Footer = () => {
             </p>
             <div className="flex justify-center md:justify-start space-x-4">
               <a
-                href="#"
+                href="https://www.facebook.com/XForgePh"
                 className="group text-white/70 hover:text-[#02ECCF] transition-all duration-300"
               >
                 <Facebook
