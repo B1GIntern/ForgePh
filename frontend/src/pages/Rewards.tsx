@@ -740,201 +740,213 @@ const Rewards: React.FC = () => {
           </div>
 
           {/* Rewards Grid */}
-          <div className="max-w-7xl mx-auto">
-            {expandedCategory === "all" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {allRewards.map((reward) => (
-                  <div
-                    key={reward._id}
-                    className="bg-gradient-to-br from-xforge-dark/90 to-[#141b22] rounded-xl overflow-hidden shadow-xl border border-white/5 transition-all duration-500 hover:shadow-xforge-teal/20 transform hover:scale-[1.02] card-3d p-6"
-                  >
-                    <h3 className="text-white font-bold text-xl mb-3">
-                      {reward.name}
-                    </h3>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-xforge-teal font-bold">
-                        {reward.pointsRequired} Points
-                      </span>
-                      <span className="text-xforge-gray">{reward.type}</span>
-                    </div>
-                    {/* Check if the user has claimed the reward */}
-                    {/* Check if the user has claimed the reward */}
-                    {user &&
-                    ((reward.UsersClaimed &&
-                      Array.isArray(reward.UsersClaimed) &&
-                      reward.UsersClaimed.some(
-                        (claim) => String(claim.userId) === String(user.id)
-                      )) ||
-                      (user.rewardsclaimed &&
-                        Array.isArray(user.rewardsclaimed) &&
-                        user.rewardsclaimed.some(
-                          (claimed) =>
-                            String(claimed.rewardsid) === String(reward._id)
-                        ))) ? (
-                      <button
-                        className="w-full py-3.5 rounded-lg font-bold bg-gray-600 text-white cursor-not-allowed"
-                        disabled
-                      >
-                        You Have Already Claimed This Reward
-                      </button>
-                    ) : (
-                      <button
-                        className={`w-full py-3.5 rounded-lg font-bold transition-all duration-300 ${
-                          currentPoints >= reward.pointsRequired
-                            ? "bg-gradient-to-r from-xforge-teal to-[#02c4af] text-xforge-dark hover:shadow-lg hover:shadow-xforge-teal/20"
-                            : "bg-xforge-dark/80 text-xforge-gray cursor-not-allowed border border-xforge-gray/20"
-                        }`}
-                        onClick={() =>
-                          handleRedeemReward(
-                            reward._id,
-                            reward.name,
-                            reward.pointsRequired
-                          )
-                        }
-                        disabled={currentPoints < reward.pointsRequired}
-                      >
-                        {currentPoints >= reward.pointsRequired
-                          ? "Redeem Reward"
-                          : `Need ${reward.pointsRequired - currentPoints} more points`}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <>
-                {rewardTypes
-                  .filter((type) => type.id === expandedCategory)
-                  .map((type) => (
-                    <div key={type.id}>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {allRewards
-                          .filter((reward) => reward.type === type.id) // Filter rewards based on type
-                          .map((reward) => (
-                            <div
-                              key={reward._id}
-                              className="bg-gradient-to-br from-xforge-dark/90 to-[#141b22] rounded-xl overflow-hidden shadow-xl border border-white/5 transition-all duration-500 hover:shadow-xforge-teal/20 transform hover:scale-[1.02] card-3d p-6"
-                            >
-                              <h3 className="text-white font-bold text-xl mb-3">
-                                {reward.name}
-                              </h3>
-                              <div className="flex items-center justify-between mb-4">
-                                <span className="text-xforge-teal font-bold">
-                                  {reward.pointsRequired} Points
-                                </span>
-                                <span className="text-xforge-gray">
-                                  {reward.type}
-                                </span>
-                              </div>
-                              {/* Check if the user has claimed the reward */}
-                              {/* Check if the user has claimed the reward */}
-                              {user &&
-                              ((reward.UsersClaimed &&
-                                Array.isArray(reward.UsersClaimed) &&
-                                reward.UsersClaimed.some(
-                                  (claim) =>
-                                    String(claim.userId) === String(user.id)
-                                )) ||
-                                (user.rewardsclaimed &&
-                                  Array.isArray(user.rewardsclaimed) &&
-                                  user.rewardsclaimed.some(
-                                    (claimed) =>
-                                      String(claimed.rewardsid) ===
-                                      String(reward._id)
-                                  ))) ? (
-                                <button
-                                  className="w-full py-3.5 rounded-lg font-bold bg-gray-600 text-white cursor-not-allowed"
-                                  disabled
-                                >
-                                  You Have Already Claimed This Reward
-                                </button>
-                              ) : (
-                                <button
-                                  className={`w-full py-3.5 rounded-lg font-bold transition-all duration-300 ${
-                                    currentPoints >= reward.pointsRequired
-                                      ? "bg-gradient-to-r from-xforge-teal to-[#02c4af] text-xforge-dark hover:shadow-lg hover:shadow-xforge-teal/20"
-                                      : "bg-xforge-dark/80 text-xforge-gray cursor-not-allowed border border-xforge-gray/20"
-                                  }`}
-                                  onClick={() =>
-                                    handleRedeemReward(
-                                      reward._id,
-                                      reward.name,
-                                      reward.pointsRequired
-                                    )
-                                  }
-                                  disabled={
-                                    currentPoints < reward.pointsRequired
-                                  }
-                                >
-                                  {currentPoints >= reward.pointsRequired
-                                    ? "Redeem Reward"
-                                    : `Need ${reward.pointsRequired - currentPoints} more points`}
-                                </button>
-                              )}
-                            </div>
-                          ))}
+            <div className="max-w-7xl mx-auto">
+              {expandedCategory === "all" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {allRewards.map((reward) => (
+                    <div
+                      key={reward._id}
+                      className="bg-gradient-to-br from-xforge-dark/90 to-[#141b22] rounded-xl overflow-hidden shadow-xl border border-white/5 transition-all duration-500 hover:shadow-xforge-teal/20 transform hover:scale-[1.02] card-3d p-6"
+                    >
+                      <h3 className="text-white font-bold text-xl mb-3">
+                        {reward.name}
+                      </h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-xforge-teal font-bold">
+                          {reward.pointsRequired} Points
+                        </span>
+                        <span className="text-xforge-gray">{reward.type}</span>
                       </div>
+                      
+                      {/* Check if the reward is out of stock */}
+                      {reward.stockAvailable <= 0 ? (
+                        <button
+                          className="w-full py-3.5 rounded-lg font-bold bg-gray-600 text-white cursor-not-allowed"
+                          disabled
+                        >
+                          Reward is Out of Stock
+                        </button>
+                      ) : user &&
+                        ((reward.UsersClaimed &&
+                          Array.isArray(reward.UsersClaimed) &&
+                          reward.UsersClaimed.some(
+                            (claim) => String(claim.userId) === String(user.id)
+                          )) ||
+                          (user.rewardsclaimed &&
+                            Array.isArray(user.rewardsclaimed) &&
+                            user.rewardsclaimed.some(
+                              (claimed) =>
+                                String(claimed.rewardsid) === String(reward._id)
+                            ))) ? (
+                        <button
+                          className="w-full py-3.5 rounded-lg font-bold bg-gray-600 text-white cursor-not-allowed"
+                          disabled
+                        >
+                          You Have Already Claimed This Reward
+                        </button>
+                      ) : (
+                        <button
+                          className={`w-full py-3.5 rounded-lg font-bold transition-all duration-300 ${
+                            currentPoints >= reward.pointsRequired
+                              ? "bg-gradient-to-r from-xforge-teal to-[#02c4af] text-xforge-dark hover:shadow-lg hover:shadow-xforge-teal/20"
+                              : "bg-xforge-dark/80 text-xforge-gray cursor-not-allowed border border-xforge-gray/20"
+                          }`}
+                          onClick={() =>
+                            handleRedeemReward(
+                              reward._id,
+                              reward.name,
+                              reward.pointsRequired
+                            )
+                          }
+                          disabled={currentPoints < reward.pointsRequired}
+                        >
+                          {currentPoints >= reward.pointsRequired
+                            ? "Redeem Reward"
+                            : `Need ${reward.pointsRequired - currentPoints} more points`}
+                        </button>
+                      )}
                     </div>
                   ))}
-              </>
-            )}
-          </div>
+                </div>
+              ) : (
+                <>
+                  {rewardTypes
+                    .filter((type) => type.id === expandedCategory)
+                    .map((type) => (
+                      <div key={type.id}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                          {allRewards
+                            .filter((reward) => reward.type === type.id) // Filter rewards based on type
+                            .map((reward) => (
+                              <div
+                                key={reward._id}
+                                className="bg-gradient-to-br from-xforge-dark/90 to-[#141b22] rounded-xl overflow-hidden shadow-xl border border-white/5 transition-all duration-500 hover:shadow-xforge-teal/20 transform hover:scale-[1.02] card-3d p-6"
+                              >
+                                <h3 className="text-white font-bold text-xl mb-3">
+                                  {reward.name}
+                                </h3>
+                                <div className="flex items-center justify-between mb-4">
+                                  <span className="text-xforge-teal font-bold">
+                                    {reward.pointsRequired} Points
+                                  </span>
+                                  <span className="text-xforge-gray">
+                                    {reward.type}
+                                  </span>
+                                </div>
+                                
+                                {/* Check if the reward is out of stock */}
+                                {reward.stockAvailable <= 0 ? (
+                                  <button
+                                    className="w-full py-3.5 rounded-lg font-bold bg-gray-600 text-white cursor-not-allowed"
+                                    disabled
+                                  >
+                                    Reward is Out of Stock
+                                  </button>
+                                ) : user &&
+                                  ((reward.UsersClaimed &&
+                                    Array.isArray(reward.UsersClaimed) &&
+                                    reward.UsersClaimed.some(
+                                      (claim) =>
+                                        String(claim.userId) === String(user.id)
+                                    )) ||
+                                    (user.rewardsclaimed &&
+                                      Array.isArray(user.rewardsclaimed) &&
+                                      user.rewardsclaimed.some(
+                                        (claimed) =>
+                                          String(claimed.rewardsid) ===
+                                          String(reward._id)
+                                      ))) ? (
+                                  <button
+                                    className="w-full py-3.5 rounded-lg font-bold bg-gray-600 text-white cursor-not-allowed"
+                                    disabled
+                                  >
+                                    You Have Already Claimed This Reward
+                                  </button>
+                                ) : (
+                                  <button
+                                    className={`w-full py-3.5 rounded-lg font-bold transition-all duration-300 ${
+                                      currentPoints >= reward.pointsRequired
+                                        ? "bg-gradient-to-r from-xforge-teal to-[#02c4af] text-xforge-dark hover:shadow-lg hover:shadow-xforge-teal/20"
+                                        : "bg-xforge-dark/80 text-xforge-gray cursor-not-allowed border border-xforge-gray/20"
+                                    }`}
+                                    onClick={() =>
+                                      handleRedeemReward(
+                                        reward._id,
+                                        reward.name,
+                                        reward.pointsRequired
+                                      )
+                                    }
+                                    disabled={
+                                      currentPoints < reward.pointsRequired
+                                    }
+                                  >
+                                    {currentPoints >= reward.pointsRequired
+                                      ? "Redeem Reward"
+                                      : `Need ${reward.pointsRequired - currentPoints} more points`}
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                </>
+              )}
+            </div>
         </div>
 
         {/* Rewards History Section */}
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
-              <span className="text-gradient-teal">Reward History</span>
-              <div className="h-px flex-grow bg-gradient-to-r from-xforge-teal/50 to-transparent"></div>
-            </h2>
-
-            {rewardsHistory.length > 0 ? (
-              <div className="bg-gradient-to-br from-xforge-dark/80 to-[#141b22] rounded-xl overflow-hidden shadow-lg border border-white/5 backdrop-blur-sm">
-                <div className="p-6 border-b border-white/10">
-                  <h3 className="text-white font-semibold">
-                    Recently Redeemed Rewards
-                  </h3>
-                </div>
-                <div className="divide-y divide-white/5">
-                  {rewardsHistory.map((reward) => (
-                    <div
-                      key={reward.id}
-                      className="p-6 hover:bg-white/5 transition-colors"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                          <h4 className="text-white font-medium">
-                            {reward.name}
-                          </h4>
-                          <div className="flex items-center text-xforge-gray text-sm mt-1">
-                            <Clock className="h-4 w-4 mr-1" />
-                            <span>
-                              {new Date(reward.date).toLocaleDateString()}
-                            </span>
+          <div className="container mx-auto px-4 py-16">
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span className="text-gradient-teal">Reward History</span>
+                <div className="h-px flex-grow bg-gradient-to-r from-xforge-teal/50 to-transparent"></div>
+              </h2>
+              {user && user.rewardsclaimed && user.rewardsclaimed.length > 0 ? (
+                <div className="bg-gradient-to-br from-xforge-dark/80 to-[#141b22] rounded-xl overflow-hidden shadow-lg border border-white/5 backdrop-blur-sm">
+                  <div className="p-6 border-b border-white/10">
+                    <h3 className="text-white font-semibold">
+                      Redeemed Rewards
+                    </h3>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {user.rewardsclaimed.map((reward) => {
+                      // Find the full reward details if available in allRewards
+                      const rewardDetails = allRewards.find(r => r._id === reward.rewardsid);
+                      
+                      return (
+                        <div
+                          key={reward.rewardsid}
+                          className="p-6 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                              <h4 className="text-white font-medium">
+                                {reward.rewardsname}
+                              </h4>
+                              {/* Since we don't have claimedAt, we're removing the date display */}
+                            </div>
+                            <div className="flex items-center bg-xforge-dark/60 px-4 py-2 rounded-lg border border-white/5">
+                              <Gift className="h-4 w-4 text-xforge-teal mr-2" />
+                              <span className="text-xforge-teal font-bold">
+                                {rewardDetails ? `${rewardDetails.pointsRequired} Points` : "Points info unavailable"}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center bg-xforge-dark/60 px-4 py-2 rounded-lg border border-white/5">
-                          <Gift className="h-4 w-4 text-xforge-teal mr-2" />
-                          <span className="text-xforge-teal font-bold">
-                            {reward.pointsCost} Points
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="bg-gradient-to-br from-xforge-dark/80 to-[#141b22] rounded-xl p-8 text-center border border-white/5 backdrop-blur-sm">
-                <p className="text-xforge-gray">
-                  You haven't redeemed any rewards yet. Start using your points
-                  today!
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="bg-gradient-to-br from-xforge-dark/80 to-[#141b22] rounded-xl p-8 text-center border border-white/5 backdrop-blur-sm">
+                  <p className="text-xforge-gray">
+                    You haven't redeemed any rewards yet. Start using your points today!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
         {/* FAQ Section */}
         <div className="container mx-auto px-4 py-16">
