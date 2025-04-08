@@ -126,7 +126,6 @@ const ShopsLeaderboard: React.FC = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };
