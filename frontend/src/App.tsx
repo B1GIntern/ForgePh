@@ -25,6 +25,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AccountSettings from "./pages/AccountSettings";
+import ShopsLeaderboard from "./pages/ShopsLeaderboard";
 
 
 import { NotificationsProvider } from "./context/NotificationsContext";
@@ -95,6 +96,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <News />  
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shops-leaderboard"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ShopsLeaderboard />  
                   </Layout>
                 </ProtectedRoute>
               }

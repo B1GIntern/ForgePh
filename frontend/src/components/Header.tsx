@@ -285,6 +285,7 @@ const Header: React.FC = () => {
         { path: "/retailers", label: "Home" },
         { path: "/products", label: "Products" },
         { path: "/ExclusiveNews", label: "News" },
+        { path: "/shops-leaderboard", label: "Shops Leaderboard" },
       ];
     }
 
@@ -295,6 +296,7 @@ const Header: React.FC = () => {
       { path: "/news", label: "News" },
       { path: "/rewards", label: "Rewards" },
       { path: "/promo-code", label: "Promo Code" },
+      { path: "/shops-leaderboard", label: "Shops Leaderboard" },
     ];
   };
 
@@ -343,12 +345,12 @@ const Header: React.FC = () => {
           {/* Login/Sign Up Buttons or User Profile */}
           {user ? (
             <div className="hidden md:flex items-center space-x-4">
-              <div className="text-white">
+              {/* <div className="text-white">
                 Welcome,{" "}
                 <span className="text-xforge-teal font-medium">
                   {user.name}
                 </span>
-              </div>
+              </div> */}
               <div className="bg-xforge-teal bg-opacity-20 text-xforge-teal px-3 py-1 rounded-full text-sm flex items-center">
                 <svg
                   className="w-4 h-4 mr-1"
