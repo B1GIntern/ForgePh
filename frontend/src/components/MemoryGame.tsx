@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Gift, Sparkles, Zap, Trophy, Target, 
-  Crown, CheckCircle, RotateCw
+  Crown, CheckCircle, RotateCw, StopCircle
 } from "lucide-react";
 import { useNotifications } from "@/context/NotificationsContext";
 import { toast } from "sonner";
@@ -213,6 +213,29 @@ const MemoryGame: React.FC = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
+  // Stop game function
+  const stopGame = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+    
+    // Show toast notification
+    toast.info("Game Stopped", {
+      description: "You can restart the game anytime!",
+      position: "top-center"
+    });
+    
+    // Reset game state
+    setGameStarted(false);
+    setCards([]);
+    setFlippedCards([]);
+    setMatchedPairs(0);
+    setMoves(0);
+    setTimer(0);
+    setIsGameCompleted(false);
+  };
+  
   // Clean up timer on component unmount
   useEffect(() => {
     return () => {
@@ -259,12 +282,19 @@ const MemoryGame: React.FC = () => {
           </div>
           
           {/* Game Controls */}
-          <div className="mb-6">
+          <div className="mb-6 flex gap-4">
             <button 
               onClick={initializeGame}
               className="flex items-center px-4 py-2 bg-xforge-dark/60 rounded-lg border border-white/10 text-xforge-gray hover:text-white transition-colors"
             >
               <RotateCw className="h-4 w-4 mr-2" /> Restart Game
+            </button>
+            
+            <button 
+              onClick={stopGame}
+              className="flex items-center px-4 py-2 bg-red-500/20 rounded-lg border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/30 transition-colors"
+            >
+              <StopCircle className="h-4 w-4 mr-2" /> Stop Game
             </button>
           </div>
           
