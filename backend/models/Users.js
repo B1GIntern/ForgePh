@@ -49,6 +49,16 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  userStatus: {
+    type: String,
+    enum: ["Not Verified", "Verified"],
+    default: "Not Verified",
+  },
+  rank: {
+    type: String,
+    enum: ["Bronze", "Silver", "Gold"],
+    default: "Bronze",
+  },
   rewardsclaimed: [
     {
       rewardsid: {
@@ -99,6 +109,16 @@ const validateUser = (data) => {
       .label("User Type"),
     points: Joi.number().optional().default(325).label("Points"),
     verified: Joi.boolean().optional().default(false).label("Verified"),
+    userStatus: Joi.string()
+      .valid("Not Verified", "Verified")
+      .optional()
+      .default("Not Verified")
+      .label("User Status"),
+    rank: Joi.string()
+      .valid("Bronze", "Silver", "Gold")
+      .optional()
+      .default("Bronze")
+      .label("Rank"),
     registrationDate: Joi.string()
       .pattern(/^\d{2}\/\d{2}\/\d{4}$/) // Match MM/DD/YYYY format
       .label("Registration Date"),

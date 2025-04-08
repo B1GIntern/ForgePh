@@ -17,11 +17,13 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(Number(process.env.SALT));
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-    // Create and save the user with the registration date
+    // Create and save the user with default rank and status
     await new User({
       ...req.body,
       password: hashedPassword,
       registrationDate: new Date().toLocaleDateString("en-US"), // MM/DD/YYYY format
+      rank: "Bronze", // Default rank
+      userStatus: "Not Verified", // Default user status
     }).save();
 
     res.status(201).send({ message: "User Created Successfully" });
@@ -29,6 +31,7 @@ router.post("/register", async (req, res) => {
     res.status(500).send({ message: "Internal Server Error In Creating User" });
   }
 });
+
 // Fetch Top 50 Retailers by Points (Using userId)
 router.get("/top-retailers", async (req, res) => {
   try {

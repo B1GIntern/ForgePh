@@ -15,7 +15,9 @@ interface RegistrationData {
     city: string;
   };
   userType: string;
-  registrationDate: string; // Added registrationDate
+  registrationDate: string;
+  rank: string; // New: User's rank (default: "Bronze")
+  userStatus: string; // New: User's status (default: "Not Verified")
 }
 
 const Register: React.FC = () => {
@@ -164,8 +166,9 @@ const Register: React.FC = () => {
   
     setIsSubmitting(true);
     setSubmitMessage({ text: "", type: "" });
+  
     try {
-      const registrationDate = new Date().toLocaleDateString('en-GB'); // Format to DD-MM-YYYY
+      const registrationDate = new Date().toLocaleDateString("en-GB"); // Format to DD-MM-YYYY
   
       const submitData: RegistrationData = {
         name: formData.name,
@@ -176,6 +179,8 @@ const Register: React.FC = () => {
         location: formData.location,
         userType: formData.userType,
         registrationDate: registrationDate, // Set the formatted date
+        rank: "Bronze", // Default rank
+        userStatus: "Not Verified", // Default user status
       };
   
       // Send data to the backend for account registration
