@@ -456,7 +456,7 @@ const Rewards: React.FC = () => {
                 <Trophy className="h-6 w-6 text-xforge-teal animate-pulse-light" />
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-xforge-teal to-[#02c4af]">
-                XForge Rewards Hub
+                FORGE Rewards Hub
               </h1>
               <p className="text-xforge-gray max-w-2xl mx-auto">
                 Play games, earn points, and redeem exclusive XForge products
@@ -502,7 +502,7 @@ const Rewards: React.FC = () => {
                   </div>
 
                   {/* Points Earning Methods */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+                  {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
                     <div className="bg-xforge-dark/60 backdrop-blur-sm p-5 rounded-xl text-center border border-xforge-teal/10 hover:border-xforge-teal/30 transition-all duration-300 transform hover:-translate-y-1 card-3d">
                       <div className="w-12 h-12 bg-xforge-teal/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Tag className="h-5 w-5 text-xforge-teal" />
@@ -535,7 +535,7 @@ const Rewards: React.FC = () => {
                       <p className="text-white font-medium mb-1">Daily Login</p>
                       <p className="text-xforge-gray text-sm">5 Points/Day</p>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Animated Background Elements */}
