@@ -344,7 +344,102 @@ router.get("/me", async (req, res) => {
     res.status(500).send({ message: "Internal Server Error" });
   }
 });
+// Email verification endpoint
+router.get("/verify/:userId/:token", async (req, res) => {
+  try {
+    // Find user by ID
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(400).send({ message: "Invalid verification link" });
+    }
 
+    // Find token
+    const token = await Token.findOne({
+      userId: user._id,
+      token: req.params.token,
+    });
+
+    if (!token) {
+      return res.status(400).send({
+        message:
+          "Invalid or expired verification link. Please request a new one.",
+      });
+    }
+
+    // Update user's verification status
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          verified: true,
+          userStatus: "Verified",
+        },
+      }
+    );
+
+    // Delete the token after verification
+    await Token.findByIdAndDelete(token._id);
+
+    // Redirect to frontend with success message
+    res.redirect(`${process.env.FRONTEND_URL}/verification-success`);
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).send({ message: "Internal Server Error" });
+  }
+});
+
+// Resend verification email endpoint
+router.post("/resend-verification", async (req, res) => {
+  try {
+    // Check if email was provided
+    if (!req.body.email) {
+      return res.status(400).send({ message: "Email is required" });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) {
+      return res
+        .status(400)
+        .send({ message: "User with this email doesn't exist" });
+    }
+
+    // Check if already verified
+    if (user.verified) {
+      return res.status(400).send({ message: "Email already verified" });
+    }
+
+    // Delete any existing tokens
+    await Token.deleteMany({ userId: user._id });
+
+    // Create new verification token
+    const token = await new Token({
+      userId: user._id,
+      token: crypto.randomBytes(32).toString("hex"),
+    }).save();
+
+    // Generate verification link
+    const verificationLink = `${process.env.BASE_URL}/api/auth/verify/${user._id}/${token.token}`;
+
+    // Send verification email
+    const emailSent = await sendVerificationEmail(user.email, verificationLink);
+
+    if (emailSent) {
+      return res.status(200).send({
+        message:
+          "Verification email sent successfully! Please check your inbox.",
+      });
+    } else {
+      return res.status(500).send({
+        message:
+          "We couldn't send a verification email. Please try again later.",
+      });
+    }
+  } catch (error) {
+    console.error("Resend verification error:", error);
+    res.status(500).send({ message: "Internal Server Error" });
+  }
+});
 // Method to initialize Socket.IO - attached to the router object
 router.initializeSocketIO = (socketIO) => {
   io = socketIO;

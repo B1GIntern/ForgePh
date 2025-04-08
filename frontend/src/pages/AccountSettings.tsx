@@ -21,6 +21,7 @@ interface User {
     province: string;
     city: string;
   };
+  userStatus: string;  // Add userStatus field to track the user's verification status
   birthdate?: string;
   points?: number;
   rewardsclaimed?: number;
@@ -35,7 +36,6 @@ const AccountSettings: React.FC = () => {
   const [errorNotificationShown, setErrorNotificationShown] = useState(false);
 
 
-  // User profile state
   const [profile, setProfile] = useState<User>({
     id: "",
     name: "",
@@ -45,7 +45,8 @@ const AccountSettings: React.FC = () => {
     location: {
       province: "",
       city: "",
-    }
+    },
+    userStatus: "Not Verified", // Default value
   });
 
   // Security settings state
@@ -76,6 +77,7 @@ const AccountSettings: React.FC = () => {
           phoneNumber: parsedUser.phoneNumber || "",
           userType: parsedUser.userType,
           location: parsedUser.location || { province: "", city: "" },
+          userStatus: parsedUser.userStatus || "Not Verified",  // Include userStatus from parsedUser
           birthdate: parsedUser.birthdate,
           points: parsedUser.points,
           rewardsclaimed: parsedUser.rewardsclaimed,
@@ -117,7 +119,9 @@ const AccountSettings: React.FC = () => {
           birthdate: user.birthdate,
           points: user.points,
           rewardsclaimed: user.rewardsclaimed,
-          registrationDate: user.registrationDate
+          registrationDate: user.registrationDate,
+          userStatus: parsedUser.userStatus || "Not Verified" // Include userStatus from parsedUser
+
         };
   
         setProfile(updatedUser);
@@ -166,6 +170,38 @@ const AccountSettings: React.FC = () => {
         type: "system"
       });
     }, 1500);
+  };
+  // Handle email verification
+  const handleVerifyEmail = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:5001/api/emailverification/sendVerificationEmail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: profile.email }),  // Use the profile's email
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json(); // Capture any error response from the backend
+        throw new Error(errorData.message || "Failed to send verification email");
+      }
+  
+      addNotification({
+        title: "Verification Email Sent",
+        message: "A verification email has been sent. Please check your inbox.",
+        type: "system",
+      });
+    } catch (error) {
+      addNotification({
+        title: "Error",
+        message: error.message,
+        type: "system",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -415,66 +451,28 @@ const AccountSettings: React.FC = () => {
                             <Label className="text-white">Two-Factor Authentication</Label>
                             <p className="text-sm text-xforge-gray">Add an extra layer of security to your account</p>
                           </div>
-                          <Switch 
+                          <Switch
                             checked={security.twoFactorAuth}
-                            onCheckedChange={(checked) => setSecurity({...security, twoFactorAuth: checked})}
+                            onCheckedChange={(checked) => setSecurity({ ...security, twoFactorAuth: checked })}
                             className="data-[state=checked]:bg-xforge-teal"
                           />
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="text-white">Remember This Device</Label>
-                            <p className="text-sm text-xforge-gray">Stay logged in on this device</p>
-                          </div>
-                          <Switch 
-                            checked={security.rememberDevice}
-                            onCheckedChange={(checked) => setSecurity({...security, rememberDevice: checked})}
-                            className="data-[state=checked]:bg-xforge-teal"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label className="text-white">Password Expiry</Label>
-                          <p className="text-sm text-xforge-gray mb-2">Choose how often you want to reset your password</p>
-                          <div className="flex flex-wrap gap-3">
-                            <Button 
-                              type="button" 
-                              variant="outline"
-                              className={`border-xforge-teal ${security.passwordExpiry === "30days" ? "bg-xforge-teal text-xforge-dark" : "bg-transparent text-xforge-teal"}`}
-                              onClick={() => setSecurity({...security, passwordExpiry: "30days"})}
+
+                        {/* Show this button only if the user is "Not Verified" */}
+                        {profile.userStatus === "Not Verified" && (
+                          <div className="pt-4 border-t border-xforge-teal/10">
+                            <Button
+                              onClick={handleVerifyEmail}
+                              disabled={loading}
+                              className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"
                             >
-                              30 Days
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="outline"
-                              className={`border-xforge-teal ${security.passwordExpiry === "60days" ? "bg-xforge-teal text-xforge-dark" : "bg-transparent text-xforge-teal"}`}
-                              onClick={() => setSecurity({...security, passwordExpiry: "60days"})}
-                            >
-                              60 Days
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="outline"
-                              className={`border-xforge-teal ${security.passwordExpiry === "90days" ? "bg-xforge-teal text-xforge-dark" : "bg-transparent text-xforge-teal"}`}
-                              onClick={() => setSecurity({...security, passwordExpiry: "90days"})}
-                            >
-                              90 Days
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="outline"
-                              className={`border-xforge-teal ${security.passwordExpiry === "never" ? "bg-xforge-teal text-xforge-dark" : "bg-transparent text-xforge-teal"}`}
-                              onClick={() => setSecurity({...security, passwordExpiry: "never"})}
-                            >
-                              Never
+                              {loading ? "Sending Verification..." : "Verify Email"}
                             </Button>
                           </div>
-                        </div>
-                        
+                        )}
+
                         <div className="pt-4 border-t border-xforge-teal/10">
-                          <Button 
+                          <Button
                             onClick={handleSecurityUpdate}
                             disabled={loading}
                             className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"

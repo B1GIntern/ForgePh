@@ -10,6 +10,7 @@ const jwt = require("jsonwebtoken");
 const userRoutes = require("./routes/users.js");
 const authRoutes = require("./routes/auth");
 const { User } = require("./models/Users.js");
+const emailVerificationRoutes = require("./routes/emailverification"); // Update the path if necessary
 
 console.log(crypto.randomBytes(64).toString("hex"));
 
@@ -68,6 +69,7 @@ app.use(cors());
 // Define routes
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/emailverification", emailVerificationRoutes); // This will prefix all routes in emailVerification.js with /api/auth
 
 // Initialize Socket.IO in auth routes
 authRoutes.initializeSocketIO(io);

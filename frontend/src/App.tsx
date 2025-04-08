@@ -25,7 +25,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AccountSettings from "./pages/AccountSettings";
-
+import VerificationSuccess from "./pages/VerificationSucess";
+import VerificationFailed from "./pages/VerificationFailed";
 
 import { NotificationsProvider } from "./context/NotificationsContext";
 
@@ -47,7 +48,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<AgeVerification />} />
             <Route path="/age-restricted" element={<AgeRestricted />} />
-            
+            <Route path="/verification-failed" element={<VerificationFailed />} />
+            <Route path="/verification-success" element={<VerificationSuccess />} />
+
             {/* Protected Routes */}
             <Route
               path="/home"
@@ -130,7 +133,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            
+
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={
