@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Smartphone, Bike, Gift, Award, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -8,7 +8,6 @@ import { useNotifications } from "@/context/NotificationsContext";
 type Prize = {
   id: number;
   name: string;
-  icon: React.ReactNode;
   color: string;
   probability: number;
   type: 'minor' | 'major' | 'final';
@@ -39,16 +38,16 @@ const SpinWheel: React.FC = () => {
   const { addNotification } = useNotifications();
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  // Define wheel prizes
+  // Define wheel prizes (removed icons)
   const prizes: Prize[] = [
-    { id: 1, name: "25 Points", icon: <Gift className="h-6 w-6" />, color: "#f97316", probability: 0.28, type: 'minor', value: "25 Points" },
-    { id: 2, name: "XForge Bike", icon: <Bike className="h-6 w-6" />, color: "#8b5cf6", probability: 0.05, type: 'major', value: "XForge Bike" },
-    { id: 3, name: "50 Points", icon: <Gift className="h-6 w-6" />, color: "#06b6d4", probability: 0.18, type: 'minor', value: "50 Points" },
-    { id: 4, name: "iPhone 16", icon: <Smartphone className="h-6 w-6" />, color: "#ec4899", probability: 0.01, type: 'final', value: "iPhone 16" },
-    { id: 5, name: "10 Points", icon: <Gift className="h-6 w-6" />, color: "#84cc16", probability: 0.32, type: 'minor', value: "10 Points" },
-    { id: 6, name: "75 Points", icon: <Gift className="h-6 w-6" />, color: "#eab308", probability: 0.09, type: 'minor', value: "75 Points" },
-    { id: 7, name: "2x Multiplier", icon: <div className="text-white font-bold text-sm">2x</div>, color: "#f43f5e", probability: 0.05, type: 'minor', value: "2x Points Multiplier", multiplier: 2 },
-    { id: 8, name: "3x Multiplier", icon: <div className="text-white font-bold text-sm">3x</div>, color: "#d946ef", probability: 0.02, type: 'minor', value: "3x Points Multiplier", multiplier: 3 },
+    { id: 1, name: "25 Points", color: "#f97316", probability: 0.28, type: 'minor', value: "25 Points" },
+    { id: 2, name: "XForge Bike", color: "#8b5cf6", probability: 0.05, type: 'major', value: "XForge Bike" },
+    { id: 3, name: "50 Points", color: "#06b6d4", probability: 0.18, type: 'minor', value: "50 Points" },
+    { id: 4, name: "iPhone 16", color: "#ec4899", probability: 0.01, type: 'final', value: "iPhone 16" },
+    { id: 5, name: "10 Points", color: "#84cc16", probability: 0.32, type: 'minor', value: "10 Points" },
+    { id: 6, name: "75 Points", color: "#eab308", probability: 0.09, type: 'minor', value: "75 Points" },
+    { id: 7, name: "2x Multiplier", color: "#f43f5e", probability: 0.05, type: 'minor', value: "2x Points Multiplier", multiplier: 2 },
+    { id: 8, name: "3x Multiplier", color: "#d946ef", probability: 0.02, type: 'minor', value: "3x Points Multiplier", multiplier: 3 },
   ];
 
   // Check and update remaining spins daily
@@ -144,6 +143,9 @@ const SpinWheel: React.FC = () => {
     setShowResult(false);
   };
 
+  // Calculate slice angle
+  const sliceAngle = 360 / prizes.length;
+
   return (
     <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4">
       <div className="text-center mb-8">
@@ -173,40 +175,89 @@ const SpinWheel: React.FC = () => {
         {/* Prize wheel */}
         <div 
           ref={wheelRef}
-          className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-gradient-to-br from-xforge-dark to-xforge-darkgray border-4 border-xforge-teal/30 shadow-lg transform transition-transform duration-5000 ease-out flex items-center justify-center overflow-hidden"
+          className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-4 border-xforge-teal/30 shadow-lg transform transition-transform duration-5000 ease-out"
           style={{ transform: `rotate(${rotation}deg)` }}
         >
-          {prizes.map((prize, index) => {
-            const rotation = (index * (360 / prizes.length));
-            const skew = 90 - (360 / prizes.length);
+          {/* Create SVG wheel with proper pie slices */}
+          <svg className="w-full h-full" viewBox="0 0 100 100">
+            {/* Create the pie slices */}
+            {prizes.map((prize, index) => {
+              // Calculate slice angles
+              const startAngle = index * sliceAngle;
+              const endAngle = startAngle + sliceAngle;
+              
+              // Convert to radians
+              const startRad = (startAngle - 90) * (Math.PI / 180);
+              const endRad = (endAngle - 90) * (Math.PI / 180);
+              
+              // Calculate points
+              const x1 = 50 + 50 * Math.cos(startRad);
+              const y1 = 50 + 50 * Math.sin(startRad);
+              const x2 = 50 + 50 * Math.cos(endRad);
+              const y2 = 50 + 50 * Math.sin(endRad);
+              
+              // Calculate midpoint for text positioning (moved outward a bit)
+              const midAngleRad = ((startAngle + endAngle) / 2 - 90) * (Math.PI / 180);
+              const textPathRadius = 35; // Distance from center for text path
+              
+              // Create a path for the slice
+              const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+              const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+              
+              // Create a circular path for the text to follow
+              const textPathId = `textPath-${prize.id}`;
+              const textArcStart = 50 + textPathRadius * Math.cos(startRad);
+              const textArcStartY = 50 + textPathRadius * Math.sin(startRad);
+              const textArcEnd = 50 + textPathRadius * Math.cos(endRad);
+              const textArcEndY = 50 + textPathRadius * Math.sin(endRad);
+              
+              // Create the text path (partial arc for this slice)
+              const textPathD = `M ${textArcStart} ${textArcStartY} A ${textPathRadius} ${textPathRadius} 0 ${largeArcFlag} 1 ${textArcEnd} ${textArcEndY}`;
+              
+              return (
+                <g key={prize.id}>
+                  <path
+                    d={path}
+                    fill={prize.color}
+                    stroke="white"
+                    strokeWidth="0.5"
+                  />
+                  
+                  {/* Define the path that text will follow */}
+                  <path
+                    id={textPathId}
+                    d={textPathD}
+                    fill="none"
+                    stroke="none"
+                  />
+                  
+                  {/* Text that follows the path */}
+                  <text 
+                    fill="white" 
+                    fontSize="3.5"
+                    fontWeight="bold"
+                    dominantBaseline="middle"
+                    textAnchor="middle"
+                  >
+                    <textPath 
+                      href={`#${textPathId}`} 
+                      startOffset="50%"
+                    >
+                      {prize.name}
+                    </textPath>
+                  </text>
+                </g>
+              );
+            })}
             
-            return (
-              <div 
-                key={prize.id}
-                className="absolute w-full h-full origin-center"
-                style={{ transform: `rotate(${rotation}deg)` }}
-              >
-                <div 
-                  className="absolute w-1/2 h-full right-0 origin-left flex items-center justify-center"
-                  style={{ 
-                    transform: `skew(${skew}deg)`,
-                    background: prize.color,
-                    clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)'
-                  }}
-                >
-                  <div className="absolute top-8 left-4 transform -rotate-[calc(var(--rotation)+var(--skew))] text-white" 
-                       style={{ "--rotation": `${rotation}deg`, "--skew": `${skew}deg` } as React.CSSProperties}>
-                    {prize.icon}
-                  </div>
-                </div>
+            {/* Center circle */}
+            <circle cx="50" cy="50" r="12" fill="#06b6d4" />
+            <foreignObject x="40" y="40" width="20" height="20">
+              <div className="flex items-center justify-center w-full h-full">
+                <Sparkles className="text-xforge-dark h-full w-full" />
               </div>
-            );
-          })}
-          
-          {/* Center of wheel */}
-          <div className="absolute w-16 h-16 rounded-full bg-xforge-teal z-10 flex items-center justify-center shadow-md">
-            <Sparkles className="text-xforge-dark h-8 w-8" />
-          </div>
+            </foreignObject>
+          </svg>
         </div>
         
         <Button
@@ -237,7 +288,7 @@ const SpinWheel: React.FC = () => {
           {selectedPrize && (
             <div className="py-6 flex flex-col items-center">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4`} style={{ background: selectedPrize.color }}>
-                {selectedPrize.icon}
+                <span className="text-white font-bold">{selectedPrize.name}</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">{selectedPrize.name}</h3>
               {selectedPrize.type === 'minor' && !selectedPrize.multiplier && (

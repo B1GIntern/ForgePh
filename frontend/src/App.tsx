@@ -10,7 +10,6 @@ import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 
 
-
 // Pages
 import RetailersLanding from "./pages/RetailersLanding";
 import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailers

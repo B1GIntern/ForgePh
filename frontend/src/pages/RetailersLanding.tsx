@@ -54,7 +54,7 @@ const RetailersLanding: React.FC = () => {
   // Fetch user data function
   const fetchUserData = async () => {
     try {
-      setLoading(true);
+      setLoading(true); 
       // Get auth token from storage
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
