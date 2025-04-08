@@ -448,10 +448,10 @@ const Header: React.FC = () => {
 
           {user && (
             <div className="text-center text-white mb-6">
-              <p>Welcome,</p>
+              {/* <p>Welcome,</p>
               <p className="text-xforge-teal font-medium text-lg">
                 {user.name}
-              </p>
+              </p> */}
               <div className="bg-xforge-teal bg-opacity-20 text-xforge-teal px-3 py-1 rounded-full text-sm flex items-center justify-center mx-auto mt-2 w-fit">
                 <svg
                   className="w-4 h-4 mr-1"
