@@ -438,7 +438,7 @@ const News: React.FC = () => {
                 {/* Dramatic headline with gradient effect */}
                 <h1 className="relative text-5xl md:text-6xl lg:text-7xl font-bold mb-8 tracking-tight leading-tight">
                   <span className="bg-gradient-to-br from-white via-white to-xforge-teal bg-clip-text text-transparent">
-                    XForge Innovation Hub
+                    ForgePh Innovation Hub
                   </span>
                   <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-36 h-1 bg-gradient-to-r from-transparent via-xforge-teal to-transparent"></div>
                 </h1>
@@ -498,7 +498,7 @@ const News: React.FC = () => {
 
                   <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 leading-tight group-hover:text-xforge-teal transition-colors duration-300">
                     <span className="bg-gradient-to-r from-white to-xforge-gray bg-clip-text text-transparent">
-                      XForge Introduces Revolutionary New <br />
+                      ForgePh Introduces Revolutionary New <br />
                       Flavor Technology
                     </span>
                   </h2>
@@ -516,7 +516,7 @@ const News: React.FC = () => {
                     </div>
                     <div className="flex items-center glass-dark backdrop-blur-xl px-4 py-2 rounded-full">
                       <User className="h-4 w-4 mr-2 text-xforge-teal" />
-                      <span className="text-white">XForge Research Team</span>
+                      <span className="text-white">ForgePh Research Team</span>
                     </div>
                   </div>
 
@@ -527,7 +527,7 @@ const News: React.FC = () => {
                         title:
                           "XForge Introduces Revolutionary New Flavor Technology",
                         date: "July 2, 2023",
-                        author: "XForge Research Team",
+                        author: "ForgePh Research Team",
                         category: "Technology",
                         image:
                           "https://placehold.co/1200x600/292929/02ECCF?text=XForge+Featured+News",

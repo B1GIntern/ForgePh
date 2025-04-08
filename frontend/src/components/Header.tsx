@@ -285,6 +285,7 @@ const Header: React.FC = () => {
         { path: "/retailers", label: "Home" },
         { path: "/products", label: "Products" },
         { path: "/ExclusiveNews", label: "News" },
+        { path: "/shops-leaderboard", label: "Shops Leaderboard" },
       ];
     }
 
@@ -295,6 +296,7 @@ const Header: React.FC = () => {
       { path: "/news", label: "News" },
       { path: "/rewards", label: "Rewards" },
       { path: "/promo-code", label: "Promo Code" },
+      { path: "/shops-leaderboard", label: "Shops Leaderboard" },
     ];
   };
 
@@ -343,12 +345,12 @@ const Header: React.FC = () => {
           {/* Login/Sign Up Buttons or User Profile */}
           {user ? (
             <div className="hidden md:flex items-center space-x-4">
-              <div className="text-white">
+              {/* <div className="text-white">
                 Welcome,{" "}
                 <span className="text-xforge-teal font-medium">
                   {user.name}
                 </span>
-              </div>
+              </div> */}
               <div className="bg-xforge-teal bg-opacity-20 text-xforge-teal px-3 py-1 rounded-full text-sm flex items-center">
                 <svg
                   className="w-4 h-4 mr-1"
@@ -358,7 +360,7 @@ const Header: React.FC = () => {
                 >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
                 </svg>
-                <span>{user.points} Points</span>
+                <span>{user.points.toLocaleString()} Points</span>
               </div>
               <div className="relative group">
                 <button className="btn btn-outline flex items-center">
@@ -443,7 +445,7 @@ const Header: React.FC = () => {
           >
             &times;
           </button>
-          
+
           {user && (
             <div className="text-center text-white mb-6">
               <p>Welcome,</p>

@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import AccountSettings from "./pages/AccountSettings";
 import VerificationSuccess from "./pages/VerificationSucess";
 import VerificationFailed from "./pages/VerificationFailed";
+import ShopsLeaderboard from "./pages/ShopsLeaderboard";
 
 import { NotificationsProvider } from "./context/NotificationsContext";
 
@@ -98,6 +99,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <News />  
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shops-leaderboard"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ShopsLeaderboard />  
                   </Layout>
                 </ProtectedRoute>
               }

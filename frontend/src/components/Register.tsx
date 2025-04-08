@@ -55,10 +55,13 @@ const Register: React.FC = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
 
-    const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
+    const checked =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
 
     if (name.startsWith("location.")) {
       const locKey = name.split(".")[1];
@@ -157,19 +160,19 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-  
+
     setIsSubmitting(true);
     setSubmitMessage({ text: "", type: "" });
-  
+
     try {
       const registrationDate = new Date().toLocaleDateString("en-GB"); // Format to DD-MM-YYYY
-  
+
       const submitData: RegistrationData = {
         name: formData.name,
         email: formData.email,
@@ -182,17 +185,17 @@ const Register: React.FC = () => {
         rank: "Bronze", // Default rank
         userStatus: "Not Verified", // Default user status
       };
-  
+
       // Send data to the backend for account registration
       const response = await axios.post("/api/users/register", submitData); // Ensure the correct API path
-  
+
       // Handle successful registration
       setIsSubmitting(false);
       setSubmitMessage({
         text: "Account created successfully! Welcome to XForge.",
         type: "success",
       });
-  
+
       // Reset form after successful submission
       setFormData({
         name: "",
@@ -216,7 +219,7 @@ const Register: React.FC = () => {
       });
     }
   };
-  
+
   return (
     <section
       id="register"
@@ -372,7 +375,7 @@ const Register: React.FC = () => {
                     <select
                       id="userType"
                       name="userType"
-                      className={`input-field ${errors.userType ? "border-red-500" : ""}`}
+                      className={`input-field ${errors.userType ? "border-red-500" : ""} focus:bg-gray-200 focus:border-xforge-teal focus:text-black`}
                       value={formData.userType}
                       onChange={handleChange}
                     >
@@ -450,7 +453,9 @@ const Register: React.FC = () => {
                       type="button"
                       className="absolute inset-y-0 right-0 flex items-center px-3 text-xforge-teal hover:text-xforge-teal/80 focus:outline-none"
                       onClick={togglePasswordVisibility}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? (
                         <EyeOff className="w-5 h-5" />
@@ -487,7 +492,9 @@ const Register: React.FC = () => {
                       type="button"
                       className="absolute inset-y-0 right-0 flex items-center px-3 text-xforge-teal hover:text-xforge-teal/80 focus:outline-none"
                       onClick={toggleConfirmPasswordVisibility}
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showConfirmPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="w-5 h-5" />
