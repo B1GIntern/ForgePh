@@ -13,16 +13,18 @@ interface User {
   id: string;
   name: string;
   email: string;
-  phoneNumber: string;  // Add phoneNumber field
+  phoneNumber: string;
   location: {
-    province: string;  // Add province and city under location
+    province: string;
     city: string;
   };
   userType: string;
   points: number;
-  rewardsclaimed: any[];  // Add rewardsclaimed field (use an array type)
-  birthdate?: string;  // Optional field for birthdate
-  registrationDate?: string;  // Optional field for registration date
+  rewardsclaimed: any[];
+  birthdate?: string;
+  registrationDate?: string;
+  userStatus: string; // Add userStatus field
+  rank?: string;      // Add rank field too if needed
 }
 
 
@@ -80,16 +82,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         id: data.user.id,
         name: data.user.name,
         email: data.user.email,
-        phoneNumber: data.user.phoneNumber || "", // Ensure phoneNumber is included
+        phoneNumber: data.user.phoneNumber || "",
         location: {
-          province: data.user.location?.province || "",  // Include province and city in location
+          province: data.user.location?.province || "",
           city: data.user.location?.city || ""
         },
         userType: data.user.userType,
         points: data.user.points,
-        rewardsclaimed: data.user.rewardsclaimed || [],  // Ensure rewardsclaimed is included
-        birthdate: data.user.birthdate || "",  // Include birthdate if available
-        registrationDate: data.user.registrationDate || "",  // Include registrationDate if available
+        rewardsclaimed: data.user.rewardsclaimed || [],
+        birthdate: data.user.birthdate || "",
+        registrationDate: data.user.registrationDate || "",
+        userStatus: data.user.userStatus || "Not Verified", // Add userStatus
+        rank: data.user.rank || "Bronze", // Add rank if needed
       };
       
       const token = data.token;

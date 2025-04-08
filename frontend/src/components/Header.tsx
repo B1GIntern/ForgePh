@@ -12,7 +12,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+// Define a type for navigation links
+interface NavLink {
+  path: string;
+  label: string;
+  readonly?: boolean; // Make readonly optional
+}
 // Define User interface
 interface User {
   id: string;
@@ -20,6 +25,7 @@ interface User {
   email: string;
   userType: string;
   points: number;
+  userStatus: string; // Add this field to track verification status
 }
 
 const Header: React.FC = () => {
@@ -71,13 +77,14 @@ const Header: React.FC = () => {
       const userData = await response.json();
 
       // Create a proper user object with the correct structure
-      const fullUser: User = {
-        id: userData._id,
-        name: userData.name,
-        email: userData.email,
-        userType: userData.userType,
-        points: userData.points,
-      };
+        const fullUser: User = {
+          id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          userType: userData.userType,
+          points: userData.points,
+          userStatus: userData.userStatus || "Not Verified", // Add with default fallback
+        };
 
       // Update state with fresh user data
       setUser(fullUser);
@@ -268,37 +275,54 @@ const Header: React.FC = () => {
     return location.pathname === path;
   };
 
-  // Determine navigation links based on user type
-  const getNavLinks = () => {
-    if (!user) {
-      // Default links for non-logged in users
-      return [
+      // Determine navigation links based on user type
+    const getNavLinks = (): NavLink[] => {
+      if (!user) {
+        // Default links for non-logged in users
+        return [
+          { path: "/home", label: "Home" },
+          { path: "/products", label: "Products" },
+          { path: "/news", label: "News" },
+        ];
+      }
+
+      if (user.userType === "Retailer") {
+        // Links for Retailer users
+        return [
+          { path: "/retailers", label: "Home" },
+          { path: "/products", label: "Products" },
+          { path: "/ExclusiveNews", label: "News" },
+          { path: "/shops-leaderboard", label: "Shops Leaderboard" },
+        ];
+      }
+
+      // Links for Consumer users (default)
+      const consumerLinks: NavLink[] = [
         { path: "/home", label: "Home" },
         { path: "/products", label: "Products" },
         { path: "/news", label: "News" },
       ];
-    }
 
-    if (user.userType === "Retailer") {
-      // Links for Retailer users
-      return [
-        { path: "/retailers", label: "Home" },
-        { path: "/products", label: "Products" },
-        { path: "/ExclusiveNews", label: "News" },
-        { path: "/shops-leaderboard", label: "Shops Leaderboard" },
-      ];
-    }
+      // Add rewards and promo code links with appropriate behavior based on verification status
+      if (user.userStatus === "Verified") {
+        // Fully functional links for verified users
+        consumerLinks.push(
+          { path: "/rewards", label: "Rewards" },
+          { path: "/promo-code", label: "Promo Code" }
+        );
+      } else {
+        // Read-only links for unverified users
+        consumerLinks.push(
+          { path: "#", label: "Rewards", readonly: true },
+          { path: "#", label: "Promo Code", readonly: true }
+        );
+      }
 
-    // Links for Consumer users (default)
-    return [
-      { path: "/home", label: "Home" },
-      { path: "/products", label: "Products" },
-      { path: "/news", label: "News" },
-      { path: "/rewards", label: "Rewards" },
-      { path: "/promo-code", label: "Promo Code" },
-      { path: "/shops-leaderboard", label: "Shops Leaderboard" },
-    ];
-  };
+      // Add the shop leaderboard link that's available to all consumers
+      consumerLinks.push({ path: "/shops-leaderboard", label: "Shops Leaderboard" });
+
+      return consumerLinks;
+    };
 
   const navLinks = getNavLinks();
 
@@ -330,17 +354,30 @@ const Header: React.FC = () => {
             </Link>
           </div>
           {/* Desktop Navigation */}
-          <nav className="hidden space-x-8 md:flex">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""}`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+            <nav className="hidden space-x-8 md:flex">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""} ${
+                    link.readonly ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={(e) => {
+                    if (link.readonly) {
+                      e.preventDefault();
+                      alert("Your account needs to be verified to access this feature");
+                    }
+                  }}
+                >
+                  {link.label}
+                  {link.readonly && (
+                    <span className="ml-1 text-xs text-yellow-400">
+                      (Verify)
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </nav>
 
           {/* Login/Sign Up Buttons or User Profile */}
           {user ? (
@@ -471,13 +508,26 @@ const Header: React.FC = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""}`}
-                onClick={() => setIsMobileMenuOpen(false)}
+                className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""} ${
+                  link.readonly ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={(e) => {
+                  if (link.readonly) {
+                    e.preventDefault();
+                    alert("Your account needs to be verified to access this feature");
+                  } else {
+                    setIsMobileMenuOpen(false);
+                  }
+                }}
               >
                 {link.label}
+                {link.readonly && (
+                  <span className="ml-1 text-xs text-yellow-400">
+                    (Verify)
+                  </span>
+                )}
               </Link>
             ))}
-
             {user && (
               <>
                 <Link

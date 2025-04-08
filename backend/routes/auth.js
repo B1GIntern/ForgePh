@@ -44,23 +44,25 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Send response including token and all user data
+    // Modified login route to include userStatus
     res.status(200).send({
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        phoneNumber: user.phoneNumber || "", // Ensure phoneNumber is included
+        phoneNumber: user.phoneNumber || "",
         location: {
-          province: user.location?.province || "", // Include province and city in location
+          province: user.location?.province || "",
           city: user.location?.city || "",
         },
         userType: user.userType,
         points: user.points,
         rewardsclaimed: user.rewardsclaimed || [],
-        birthdate: user.birthdate || "", // Include optional fields if they exist
-        registrationDate: user.registrationDate || "", // Include registrationDate if available
+        birthdate: user.birthdate || "",
+        registrationDate: user.registrationDate || "",
+        userStatus: user.userStatus || "Not Verified", // Added userStatus field
+        rank: user.rank || "Bronze", // You might want to include rank as well
       },
       message: "Logged In Successfully",
     });
