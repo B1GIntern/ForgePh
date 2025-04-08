@@ -9,10 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { Bell, Calendar, ChevronRight, Store, Users, ShieldCheck, ShieldX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// Define User interface similar to Header component
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  userType: string;
+  points: number;
+}
+
 const RetailersLanding: React.FC = () => {
   const [isVerified, setIsVerified] = useState(true);
-  const [userName, setUserName] = useState("Sarah");
-  const [points, setPoints] = useState(5280);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
   const [news, setNews] = useState([
@@ -42,10 +51,98 @@ const RetailersLanding: React.FC = () => {
     }
   ]);
 
+  // Fetch user data function
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      // Get auth token from storage
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+
+      if (!token) {
+        console.log("No token found");
+        setLoading(false);
+        return;
+      }
+
+      // Get basic user data from storage first to display something quickly
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error("Error parsing stored user data:", error);
+        }
+      }
+
+      // Then, fetch fresh user data from the server
+      const response = await fetch("http://localhost:5001/api/users/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      const userData = await response.json();
+
+      // Create a proper user object with the correct structure
+      const fullUser: User = {
+        id: userData._id,
+        name: userData.name,
+        email: userData.email,
+        userType: userData.userType,
+        points: userData.points,
+      };
+
+      // Update state with fresh user data
+      setUser(fullUser);
+
+      // Update localStorage/sessionStorage with fresh data
+      if (localStorage.getItem("user")) {
+        localStorage.setItem("user", JSON.stringify(fullUser));
+      } else if (sessionStorage.getItem("user")) {
+        sessionStorage.setItem("user", JSON.stringify(fullUser));
+      }
+
+      console.log("Updated user data from server:", fullUser);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Simulating data loading
+    // Fetch user data when the component mounts
+    fetchUserData();
+
+    // Set up event listeners for updates
+    const handleAuthChange = () => fetchUserData();
+    const handleUserUpdate = () => fetchUserData();
+
+    window.addEventListener("authChange", handleAuthChange);
+    window.addEventListener("userUpdated", handleUserUpdate);
+    window.addEventListener("storage", handleAuthChange);
+
+    // Clean up listeners when component unmounts
+    return () => {
+      window.removeEventListener("authChange", handleAuthChange);
+      window.removeEventListener("userUpdated", handleUserUpdate);
+      window.removeEventListener("storage", handleAuthChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Set page title
     document.title = "XForge Retailers Portal";
   }, []);
+
+  // Fallback values for when user data is loading
+  const userName = user ? user.name : "Retailer";
+  const userPoints = user ? user.points : 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-xforge-dark">
@@ -84,7 +181,7 @@ const RetailersLanding: React.FC = () => {
                   <Bell className="text-xforge-teal" />
                 </div>
                 <div className="mb-4">
-                  <span className="text-4xl font-bold text-xforge-teal">{points.toLocaleString()}</span>
+                  <span className="text-4xl font-bold text-xforge-teal">{userPoints.toLocaleString()}</span>
                   <span className="text-xforge-lightgray ml-2">points</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -156,7 +253,6 @@ const RetailersLanding: React.FC = () => {
         {/* Terms & Conditions Section */}
         <TermsConditions />
       </main>
-      
       
     </div>
   );

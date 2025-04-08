@@ -27,7 +27,7 @@ const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [currentPoints, setCurrentPoints] = useState(0);
+  const [currentPoints, setCurrentPoints] = useState(0); 
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const location = useLocation();
