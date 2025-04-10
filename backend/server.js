@@ -11,6 +11,7 @@ const userRoutes = require("./routes/users.js");
 const authRoutes = require("./routes/auth");
 const { User } = require("./models/Users.js");
 const emailVerificationRoutes = require("./routes/emailverification"); // Update the path if necessary
+const promoCodeRoutes = require("./routes/promoCodeRoutes");
 
 console.log(crypto.randomBytes(64).toString("hex"));
 
@@ -33,6 +34,11 @@ const io = socketIo(server, {
   },
 });
 
+// Add this middleware to attach io to the request object
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 // Socket.IO authentication middleware
 io.use(async (socket, next) => {
   try {
@@ -70,6 +76,7 @@ app.use(cors());
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/emailverification", emailVerificationRoutes); // This will prefix all routes in emailVerification.js with /api/auth
+app.use("/api/promocodes", promoCodeRoutes);
 
 // Initialize Socket.IO in auth routes
 authRoutes.initializeSocketIO(io);

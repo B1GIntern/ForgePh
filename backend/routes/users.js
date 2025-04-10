@@ -4,7 +4,14 @@ const bcrypt = require("bcrypt");
 
 router.post("/register", async (req, res) => {
   try {
-    const { error } = validateUser(req.body);
+    console.log("Request Body: ", req.body);
+
+    // Don't include userStatus in validation
+    const dataForValidation = { ...req.body };
+    delete dataForValidation.userStatus; // Remove userStatus before validation
+    delete dataForValidation.rank; // Remove rank before validation if also causing issues
+
+    const { error } = validateUser(dataForValidation);
     if (error)
       return res.status(400).send({ message: error.details[0].message });
 
@@ -17,17 +24,23 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(Number(process.env.SALT));
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-    // Create and save the user with default rank and status
-    await new User({
+    // Create user object with all properties, adding default values here
+    const userData = {
       ...req.body,
       password: hashedPassword,
-      registrationDate: new Date().toLocaleDateString("en-US"), // MM/DD/YYYY format
-      rank: "Bronze", // Default rank
-      userStatus: "Not Verified", // Default user status
-    }).save();
+      registrationDate: new Date(),
+      rank: "Bronze", // Set default values after validation
+      userStatus: "Not Verified", // Set default values after validation
+    };
 
+    if (userData.userType !== "Retailer" && userData.shopName) {
+      delete userData.shopName;
+    }
+
+    await new User(userData).save();
     res.status(201).send({ message: "User Created Successfully" });
   } catch (error) {
+    console.error("Error in user registration:", error);
     res.status(500).send({ message: "Internal Server Error In Creating User" });
   }
 });

@@ -18,7 +18,13 @@ import {
   RefreshCw,
   Clock,
   Trophy,
+  Upload,
+  FileText,
+  Download,
   Zap,
+  Tag,
+  CheckCircle, 
+  AlertCircle,
   Calendar as CalendarIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -45,10 +51,40 @@ import {
   CardTitle,
   CardContent,
   CardFooter,
+  CardDescription,
 } from "@/components/ui/card";
 import { useEffect } from 'react';
 import axios from "axios";
 
+// Define types for our data
+interface PromoCode {
+  _id: string;
+  code: string;
+  points: number;
+  redeemedBy?: {
+    consumerId: string;
+    redeemedAt: string;
+    shopName: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Redemption {
+  id: string;
+  code: string;
+  status: 'Success' | 'Failed';
+  user: string;
+  timestamp: string;
+}
+
+// Mock data for redemptions (since it's not part of your backend yet)
+const mockRedemptions: Redemption[] = [
+  { id: '1', code: 'PROMO1', status: 'Success', user: 'john@example.com', timestamp: '2 mins ago' },
+  { id: '2', code: 'PROMO2', status: 'Success', user: 'alice@example.com', timestamp: '5 mins ago' },
+  { id: '3', code: 'PROMO3', status: 'Failed', user: 'bob@example.com', timestamp: '10 mins ago' },
+  // Add more mock data as needed
+];
 
 const mockRetailers = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,
@@ -377,6 +413,218 @@ const AdminDashboard: React.FC = () => {
       });
     }
   };
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const [redemptions, setRedemptions] = useState(mockRedemptions);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState('');
+  const [currentFileDate, setCurrentFileDate] = useState<Date | null>(null);
+  const [fileCheckRetries, setFileCheckRetries] = useState(0);
+
+  // Fetch promo codes on component mount
+  useEffect(() => {
+    fetchPromoCodes();
+  }, []);
+
+  // Fetch promo codes with defensive programming
+  const fetchPromoCodes = async () => {
+    try {
+      const response = await axios.get('/api/promocodes');
+      
+      // Debug: Log the actual response structure
+      console.log('API Response:', response.data);
+      
+      // Handle potential response formats
+      if (response.data) {
+        // If the response is an array directly
+        if (Array.isArray(response.data)) {
+          setPromoCodes(response.data);
+          
+          // Update file info if we have promo codes
+          if (response.data.length > 0) {
+            updateLatestFileInfo(response.data);
+          }
+        } 
+        // If data is in a nested property
+        else if (response.data.data && Array.isArray(response.data.data)) {
+          setPromoCodes(response.data.data);
+          
+          // Update file info if we have promo codes
+          if (response.data.data.length > 0) {
+            updateLatestFileInfo(response.data.data);
+          }
+        } 
+        // Handle case where response might contain direct promo codes list
+        else {
+          console.warn('Unexpected API response format:', response.data);
+          setPromoCodes([]);
+        }
+      } else {
+        setPromoCodes([]);
+      }
+    } catch (error) {
+      console.error('Error fetching promo codes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load promo codes',
+        variant: 'destructive',
+      });
+      setPromoCodes([]);
+    }
+  };
+
+  // Helper to update file info from promo codes
+  const updateLatestFileInfo = (codes: PromoCode[]) => {
+    if (!Array.isArray(codes) || codes.length === 0) return;
+    
+    try {
+      // Sort by creation date to get the most recent
+      const sortedCodes = [...codes].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      if (sortedCodes[0] && sortedCodes[0].createdAt) {
+        setCurrentFileName("Latest Upload");
+        setCurrentFileDate(new Date(sortedCodes[0].createdAt));
+      }
+    } catch (error) {
+      console.error('Error updating file info:', error);
+    }
+  };
+
+  // Format date nicely with error handling
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return date.toString();
+    }
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setUploadSuccess(false); // Reset success message when new file is selected
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: 'No File Selected',
+        description: 'Please select an Excel file to upload',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      
+      const response = await axios.post('/api/promocodes/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Upload response:', response.data);
+      
+      // Show success message
+      setUploadSuccess(true);
+      setCurrentFileName(selectedFile.name);
+      setCurrentFileDate(new Date());
+      
+      // Determine added count from response
+      let addedCount = 0;
+      if (response.data && response.data.results && typeof response.data.results.added === 'number') {
+        addedCount = response.data.results.added;
+      } else if (response.data && typeof response.data.addedCount === 'number') {
+        addedCount = response.data.addedCount;
+      }
+      
+      toast({
+        title: 'Upload Successful',
+        description: `${addedCount} new promo codes have been uploaded`,
+      });
+      
+      // Refresh promo codes
+      fetchPromoCodes();
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setUploadSuccess(false);
+      }, 5000);
+    } catch (error: any) {
+      console.error('Error uploading promo codes:', error);
+      toast({
+        title: 'Upload Failed',
+        description: error.response?.data?.message || 'Failed to upload promo codes',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+      
+      // Reset the file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      setSelectedFile(null);
+    }
+  };
+
+  // Handle file reset
+  const handleFileReset = () => {
+    setSelectedFile(null);
+    
+    // Reset the file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
+
+  // Calculate summary metrics
+  const getPromoCodeMetrics = () => {
+    if (!Array.isArray(promoCodes)) return { total: 0, active: 0, redeemed: 0 };
+    
+    const total = promoCodes.length;
+    const redeemed = promoCodes.filter(promo => 
+      promo.redeemedBy && promo.redeemedBy.consumerId
+    ).length;
+    const active = total - redeemed;
+    
+    return { total, active, redeemed };
+  };
+
+  // Get redemption metrics
+  const getRedemptionMetrics = () => {
+    if (!Array.isArray(redemptions)) return { total: 0, success: 0, failed: 0 };
+    
+    const total = redemptions.length;
+    const success = redemptions.filter(r => r.status === 'Success').length;
+    const failed = total - success;
+    
+    return { total, success, failed };
+  };
+
+  // Stats for display
+  const promoMetrics = getPromoCodeMetrics();
+  const redemptionMetrics = getRedemptionMetrics();
+
 
 
 
@@ -437,28 +685,32 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <Tabs defaultValue="retailers" className="w-full">
-          <TabsList className="grid grid-cols-6 mb-8 bg-xforge-darkgray/40 p-1">
-            <TabsTrigger value="retailers" className="data-[state=active]:bg-xforge-teal data-[state=active]:text-xforge-dark">
+        <TabsList className="grid grid-cols-7 mb-8 bg-[#1a1a1a] p-1">
+            <TabsTrigger value="retailers" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Users size={16} className="mr-2" />
               Top Retailers
             </TabsTrigger>
-            <TabsTrigger value="rewards" className="data-[state=active]:bg-xforge-teal data-[state=active]:text-xforge-dark">
+            <TabsTrigger value="rewards" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Gift size={16} className="mr-2" />
               Rewards
             </TabsTrigger>
-            <TabsTrigger value="winners" className="data-[state=active]:bg-xforge-teal data-[state=active]:text-xforge-dark">
+            <TabsTrigger value="winners" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Award size={16} className="mr-2" />
               Winners
             </TabsTrigger>
-            <TabsTrigger value="prizes" className="data-[state=active]:bg-xforge-teal data-[state=active]:text-xforge-dark">
+            <TabsTrigger value="prizes" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Trophy size={16} className="mr-2" />
               Prize Pool
             </TabsTrigger>
-            <TabsTrigger value="flash-promos" className="data-[state=active]:bg-xforge-teal data-[state=active]:text-xforge-dark">
+            <TabsTrigger value="flash-promos" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Zap size={16} className="mr-2" />
               Flash Promos
             </TabsTrigger>
-            <TabsTrigger value="games" className="data-[state=active]:bg-xforge-teal data-[state=active]:text-xforge-dark">
+            <TabsTrigger value="promo-codes" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
+              <Tag size={16} className="mr-2" />
+              Promo Codes
+            </TabsTrigger>
+            <TabsTrigger value="games" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Gamepad size={16} className="mr-2" />
               Featured Games
             </TabsTrigger>
@@ -1041,6 +1293,264 @@ const AdminDashboard: React.FC = () => {
               ))}
             </div>
           </TabsContent>
+          <TabsContent value="promo-codes" className="space-y-6">
+          <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-xl">Upload Promo Codes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Current File Display - Always visible if a file exists */}
+              {currentFileName && (
+                <div className="mb-4 p-3 rounded-lg bg-[#222] border border-[#333]">
+                  <div className="flex items-center">
+                    <FileText size={16} className="text-[#00D6A4] mr-2" />
+                    <div>
+                      <div className="text-white text-sm font-medium">
+                        Current File: <span className="text-[#00D6A4]">{currentFileName}</span>
+                      </div>
+                      {currentFileDate && (
+                        <div className="text-gray-400 text-xs">
+                          Uploaded on {formatDate(currentFileDate)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Upload Success Message - Only visible after upload */}
+              {uploadSuccess && (
+                <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <div className="flex items-center">
+                    <FileText size={16} className="text-green-400 mr-2" />
+                    <span className="text-green-400 font-medium">
+                      File uploaded successfully!
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <Label htmlFor="file-upload" className="text-gray-400">Excel File</Label>
+                  <div className="mt-1 flex">
+                    <Input
+                      id="file-upload"
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleFileChange}
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
+                    />
+                  </div>
+                  
+                  {selectedFile && (
+                    <div className="mt-2 p-2 rounded-lg bg-[#222] border border-[#333] flex items-center justify-between">
+                      <div className="flex items-center">
+                        <FileText size={16} className="text-[#00D6A4] mr-2" />
+                        <span className="text-gray-200 text-sm truncate">{selectedFile.name}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={handleFileReset}
+                        className="text-gray-400 hover:text-white hover:bg-[#333]"
+                      >
+                        <Trash size={14} />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload an Excel file with promo codes. The file should have a column with the promo codes.
+                  </p>
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    onClick={handleFileUpload}
+                    disabled={!selectedFile || isUploading}
+                    className="bg-gradient-to-r from-[#00D6A4] to-cyan-500 text-[#121212] hover:brightness-110 w-full"
+                  >
+                    {isUploading ? (
+                      <>
+                        <RefreshCw size={16} className="mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={16} className="mr-2" />
+                        Upload Promo Codes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Refresh button */}
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => fetchPromoCodes()}
+                  className="text-gray-400 border-[#333] hover:text-white hover:bg-[#333]"
+                >
+                  <RefreshCw size={14} className="mr-2" />
+                  Refresh Promo Codes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Promo Codes Card */}
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[#00D6A4] text-lg">Total Promo Codes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-3xl font-bold text-white">{promoMetrics.total}</div>
+                  <div className="p-2 rounded-full bg-[#00D6A4]/10">
+                    <FileText size={20} className="text-[#00D6A4]" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Active Promo Codes Card */}
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-green-400 text-lg">Active Codes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-3xl font-bold text-white">{promoMetrics.active}</div>
+                  <div className="p-2 rounded-full bg-green-500/10">
+                    <CheckCircle size={20} className="text-green-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Redeemed Promo Codes Card */}
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-blue-400 text-lg">Redeemed Codes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-3xl font-bold text-white">{promoMetrics.redeemed}</div>
+                  <div className="p-2 rounded-full bg-blue-500/10">
+                    <Download size={20} className="text-blue-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Redemption Success Rate */}
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-purple-400 text-lg">Redemption Success</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-3xl font-bold text-white">
+                    {redemptionMetrics.total > 0 
+                      ? Math.round((redemptionMetrics.success / redemptionMetrics.total) * 100) 
+                      : 0}%
+                  </div>
+                  <div className="p-2 rounded-full bg-purple-500/10">
+                    <AlertCircle size={20} className="text-purple-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Two-column layout */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Recent Promo Codes */}
+            <Card className="md:col-span-2 bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-xl">Recent Promo Codes</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Showing the 5 most recently added promo codes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {Array.isArray(promoCodes) && promoCodes.length > 0 ? (
+                  <div className="space-y-3">
+                    {promoCodes.slice(0, 5).map((promo) => (
+                      <div 
+                        key={promo._id} 
+                        className="p-3 rounded-lg border border-[#333] bg-[#222] hover:bg-[#2a2a2a] transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-mono text-sm text-white font-medium">{promo.code}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                            promo.redeemedBy && promo.redeemedBy.consumerId
+                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                          }`}>
+                            {promo.redeemedBy && promo.redeemedBy.consumerId ? 'Redeemed' : 'Active'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-[#00D6A4]">{promo.points} Points</span>
+                          <span className="text-gray-500">
+                            {promo.createdAt ? new Date(promo.createdAt).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    No promo codes found. Upload an Excel file to add promo codes.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Latest Redemptions */}
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-xl">Latest Redemptions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Array.isArray(redemptions) && redemptions.length > 0 ? (
+                  <div className="space-y-3">
+                    {redemptions.slice(0, 5).map((redemption) => (
+                      <div 
+                        key={redemption.id} 
+                        className="p-3 rounded-lg border border-[#333] bg-[#222] hover:bg-[#2a2a2a] transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-mono text-sm text-white font-medium">{redemption.code}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                            redemption.status === 'Success' 
+                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                          }`}>
+                            {redemption.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-400">{redemption.user}</span>
+                          <span className="text-gray-500">{redemption.timestamp}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    No redemptions yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
         </Tabs>
       </div>
     </div>

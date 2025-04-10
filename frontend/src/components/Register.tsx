@@ -15,6 +15,7 @@ interface RegistrationData {
     city: string;
   };
   userType: string;
+  shopName?: string; // Add optional shopName field
   registrationDate: string;
   rank: string; // New: User's rank (default: "Bronze")
   userStatus: string; // New: User's status (default: "Not Verified")
@@ -33,6 +34,7 @@ const Register: React.FC = () => {
       city: "",
     },
     userType: "",
+    shopName: "", // Add shopName field to formData
     agreeTerms: false,
   });
 
@@ -88,7 +90,6 @@ const Register: React.FC = () => {
     }
   };
 
-  // Rest of your functions unchanged...
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -146,6 +147,11 @@ const Register: React.FC = () => {
       newErrors.userType = "User type is required";
     }
 
+    // Validate shopName if userType is Retailer
+    if (formData.userType === "Retailer" && !formData.shopName.trim()) {
+      newErrors.shopName = "Shop name is required for retailers";
+    }
+
     if (!formData.agreeTerms) {
       newErrors.agreeTerms = "You must agree to the terms";
     }
@@ -178,13 +184,18 @@ const Register: React.FC = () => {
         email: formData.email,
         password: formData.password,
         phoneNumber: formData.phoneNumber,
-        birthdate: formData.birthdate,
+        birthdate: formData.birthdate, // Make sure this is in YYYY-MM-DD format
         location: formData.location,
         userType: formData.userType,
-        registrationDate: registrationDate, // Set the formatted date
-        rank: "Bronze", // Default rank
-        userStatus: "Not Verified", // Default user status
+        registrationDate: new Date().toISOString(), // Use ISO format for consistency
+        rank: "Bronze",
+        userStatus: "Not Verified",
       };
+
+      // Add shopName only if userType is Retailer
+      if (formData.userType === "Retailer") {
+        submitData.shopName = formData.shopName;
+      }
 
       // Send data to the backend for account registration
       const response = await axios.post("/api/users/register", submitData); // Ensure the correct API path
@@ -206,6 +217,7 @@ const Register: React.FC = () => {
         birthdate: "",
         location: { province: "", city: "" },
         userType: "",
+        shopName: "",
         agreeTerms: false,
       });
     } catch (error: any) {
@@ -431,6 +443,32 @@ const Register: React.FC = () => {
                       <p className="mt-1 text-sm text-red-400">{errors.city}</p>
                     )}
                   </div>
+
+                  {/* Shop Name field - only visible when userType is Retailer */}
+                  {formData.userType === "Retailer" && (
+                    <div className="md:col-span-2">
+                      <label
+                        htmlFor="shopName"
+                        className="block mb-2 text-sm font-medium text-xforge-gray"
+                      >
+                        Shop Name
+                      </label>
+                      <input
+                        type="text"
+                        id="shopName"
+                        name="shopName"
+                        className={`input-field ${errors.shopName ? "border-red-500" : ""}`}
+                        placeholder="Enter your shop name"
+                        value={formData.shopName}
+                        onChange={handleChange}
+                      />
+                      {errors.shopName && (
+                        <p className="mt-1 text-sm text-red-400">
+                          {errors.shopName}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="mb-4">
                   <label
