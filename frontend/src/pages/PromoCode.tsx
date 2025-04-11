@@ -860,7 +860,6 @@ const PromoCodes: React.FC = () => {
           </div>
         )}
       </main>
-      <Footer />
     </div>
   );
 };

@@ -57,6 +57,14 @@ import {
 } from "@/components/ui/card";
 import { useEffect } from 'react';
 import axios from "axios";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define types for our data
 interface Prize {
@@ -77,6 +85,19 @@ interface Prize {
 interface Game {
   _id: string;
   name: string;
+  gameType: "SpinTheWheel" | "SlotMachine" | "CardMatchingGame";
+  points: number;
+  featured: boolean;
+  config?: {
+    spinConfig?: {
+      includeFreeSpin: boolean;
+      includeTryAgain: boolean;
+    };
+  };
+  prizedAssigned?: Array<{
+    prizeId: string;
+    multiplier?: number;
+  }>;
 }
 // Define types for our data
 interface PromoCode {
@@ -98,6 +119,46 @@ interface Redemption {
   status: 'Success' | 'Failed';
   user: string;
   timestamp: string;
+}
+
+interface FlashPromo {
+  _id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  multiplier: number;
+  isActive: boolean;
+  prize: string;
+  createdAt: string;
+  updatedAt: string;
+  participants: Array<{
+    userId: string;
+    joinedAt: string;
+  }>;
+}
+
+interface NewFlashPromo {
+  name: string;
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+  multiplier: number;
+  prize: string;
+  isActive: boolean;
+}
+
+interface GameConfig {
+  points: number;
+  prizes: Array<{
+    prizeId: string;
+    multiplier?: number;
+  }>;
+  spinConfig: {
+    includeFreeSpin: boolean;
+    includeTryAgain: boolean;
+  };
 }
 
 // Mock data for redemptions (since it's not part of your backend yet)
@@ -167,7 +228,6 @@ const dashboardStats = [
 const AdminDashboard: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [featuredGame, setFeaturedGame] = useState<number | null>(null);
   const [newReward, setNewReward] = useState({ name: "", pointsRequired: 0, stockAvailable: 0, type: "" });
   const [rewards, setRewards] = useState<Array<{ id: number, name: string, points: number, stock: number, type: string }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,22 +239,23 @@ const AdminDashboard: React.FC = () => {
     prizedAssignedToGame: false,
     gameId: ""
   });
-  const [newFlashPromo, setNewFlashPromo] = useState({
-    name: "",
-    startDate: "",
-    endDate: "",
-    prize: "",
-    totalWinners: 0,
-    active: false
+  const [newFlashPromo, setNewFlashPromo] = useState<NewFlashPromo>({
+    name: '',
+    startDate: '',
+    endDate: '',
+    maxParticipants: 1,
+    multiplier: 1,
+    prize: '',
+    isActive: true
   });
   
   // Declare state for retailers
   const [retailers, setRetailers] = useState<any[]>([]); // <== Add this line to declare retailers state
   const [isLoading, setIsLoading] = useState(false);
   const [prizes, setPrizes] = useState<Prize[]>([]);
-  const [games, setGames] = useState<Game[]>([]);
   const [selectedTab, setSelectedTab] = useState("rewards");
   const [isLoadingRewards, setIsLoadingRewards] = useState(false);
+  const [flashPromos, setFlashPromos] = useState<FlashPromo[]>([]);
   useEffect(() => {
     const fetchRetailers = async () => {
       try {
@@ -217,18 +278,20 @@ const AdminDashboard: React.FC = () => {
     localStorage.removeItem("isAdmin");
     toast({
       title: "Logged Out",
-      description: "You have been logged out of the admin panel",
+      description: "You have been logged out of the admin panel", 
     });
     navigate("/admin");
   };
 
-
-  const handleFeatureGame = (gameId: number) => {
-    setFeaturedGame(gameId);
-    toast({
-      title: "Game Featured",
-      description: `${mockGames.find(g => g.id === gameId)?.name} is now featured!`,
-    });
+  const refreshData = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast({
+        title: "Data Refreshed",
+        description: "Dashboard data has been updated",
+      });
+    }, 1000);
   };
 
   //FETCHING OF REWARDS
@@ -342,19 +405,7 @@ const AdminDashboard: React.FC = () => {
         });
       });
   };
-  //END OF REWARDS FEATURE
-  const refreshData = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast({
-        title: "Data Refreshed",
-        description: "Dashboard data has been updated",
-      });
-    }, 1000);
-  };
 
-  
 
  
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
@@ -598,9 +649,21 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
     return { total, success, failed };
   };
 
+  // Calculate Flash Promo metrics
+  const getFlashPromoMetrics = () => {
+    if (!Array.isArray(flashPromos)) return { total: 0, active: 0, inactive: 0 };
+    
+    const total = flashPromos.length;
+    const active = flashPromos.filter(promo => promo.isActive).length;
+    const inactive = total - active;
+    
+    return { total, active, inactive };
+  };
+
   // Stats for display
   const promoMetrics = getPromoCodeMetrics();
   const redemptionMetrics = getRedemptionMetrics();
+  const flashPromoMetrics = getFlashPromoMetrics();
 
 
    // Fetch all prizes
@@ -629,17 +692,7 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
     }
   };
 
-  // Fetch all games for dropdown
-  const fetchGames = async () => {
-    try {
-      const response = await axios.get('/api/games');
-      if (response.data.success) {
-        setGames(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching games:", error);
-    }
-  };
+
 
   // Add new prize
   const addPrize = async () => {
@@ -719,6 +772,468 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
     fetchPrizes();
     fetchGames();
   }, []);
+
+  // Fetch flash promos
+  const fetchFlashPromos = async () => {
+    try {
+      const response = await axios.get('/api/flash-promos');
+      console.log('Raw API response:', response);
+      
+      // Handle different response formats
+      let promoData = [];
+      
+      if (response.data) {
+        // If response.data is an array
+        if (Array.isArray(response.data)) {
+          promoData = response.data;
+        }
+        // If response.data has a data property that's an array
+        else if (response.data.data && Array.isArray(response.data.data)) {
+          promoData = response.data.data;
+        }
+        // If response.data has a results property that's an array
+        else if (response.data.results && Array.isArray(response.data.results)) {
+          promoData = response.data.results;
+        }
+      }
+      
+      // Ensure we're setting an array
+      setFlashPromos(promoData);
+      
+      // Log the processed data
+      console.log('Processed flash promos:', promoData);
+    } catch (error) {
+      console.error('Error fetching flash promos:', error);
+      // Set empty array on error
+      setFlashPromos([]);
+      toast({
+        title: 'Error',
+        description: 'Failed to load flash promos',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Add new flash promo
+  const addFlashPromo = async () => {
+    try {
+      // Validate inputs
+      if (!newFlashPromo.name.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please enter a promo name',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (!newFlashPromo.startDate || !newFlashPromo.endDate) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please select both start and end dates',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (new Date(newFlashPromo.startDate) >= new Date(newFlashPromo.endDate)) {
+        toast({
+          title: 'Validation Error',
+          description: 'End date must be after start date',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (!newFlashPromo.prize.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please enter a prize description',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (newFlashPromo.maxParticipants < 1) {
+        toast({
+          title: 'Validation Error',
+          description: 'Maximum participants must be at least 1',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (newFlashPromo.multiplier < 1) {
+        toast({
+          title: 'Validation Error',
+          description: 'Multiplier must be at least 1',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Create the request payload
+      const payload = {
+        ...newFlashPromo,
+        currentParticipants: 0,
+        participants: []
+      };
+
+      // Log the payload for debugging
+      console.log('Creating flash promo with payload:', payload);
+
+      const response = await axios.post('/api/flash-promos', payload);
+      console.log('API Response:', response);
+      
+      if (response.data) {
+        // Add the new promo to the state
+        setFlashPromos(prevPromos => [...prevPromos, response.data]);
+        
+        // Reset the form
+        setNewFlashPromo({
+          name: '',
+          startDate: '',
+          endDate: '',
+          maxParticipants: 0,
+          multiplier: 1,
+          prize: '',
+          isActive: true
+        });
+        
+        toast({
+          title: 'Success',
+          description: 'Flash promo created successfully'
+        });
+
+        // Refresh the list
+        fetchFlashPromos();
+      }
+    } catch (error) {
+      console.error('Error creating flash promo:', error);
+      
+      // More detailed error handling
+      let errorMessage = 'Failed to create flash promo';
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = error.response.data?.message || error.response.data || errorMessage;
+        console.log('Error response:', error.response);
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = 'No response from server. Please try again.';
+        console.log('Error request:', error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        errorMessage = error.message || errorMessage;
+      }
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Toggle flash promo status
+  const toggleFlashPromoStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const response = await axios.patch(`/api/flash-promos/${id}/status`, {
+        isActive: !currentStatus
+      });
+      
+      console.log('Updated flash promo status:', response.data);
+      
+      setFlashPromos(flashPromos.map(promo => 
+        promo._id === id ? response.data : promo
+      ));
+      
+      toast({
+        title: 'Success',
+        description: `Flash promo ${!currentStatus ? 'activated' : 'deactivated'}`
+      });
+    } catch (error) {
+      console.error('Error updating flash promo status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update flash promo status',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Delete flash promo
+  const deleteFlashPromo = async (id: string) => {
+    try {
+      await axios.delete(`/api/flash-promos/${id}`);
+      setFlashPromos(flashPromos.filter(promo => promo._id !== id));
+      toast({
+        title: 'Success',
+        description: 'Flash promo deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting flash promo:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete flash promo',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Calculate progress percentage
+  const calculateProgress = (current: number, max: number) => {
+    return Math.min((current / max) * 100, 100);
+  };
+
+  // Load flash promos on component mount
+  useEffect(() => {
+    fetchFlashPromos();
+  }, []);
+
+  // Game Management State
+  const [games, setGames] = useState<Game[]>([]);
+  const [showPrizeDialog, setShowPrizeDialog] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [gameConfig, setGameConfig] = useState({
+    points: 3,
+    prizes: [] as Array<{
+      prizeId: string;
+      multiplier?: number;
+    }>,
+    spinConfig: {
+      includeFreeSpin: false,
+      includeTryAgain: false
+    }
+  });
+
+  // Fetch games from the backend
+  const fetchGames = async () => {
+    try {
+      const response = await axios.get('/api/games');
+      if (Array.isArray(response.data)) {
+        setGames(response.data);
+      } else {
+        console.error('Unexpected response format:', response.data);
+        toast({
+          title: 'Error',
+          description: 'Received unexpected data format from server',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load games',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Toggle game featuring
+  const handleFeatureGame = async (gameId: string) => {
+    setSelectedGame(gameId);
+    setShowPrizeDialog(true);
+  };
+
+  // Update game configuration and feature status
+  const updateGameConfig = async () => {
+    if (!selectedGame) return;
+
+    try {
+      // Map the prizes to include both prizeId and prizeName
+      const mappedPrizes = gameConfig.prizes.map(prize => {
+        const selectedPrize = prizes.find(p => p._id === prize.prizeId);
+        return {
+          prizeId: prize.prizeId,
+          prizeName: selectedPrize?.name || '', // Include the prize name
+          multiplier: prize.multiplier
+        };
+      });
+
+      const payload = {
+        featured: true,
+        points: gameConfig.points,
+        prizedAssigned: mappedPrizes,
+        config: {
+          spinConfig: gameConfig.spinConfig
+        }
+      };
+
+      await axios.patch(`/api/games/${selectedGame}/feature`, payload);
+      
+      // Refresh games list to get updated data
+      await fetchGames();
+
+      toast({
+        title: 'Success',
+        description: 'Game configuration updated successfully'
+      });
+
+      setShowPrizeDialog(false);
+      setSelectedGame(null);
+      setGameConfig({
+        points: 3,
+        prizes: [],
+        spinConfig: {
+          includeFreeSpin: false,
+          includeTryAgain: false
+        }
+      });
+    } catch (error: any) {
+      console.error('Error updating game:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update game configuration',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Remove game from featured
+  const unfeatureGame = async (gameId: string) => {
+    try {
+      await axios.patch(`/api/games/${gameId}/unfeature`);
+      
+      // Update local state
+      setGames(prevGames => prevGames.map(game => 
+        game._id === gameId ? { ...game, featured: false, prizedAssigned: [] } : game
+      ));
+
+      toast({
+        title: 'Success',
+        description: 'Game removed from featured'
+      });
+    } catch (error) {
+      console.error('Error unfeaturing game:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to unfeature game',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Load games on component mount
+  useEffect(() => {
+    fetchGames();
+  }, []);
+
+  // Game configuration dialog JSX
+  const GameConfigDialog = () => (
+    <Dialog open={showPrizeDialog} onOpenChange={setShowPrizeDialog}>
+      <DialogContent className="bg-[#1a1a1a] border border-[#333] text-white">
+        <DialogHeader>
+          <DialogTitle>Configure Game</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Set up points and prizes for this game
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Points Configuration */}
+          <div>
+            <Label htmlFor="points">Points Required to Play</Label>
+            <Input
+              id="points"
+              type="number"
+              min="0"
+              value={gameConfig.points}
+              onChange={(e) => setGameConfig({
+                ...gameConfig,
+                points: parseInt(e.target.value)
+              })}
+              className="bg-[#222] border-[#333] text-white"
+            />
+          </div>
+
+          {/* Prize Configuration */}
+          <div>
+            <Label>Select Prizes</Label>
+            {prizes.map((prize) => (
+              <div key={prize._id} className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id={`prize-${prize._id}`}
+                  checked={gameConfig.prizes.some(p => p.prizeId === prize._id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setGameConfig({
+                        ...gameConfig,
+                        prizes: [...gameConfig.prizes, { prizeId: prize._id }]
+                      });
+                    } else {
+                      setGameConfig({
+                        ...gameConfig,
+                        prizes: gameConfig.prizes.filter(p => p.prizeId !== prize._id)
+                      });
+                    }
+                  }}
+                />
+                <label htmlFor={`prize-${prize._id}`} className="text-sm text-gray-300">
+                  {prize.name}
+                </label>
+              </div>
+            ))}
+          </div>
+
+          {/* Spin The Wheel Specific Configuration */}
+          {games.find(g => g._id === selectedGame)?.gameType === 'SpinTheWheel' && (
+            <div className="space-y-2">
+              <Label>Wheel Configuration</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="free-spin"
+                  checked={gameConfig.spinConfig.includeFreeSpin}
+                  onCheckedChange={(checked) => setGameConfig({
+                    ...gameConfig,
+                    spinConfig: {
+                      ...gameConfig.spinConfig,
+                      includeFreeSpin: checked === true
+                    }
+                  })}
+                />
+                <label htmlFor="free-spin" className="text-sm text-gray-300">
+                  Include Free Spin Slice
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="try-again"
+                  checked={gameConfig.spinConfig.includeTryAgain}
+                  onCheckedChange={(checked) => setGameConfig({
+                    ...gameConfig,
+                    spinConfig: {
+                      ...gameConfig.spinConfig,
+                      includeTryAgain: checked === true
+                    }
+                  })}
+                />
+                <label htmlFor="try-again" className="text-sm text-gray-300">
+                  Include Try Again Slice
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end space-x-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowPrizeDialog(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={updateGameConfig}
+            className="bg-xforge-teal hover:bg-xforge-teal/90"
+          >
+            Save Configuration
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-xforge-darkgray to-xforge-dark">
@@ -1210,232 +1725,242 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
       </Card>
     </TabsContent>
 
-          {/* <TabsContent value="flash-promos" className="space-y-6 animate-fade-in">
-            <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
+          <TabsContent value="flash-promos" className="space-y-6 animate-fade-in">
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
               <CardHeader className="pb-2">
-                <CardTitle className="text-white text-xl">Create New Flash Promotion</CardTitle>
+                <CardTitle className="text-white text-xl">Create Flash Promo</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Set up a new flash promotion with limited participants and multiplier
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              {/* Add Summary Cards */}
+              <CardContent className="pb-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {/* Total Flash Promos Card */}
+                  <Card className="bg-[#222] border border-[#333] shadow-lg">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-[#00D6A4] text-lg">Total Flash Promos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="text-3xl font-bold text-white">{flashPromoMetrics.total}</div>
+                        <div className="p-2 rounded-full bg-[#00D6A4]/10">
+                          <Zap size={20} className="text-[#00D6A4]" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Active Flash Promos Card */}
+                  <Card className="bg-[#222] border border-[#333] shadow-lg">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-green-400 text-lg">Active Promos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="text-3xl font-bold text-white">{flashPromoMetrics.active}</div>
+                        <div className="p-2 rounded-full bg-green-500/10">
+                          <CheckCircle size={20} className="text-green-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Inactive Flash Promos Card */}
+                  <Card className="bg-[#222] border border-[#333] shadow-lg">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-amber-400 text-lg">Inactive Promos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="text-3xl font-bold text-white">{flashPromoMetrics.inactive}</div>
+                        <div className="p-2 rounded-full bg-amber-500/10">
+                          <AlertCircle size={20} className="text-amber-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="promo-name" className="text-xforge-gray">Promotion Name</Label>
+                    <Label htmlFor="promo-name" className="text-gray-400">Promo Name</Label>
                     <Input 
                       id="promo-name" 
-                      placeholder="Enter promotion name" 
+                      placeholder="Enter promo name" 
                       value={newFlashPromo.name}
                       onChange={(e) => setNewFlashPromo({...newFlashPromo, name: e.target.value})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="promo-start" className="text-xforge-gray">Start Date</Label>
+                    <Label htmlFor="start-date" className="text-gray-400">Start Date</Label>
                     <Input 
-                      id="promo-start" 
-                      type="date" 
+                      id="start-date" 
+                      type="datetime-local" 
                       value={newFlashPromo.startDate}
                       onChange={(e) => setNewFlashPromo({...newFlashPromo, startDate: e.target.value})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="promo-end" className="text-xforge-gray">End Date</Label>
+                    <Label htmlFor="end-date" className="text-gray-400">End Date</Label>
                     <Input 
-                      id="promo-end" 
-                      type="date" 
+                      id="end-date" 
+                      type="datetime-local" 
                       value={newFlashPromo.endDate}
                       onChange={(e) => setNewFlashPromo({...newFlashPromo, endDate: e.target.value})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="promo-prize" className="text-xforge-gray">Prize Description</Label>
+                    <Label htmlFor="promo-participants" className="text-gray-400">Max Participants</Label>
+                    <Input 
+                      id="promo-participants" 
+                      type="number" 
+                      placeholder="Number of participants" 
+                      value={newFlashPromo.maxParticipants || ''}
+                      onChange={(e) => setNewFlashPromo({...newFlashPromo, maxParticipants: parseInt(e.target.value) || 0})}
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="promo-multiplier" className="text-gray-400">Entry Multiplier</Label>
+                    <Input 
+                      id="promo-multiplier" 
+                      type="number" 
+                      placeholder="Entry multiplier" 
+                      value={newFlashPromo.multiplier || ''}
+                      onChange={(e) => setNewFlashPromo({...newFlashPromo, multiplier: parseInt(e.target.value) || 1})}
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="promo-prize" className="text-gray-400">Prize</Label>
                     <Input 
                       id="promo-prize" 
                       placeholder="Prize description" 
                       value={newFlashPromo.prize}
                       onChange={(e) => setNewFlashPromo({...newFlashPromo, prize: e.target.value})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+                      className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="promo-winners" className="text-xforge-gray">Total Winners</Label>
-                    <Input 
-                      id="promo-winners" 
-                      type="number" 
-                      placeholder="Number of winners" 
-                      value={newFlashPromo.totalWinners || ''}
-                      onChange={(e) => setNewFlashPromo({...newFlashPromo, totalWinners: parseInt(e.target.value) || 0})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
-                      min="1"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      onClick={}
-                      className="bg-gradient-to-r from-xforge-teal to-cyan-500 text-xforge-dark hover:brightness-110 w-full shadow-glow"
-                    >
-                      <Plus size={16} className="mr-2" />
-                      Add Flash Promo
-                    </Button>
-                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    onClick={addFlashPromo}
+                    className="bg-gradient-to-r from-[#00D6A4] to-cyan-500 text-[#121212] hover:brightness-110"
+                  >
+                    <Plus size={16} className="mr-2" />
+                    Create Flash Promo
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
-              <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-white text-xl">Manage Flash Promotions</CardTitle>
-                <div className="bg-xforge-darkgray/60 px-3 py-1 rounded-full flex items-center text-xforge-gray text-sm">
-                  <CalendarIcon size={14} className="mr-2 text-pink-400" />
-                  {flashPromos.filter(p => p.active).length} Active Promos
+            {/* Active Flash Promos */}
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-white text-xl">Flash Promos</CardTitle>
+                  <div className="bg-[#222] px-3 py-1 rounded-full flex items-center text-gray-400 text-sm">
+                    <Calendar size={14} className="mr-2 text-[#00D6A4]" />
+                    {flashPromoMetrics.active} Active Promos
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-xforge-darkgray/30">
-                      <TableRow>
-                        <TableHead className="text-xforge-teal font-bold">ID</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Name</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Period</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Prize</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Winners</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Status</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {flashPromos.map((promo) => (
-                        <TableRow key={promo.id} className="hover:bg-xforge-teal/5 border-b border-xforge-darkgray/50">
-                          <TableCell className="font-medium">{promo.id}</TableCell>
+                <Table>
+                  <TableHeader className="bg-[#222]">
+                    <TableRow>
+                      <TableHead className="text-[#00D6A4] font-bold">Name</TableHead>
+                      <TableHead className="text-[#00D6A4] font-bold">Period</TableHead>
+                      <TableHead className="text-[#00D6A4] font-bold">Prize</TableHead>
+                      <TableHead className="text-[#00D6A4] font-bold">Participants</TableHead>
+                      <TableHead className="text-[#00D6A4] font-bold">Multiplier</TableHead>
+                      <TableHead className="text-[#00D6A4] font-bold">Status</TableHead>
+                      <TableHead className="text-[#00D6A4] font-bold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.isArray(flashPromos) && flashPromos.length > 0 ? (
+                      flashPromos.map((promo) => (
+                        <TableRow key={promo._id} className="hover:bg-[#222] border-b border-[#333]">
                           <TableCell>{promo.name}</TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="text-xs text-xforge-gray">From: {new Date(promo.startDate).toLocaleDateString()}</span>
-                              <span className="text-xs text-xforge-gray">To: {new Date(promo.endDate).toLocaleDateString()}</span>
+                              <span className="text-sm text-gray-400">
+                                {new Date(promo.startDate).toLocaleDateString()}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                to {new Date(promo.endDate).toLocaleDateString()}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>{promo.prize}</TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="text-xforge-teal">{promo.remainingWinners}/{promo.totalWinners}</span>
-                              <div className="h-1.5 w-24 bg-xforge-darkgray/50 rounded-full mt-1">
+                              <span className="text-[#00D6A4]">{promo.currentParticipants}/{promo.maxParticipants}</span>
+                              <div className="h-1.5 w-24 bg-[#222] rounded-full mt-1">
                                 <div 
-                                  className="h-full bg-gradient-to-r from-xforge-teal to-cyan-500 rounded-full" 
-                                  style={{ width: `${(promo.remainingWinners / promo.totalWinners) * 100}%` }}
+                                  className="h-full bg-gradient-to-r from-[#00D6A4] to-cyan-500 rounded-full" 
+                                  style={{ width: `${calculateProgress(promo.currentParticipants, promo.maxParticipants)}%` }}
                                 ></div>
                               </div>
                             </div>
                           </TableCell>
+                          <TableCell>{promo.multiplier}x</TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              promo.active
+                              promo.isActive
                                 ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                : 'bg-xforge-darkgray/30 text-xforge-gray border border-xforge-gray/20'
+                                : 'bg-[#222] text-gray-400 border border-[#333]'
                             }`}>
-                              {promo.active ? 'Active' : 'Inactive'}
+                              {promo.isActive ? 'Active' : 'Inactive'}
                             </span>
                           </TableCell>
                           <TableCell>
-                            <div className="flex space-x-2">
+                            <div className="flex items-center gap-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => togglePromoStatus(promo.id)}
+                                onClick={() => toggleFlashPromoStatus(promo._id, promo.isActive)}
                                 className={
-                                  promo.active
+                                  promo.isActive
                                     ? "border-amber-500 text-amber-400 hover:bg-amber-500/20"
                                     : "border-green-500 text-green-400 hover:bg-green-500/20"
                                 }
                               >
-                                {promo.active ? 'Deactivate' : 'Activate'}
+                                {promo.isActive ? 'Deactivate' : 'Activate'}
                               </Button>
                               <Button 
                                 variant="destructive" 
                                 size="sm"
-                                onClick={() => deleteFlashPromo(promo.id)}
+                                onClick={() => deleteFlashPromo(promo._id)}
                                 className="hover:bg-red-700 transition-colors"
                               >
-                                <Trash size={16} />
+                                <Trash size={14} />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6 text-gray-400">
+                          No flash promos available. Create your first flash promo above.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
-          </TabsContent> */}
-
-          <TabsContent value="games" className="glass-dark p-6 rounded-lg border border-xforge-teal/10 shadow-lg animate-fade-in">
-            <h2 className="text-xl font-bold mb-6 text-white flex items-center">
-              <Gamepad className="text-xforge-teal mr-2" size={24} />
-              Feature Game Selection
-            </h2>
-            <p className="text-xforge-gray mb-6">Select which game to feature on the Rewards page today</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {mockGames.map((game) => (
-                <Card 
-                  key={game.id} 
-                  className={`overflow-hidden card-3d cursor-pointer bg-xforge-darkgray/40 border-2 transition-all duration-300 ${
-                    featuredGame === game.id ? 'border-xforge-teal shadow-glow' : 'border-transparent'
-                  }`}
-                  onClick={() => handleFeatureGame(game.id)}
-                >
-                  <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
-                    <Gamepad size={80} />
-                  </div>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-xforge-teal/20 flex items-center justify-center mr-2">
-                          <Gamepad className="text-xforge-teal" size={18} />
-                        </div>
-                        <CardTitle className="text-white text-lg">{game.name}</CardTitle>
-                      </div>
-                      {featuredGame === game.id && (
-                        <div className="bg-xforge-teal text-xforge-dark font-bold text-xs p-1 rounded flex items-center animate-pulse-light">
-                          <Check size={12} className="mr-1" />
-                          Featured
-                        </div>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-xforge-lightgray text-xs mb-2 inline-block px-2 py-1 bg-xforge-darkgray/40 rounded">Type: {game.type}</p>
-                    <p className="text-xforge-gray text-sm line-clamp-2">{game.description}</p>
-                  </CardContent>
-                  <CardFooter className="bg-xforge-darkgray/30 border-t border-xforge-darkgray/50 pt-3 pb-3 flex justify-end">
-                    <Button 
-                      variant={featuredGame === game.id ? "default" : "outline"}
-                      size="sm"
-                      className={
-                        featuredGame === game.id
-                          ? "bg-xforge-teal text-xforge-dark hover:brightness-110"
-                          : "text-xforge-teal border-xforge-teal hover:bg-xforge-teal hover:text-xforge-dark"
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFeatureGame(game.id);
-                      }}
-                    >
-                      {featuredGame === game.id ? (
-                        <>
-                          <Calendar size={14} className="mr-2" />
-                          Featured Today
-                        </>
-                      ) : (
-                        "Set as Featured"
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
           </TabsContent>
+
           <TabsContent value="promo-codes" className="space-y-6">
           <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
             <CardHeader className="pb-2">
@@ -1742,7 +2267,101 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
                 </CardContent>
               </Card>
             </div>
+         
         </TabsContent>
+           {/* GAME HERE */}
+           <TabsContent value="games" className="space-y-6">
+            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-white text-xl">Games Management</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Manage your games and their configurations
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader className="bg-[#222]">
+                      <TableRow>
+                        <TableHead className="text-[#00D6A4] font-bold">Game Name</TableHead>
+                        <TableHead className="text-[#00D6A4] font-bold">Type</TableHead>
+                        <TableHead className="text-[#00D6A4] font-bold">Points Required</TableHead>
+                        <TableHead className="text-[#00D6A4] font-bold">Status</TableHead>
+                        <TableHead className="text-[#00D6A4] font-bold">Prizes</TableHead>
+                        <TableHead className="text-[#00D6A4] font-bold">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {games.map((game) => (
+                        <TableRow key={game._id} className="hover:bg-[#222] border-b border-[#333]">
+                          <TableCell>{game.name}</TableCell>
+                          <TableCell>{game.gameType}</TableCell>
+                          <TableCell>{game.points} points</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              game.featured
+                                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                : 'bg-[#222] text-gray-400 border border-[#333]'
+                            }`}>
+                              {game.featured ? 'Featured' : 'Not Featured'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {game.prizedAssigned?.length || 0} prizes assigned
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {game.featured ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => unfeatureGame(game._id)}
+                                  className="border-amber-500 text-amber-400 hover:bg-amber-500/20"
+                                >
+                                  Unfeature
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleFeatureGame(game._id)}
+                                  className="border-green-500 text-green-400 hover:bg-green-500/20"
+                                >
+                                  Feature
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedGame(game._id);
+                                  setGameConfig({
+                                    points: game.points,
+                                    prizes: game.prizedAssigned || [],
+                                    spinConfig: game.config?.spinConfig || {
+                                      includeFreeSpin: false,
+                                      includeTryAgain: false
+                                    }
+                                  });
+                                  setShowPrizeDialog(true);
+                                }}
+                                className="border-blue-500 text-blue-400 hover:bg-blue-500/20"
+                              >
+                                Configure
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Render the game configuration dialog */}
+            <GameConfigDialog />
+          </TabsContent>
         </Tabs>
       </div>
     </div>

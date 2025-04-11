@@ -138,6 +138,11 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    joinedFlashPromo: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'FlashPromo',
+      required: false
+    }],
   },
   { timestamps: true }
 );

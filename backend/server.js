@@ -13,6 +13,8 @@ const { User } = require("./models/Users.js");
 const emailVerificationRoutes = require("./routes/emailverification"); // Update the path if necessary
 const promoCodeRoutes = require("./routes/promoCodeRoutes");
 const prizeRoutes = require("./routes/prizeRoutes");
+const flashPromoRoutes = require("./routes/flashPromoRoutes");
+const gameRoutes = require("./routes/gameRoutes");
 
 console.log(crypto.randomBytes(64).toString("hex"));
 
@@ -73,23 +75,17 @@ io.use(async (socket, next) => {
 app.use(express.json());
 app.use(cors());
 
-// Define routes
+// Define API routes first
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/emailverification", emailVerificationRoutes); // This will prefix all routes in emailVerification.js with /api/auth
-app.use("/api/promocodes", promoCodeRoutes);
+app.use("/api/email-verification", emailVerificationRoutes);
+app.use("/api/promo-codes", promoCodeRoutes);
 app.use("/api/prizes", prizeRoutes);
+app.use("/api/flash-promos", flashPromoRoutes);
+app.use("/api/games", gameRoutes);
 
 // Initialize Socket.IO in auth routes
 authRoutes.initializeSocketIO(io);
-
-// Serve static files in production
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../frontend/dist", "index.html"));
-  });
-}
 
 // Socket.IO connection handling with authentication
 io.on("connection", (socket) => {
@@ -147,6 +143,19 @@ io.on("connection", (socket) => {
     console.log("Client disconnected:", socket.id);
   });
 });
+
+// Serve static files in production AFTER API routes
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../frontend/dist", "index.html"));
+  });
+} else {
+  // In development, only serve API routes
+  app.get("*", (req, res) => {
+    res.status(404).json({ message: "Not found" });
+  });
+}
 
 // Use the PORT from environment variables or default to 5000
 const PORT = process.env.PORT || 5000;

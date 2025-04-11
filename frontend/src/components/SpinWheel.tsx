@@ -3,10 +3,11 @@ import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNotifications } from "@/context/NotificationsContext";
+import axios from "axios";
 
 // Define the prize types
 type Prize = {
-  id: number;
+  id: string;
   name: string;
   color: string;
   probability: number;
@@ -15,136 +16,390 @@ type Prize = {
   multiplier?: number;
 };
 
-const SpinWheel: React.FC = () => {
+interface GameConfig {
+  _id: string;
+  name: string;
+  gameType: string;
+  points: number;
+  featured: boolean;
+  config?: {
+    spinConfig?: {
+      includeFreeSpin: boolean;
+      includeTryAgain: boolean;
+    };
+  };
+  prizedAssigned?: Array<{
+    prizeId: string;
+    prizeName: string;
+    multiplier?: number;
+  }>;
+}
+
+interface SpinWheelProps {
+  userPoints: number;
+  onPointsUpdate: (newPoints: number) => void;
+}
+
+const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [canSpin, setCanSpin] = useState(true);
-  const [remainingSpins, setRemainingSpins] = useState(() => {
-    const stored = localStorage.getItem('remainingSpins');
-    return stored ? parseInt(stored) : 1; // Default to 1 spin per day
-  });
-  const [currentMultiplier, setCurrentMultiplier] = useState(() => {
-    // Check if there's an active multiplier in localStorage
-    const storedMultiplier = localStorage.getItem('pointsMultiplier');
-    const storedExpiry = localStorage.getItem('multiplierExpiry');
-    
-    if (storedMultiplier && storedExpiry && new Date(storedExpiry) > new Date()) {
-      return parseInt(storedMultiplier);
-    }
-    return 1; // Default multiplier
-  });
+  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
+  const [prizes, setPrizes] = useState<Prize[]>([]);
   const { addNotification } = useNotifications();
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  // Define wheel prizes (removed icons)
-  const prizes: Prize[] = [
-    { id: 1, name: "25 Points", color: "#f97316", probability: 0.28, type: 'minor', value: "25 Points" },
-    { id: 2, name: "XForge Bike", color: "#8b5cf6", probability: 0.05, type: 'major', value: "XForge Bike" },
-    { id: 3, name: "50 Points", color: "#06b6d4", probability: 0.18, type: 'minor', value: "50 Points" },
-    { id: 4, name: "iPhone 16", color: "#ec4899", probability: 0.01, type: 'final', value: "iPhone 16" },
-    { id: 5, name: "10 Points", color: "#84cc16", probability: 0.32, type: 'minor', value: "10 Points" },
-    { id: 6, name: "75 Points", color: "#eab308", probability: 0.09, type: 'minor', value: "75 Points" },
-    { id: 7, name: "2x Multiplier", color: "#f43f5e", probability: 0.05, type: 'minor', value: "2x Points Multiplier", multiplier: 2 },
-    { id: 8, name: "3x Multiplier", color: "#d946ef", probability: 0.02, type: 'minor', value: "3x Points Multiplier", multiplier: 3 },
-  ];
-
-  // Check and update remaining spins daily
   useEffect(() => {
-    const lastSpinDate = localStorage.getItem('lastSpinDate');
-    const today = new Date().toDateString();
-    
-    if (lastSpinDate !== today) {
-      setRemainingSpins(1);
-      localStorage.setItem('remainingSpins', '1');
-    }
-    
-    // Check if multiplier has expired
-    const multiplierExpiry = localStorage.getItem('multiplierExpiry');
-    if (multiplierExpiry && new Date(multiplierExpiry) <= new Date()) {
-      setCurrentMultiplier(1);
-      localStorage.removeItem('pointsMultiplier');
-      localStorage.removeItem('multiplierExpiry');
-    }
+    fetchGameConfig();
+    fetchPrizes();
   }, []);
 
-  // Save remaining spins to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('remainingSpins', remainingSpins.toString());
-    setCanSpin(remainingSpins > 0);
-  }, [remainingSpins]);
-
-  const spinWheel = () => {
-    if (!canSpin || isSpinning) return;
-    
-    setIsSpinning(true);
-    
-    // Weighted random selection based on probability
-    const random = Math.random();
-    let cumulativeProbability = 0;
-    let selectedIndex = 0;
-    
-    for (let i = 0; i < prizes.length; i++) {
-      cumulativeProbability += prizes[i].probability;
-      if (random <= cumulativeProbability) {
-        selectedIndex = i;
-        break;
-      }
+    if (gameConfig) {
+      setCanSpin(userPoints >= (gameConfig.points || 0));
     }
-    
-    const prize = prizes[selectedIndex];
-    setSelectedPrize(prize);
-    
-    // Calculate the rotation to land on the selected prize
-    // Each slice is 360 / prizes.length degrees
-    const sliceDegrees = 360 / prizes.length;
-    
-    // Calculate the middle position of the selected slice
-    // Add 3.5 full rotations (360 * 3.5) for a good spinning effect
-    const prizeRotation = 3600 + (selectedIndex * sliceDegrees) + (sliceDegrees / 2);
-    
-    // Add some randomness to the rotation within the slice
-    const randomOffset = Math.random() * (sliceDegrees * 0.8) - (sliceDegrees * 0.4);
-    const finalRotation = prizeRotation + randomOffset;
-    
-    setRotation(finalRotation);
-    
-    // Record spin date and decrement remaining spins
-    localStorage.setItem('lastSpinDate', new Date().toDateString());
-    setRemainingSpins(prev => prev - 1);
-    
-    // After the animation is complete, show the result
-    setTimeout(() => {
-      setIsSpinning(false);
-      setShowResult(true);
+  }, [userPoints, gameConfig]);
+
+  const fetchGameConfig = async () => {
+    try {
+      const response = await axios.get('/api/games');
+      const spinGame = response.data.find(
+        (game: GameConfig) => game.gameType === 'SpinTheWheel' && game.featured
+      );
       
-      // If it's a multiplier prize, set it active for 24 hours
-      if (prize.multiplier) {
-        const expiryDate = new Date();
-        expiryDate.setHours(expiryDate.getHours() + 24); // 24 hour expiry
-        
-        localStorage.setItem('pointsMultiplier', prize.multiplier.toString());
-        localStorage.setItem('multiplierExpiry', expiryDate.toString());
-        
-        setCurrentMultiplier(prize.multiplier);
+      if (spinGame) {
+        setGameConfig(spinGame);
       }
-      
-      // Add notification
+    } catch (error) {
+      console.error('Error fetching game configuration:', error);
       addNotification({
-        title: "Prize Won!",
-        message: `Congratulations! You've won ${prize.name}!`,
-        type: "points"
+        title: "Error",
+        message: "Failed to load game configuration",
+        type: "system"
       });
-    }, 5000); // Match this with the CSS transition duration
+    }
+  };
+
+  const fetchPrizes = async () => {
+    try {
+      const response = await axios.get('/api/games');
+      const spinGame = response.data.find(
+        (game: GameConfig) => game.gameType === 'SpinTheWheel' && game.featured
+      );
+      
+      if (spinGame) {
+        let wheelPrizes: Prize[] = [];
+        
+        if (spinGame.prizedAssigned && spinGame.prizedAssigned.length > 0) {
+          const assignedPrizes = spinGame.prizedAssigned.map(assignment => ({
+            id: assignment.prizeId,
+            name: assignment.prizeName || 'Special Prize',
+            color: getRandomColor(),
+            probability: 0.15,
+            type: 'major',
+            value: assignment.prizeName || 'Special Prize',
+            multiplier: assignment.multiplier
+          }));
+          
+          wheelPrizes = [...assignedPrizes];
+        }
+        
+        const remainingSlotsCount = 8 - wheelPrizes.length;
+        
+        const defaultPrizesPool: Prize[] = [
+          {
+            id: 'points-4',
+            name: '4 Points',
+            color: '#f97316',
+            probability: 0.20,
+            type: 'minor',
+            value: '4'
+          },
+          {
+            id: 'points-10',
+            name: '10 Points',
+            color: '#8b5cf6',
+            probability: 0.15,
+            type: 'minor',
+            value: '10'
+          },
+          {
+            id: 'points-15',
+            name: '15 Points',
+            color: '#06b6d4',
+            probability: 0.12,
+            type: 'minor',
+            value: '15'
+          },
+          {
+            id: 'try-again',
+            name: 'Try Again',
+            color: '#f43f5e',
+            probability: 0.20,
+            type: 'minor',
+            value: 'Try Again'
+          },
+          {
+            id: 'points-20',
+            name: '20 Points',
+            color: '#84cc16',
+            probability: 0.10,
+            type: 'minor',
+            value: '20'
+          }
+        ];
+
+        if (spinGame.config?.spinConfig?.includeFreeSpin) {
+          defaultPrizesPool.push({
+            id: 'free-spin',
+            name: 'Free Spin',
+            color: '#d946ef',
+            probability: 0.10,
+            type: 'minor',
+            value: 'Free Spin'
+          });
+        }
+
+        const shuffledDefaults = [...defaultPrizesPool].sort(() => Math.random() - 0.5);
+        const selectedDefaultPrizes = shuffledDefaults.slice(0, remainingSlotsCount);
+        
+        wheelPrizes = [...wheelPrizes, ...selectedDefaultPrizes];
+        
+        // Ensure we always have 8 prizes
+        while (wheelPrizes.length < 8) {
+          wheelPrizes.push({
+            id: `points-${wheelPrizes.length}`,
+            name: '5 Points',
+            color: getRandomColor(),
+            probability: 0.1,
+            type: 'minor',
+            value: '5'
+          });
+        }
+        
+        // Normalize probabilities
+        const totalProbability = wheelPrizes.reduce((sum, prize) => sum + prize.probability, 0);
+        wheelPrizes = wheelPrizes.map(prize => ({
+          ...prize,
+          probability: prize.probability / totalProbability
+        }));
+        
+        setPrizes(wheelPrizes);
+      }
+    } catch (error) {
+      console.error('Error fetching prizes:', error);
+      addNotification({
+        title: "Error",
+        message: "Failed to load prizes",
+        type: "system"
+      });
+      // Set default prizes in case of error
+      setPrizes([]);
+    }
+  };
+
+  const getRandomColor = () => {
+    const colors = [
+      '#f97316', '#8b5cf6', '#06b6d4', '#ec4899',
+      '#84cc16', '#eab308', '#f43f5e', '#d946ef'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  const spinWheel = async () => {
+    if (!canSpin || isSpinning || !gameConfig) return;
+    
+    try {
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (!storedUser) {
+        addNotification({
+          title: "Error",
+          message: "User data not found. Please try logging in again.",
+          type: "system"
+        });
+        return;
+      }
+
+      const userData = JSON.parse(storedUser);
+      console.log("User data from storage:", userData);
+
+      // Check for _id first, then id
+      const userId = userData._id || userData.id;
+      if (!userId) {
+        addNotification({
+          title: "Error",
+          message: "Invalid user data. Please try logging in again.",
+          type: "system"
+        });
+        return;
+      }
+
+      const pointsToDeduct = gameConfig.points || 0;
+      
+      // Only proceed if user has enough points
+      if (userPoints < pointsToDeduct) {
+        addNotification({
+          title: "Error",
+          message: `You need ${pointsToDeduct} points to play`,
+          type: "system"
+        });
+        return;
+      }
+
+      // Deduct points for spinning
+      const deductResponse = await axios.post('/api/users/points/deduct', {
+        points: pointsToDeduct,
+        userId: userId
+      }, {
+        headers: { 
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (deductResponse.data.success) {
+        // Update points through parent component
+        onPointsUpdate(userPoints - pointsToDeduct);
+        
+        setIsSpinning(true);
+        
+        // Weighted random selection based on probability
+        const random = Math.random();
+        let cumulativeProbability = 0;
+        let selectedIndex = 0;
+        
+        for (let i = 0; i < prizes.length; i++) {
+          cumulativeProbability += prizes[i].probability;
+          if (random <= cumulativeProbability) {
+            selectedIndex = i;
+            break;
+          }
+        }
+        
+        const prize = prizes[selectedIndex];
+        setSelectedPrize(prize);
+        
+        const sliceDegrees = 360 / prizes.length;
+        const prizeRotation = 3600 + (selectedIndex * sliceDegrees) + (sliceDegrees / 2);
+        const randomOffset = Math.random() * (sliceDegrees * 0.8) - (sliceDegrees * 0.4);
+        const finalRotation = prizeRotation + randomOffset;
+        
+        setRotation(finalRotation);
+        
+        // After the animation is complete, process the prize
+        setTimeout(async () => {
+          setIsSpinning(false);
+          setShowResult(true);
+          
+          try {
+            // Handle different prize types
+            if (prize.value === 'Free Spin') {
+              // No need to deduct points for the next spin
+              setCanSpin(true);
+              addNotification({
+                title: "Free Spin!",
+                message: "You've won a free spin! Your next spin won't cost any points.",
+                type: "points"
+              });
+            } else if (prize.value === 'Try Again') {
+              addNotification({
+                title: "Try Again",
+                message: "Better luck next time!",
+                type: "system"
+              });
+            } else if (prize.type === 'minor' && !isNaN(Number(prize.value))) {
+              // Add points to user's account
+              const addResponse = await axios.post('/api/users/points/add', {
+                points: Number(prize.value),
+                userId: userId
+              }, {
+                headers: { 
+                  'Content-Type': 'application/json'
+                }
+              });
+
+              if (addResponse.data.success) {
+                // Update points through parent component
+                onPointsUpdate(userPoints - pointsToDeduct + Number(prize.value));
+                
+                addNotification({
+                  title: "Points Won!",
+                  message: `You've won ${prize.value} points!`,
+                  type: "points"
+                });
+              }
+            } else if (prize.type === 'major') {
+              // Handle major prize (assigned from admin)
+              const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+              const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+              const userData = JSON.parse(storedUser || '{}');
+              
+              await axios.post('/api/users/prizes/claim', {
+                userId: userData._id || userData.id,
+                prizeId: prize.id,
+                prizeName: prize.name,
+                gameId: gameConfig._id
+              }, {
+                headers: { 
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              addNotification({
+                title: "Major Prize Won!",
+                message: `Congratulations! You've won ${prize.name}!`,
+                type: "points"
+              });
+
+              // Trigger user data refresh
+              window.dispatchEvent(new Event('userUpdated'));
+            }
+            
+            // Update points display in header
+            window.dispatchEvent(new Event('userUpdated'));
+            
+          } catch (error) {
+            console.error('Error processing prize:', error);
+            addNotification({
+              title: "Error",
+              message: "Failed to process your prize. Please contact support.",
+              type: "system"
+            });
+          }
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Error spinning wheel:', error);
+      addNotification({
+        title: "Error",
+        message: "Failed to spin the wheel. Please try again.",
+        type: "system"
+      });
+      setIsSpinning(false);
+    }
   };
 
   const closeResult = () => {
     setShowResult(false);
   };
 
-  // Calculate slice angle
   const sliceAngle = 360 / prizes.length;
+
+  if (!gameConfig || prizes.length === 0) {
+    return (
+      <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Spin The Wheel is currently unavailable
+          </h2>
+          <p className="text-xforge-gray">
+            Please check back later when the game is configured and featured.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4">
@@ -153,17 +408,9 @@ const SpinWheel: React.FC = () => {
           Spin to <span className="text-xforge-teal">Win</span>
         </h2>
         <p className="text-xforge-gray max-w-lg mx-auto mb-6">
-          Try your luck with our prize wheel! Win points, products, or even an iPhone 16.
-          You have {remainingSpins} spin{remainingSpins !== 1 ? 's' : ''} remaining today.
+          Try your luck with our prize wheel! {gameConfig.points} points required per spin.
+          You have {userPoints} points available.
         </p>
-        
-        {/* Multiplier Badge */}
-        {currentMultiplier > 1 && (
-          <div className="inline-flex items-center bg-gradient-to-r from-pink-600 to-purple-600 px-4 py-2 rounded-full text-white font-bold animate-pulse-light">
-            <Sparkles className="h-4 w-4 mr-2" />
-            {currentMultiplier}x Point Multiplier Active!
-          </div>
-        )}
       </div>
       
       <div className="relative">
@@ -180,75 +427,94 @@ const SpinWheel: React.FC = () => {
         >
           {/* Create SVG wheel with proper pie slices */}
           <svg className="w-full h-full" viewBox="0 0 100 100">
-            {/* Create the pie slices */}
-            {prizes.map((prize, index) => {
-              // Calculate slice angles
-              const startAngle = index * sliceAngle;
-              const endAngle = startAngle + sliceAngle;
-              
-              // Convert to radians
-              const startRad = (startAngle - 90) * (Math.PI / 180);
-              const endRad = (endAngle - 90) * (Math.PI / 180);
-              
-              // Calculate points
-              const x1 = 50 + 50 * Math.cos(startRad);
-              const y1 = 50 + 50 * Math.sin(startRad);
-              const x2 = 50 + 50 * Math.cos(endRad);
-              const y2 = 50 + 50 * Math.sin(endRad);
-              
-              // Calculate midpoint for text positioning (moved outward a bit)
-              const midAngleRad = ((startAngle + endAngle) / 2 - 90) * (Math.PI / 180);
-              const textPathRadius = 35; // Distance from center for text path
-              
-              // Create a path for the slice
-              const largeArcFlag = sliceAngle > 180 ? 1 : 0;
-              const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-              
-              // Create a circular path for the text to follow
-              const textPathId = `textPath-${prize.id}`;
-              const textArcStart = 50 + textPathRadius * Math.cos(startRad);
-              const textArcStartY = 50 + textPathRadius * Math.sin(startRad);
-              const textArcEnd = 50 + textPathRadius * Math.cos(endRad);
-              const textArcEndY = 50 + textPathRadius * Math.sin(endRad);
-              
-              // Create the text path (partial arc for this slice)
-              const textPathD = `M ${textArcStart} ${textArcStartY} A ${textPathRadius} ${textPathRadius} 0 ${largeArcFlag} 1 ${textArcEnd} ${textArcEndY}`;
-              
-              return (
-                <g key={prize.id}>
-                  <path
-                    d={path}
-                    fill={prize.color}
-                    stroke="white"
-                    strokeWidth="0.5"
-                  />
-                  
-                  {/* Define the path that text will follow */}
-                  <path
-                    id={textPathId}
-                    d={textPathD}
-                    fill="none"
-                    stroke="none"
-                  />
-                  
-                  {/* Text that follows the path */}
-                  <text 
-                    fill="white" 
-                    fontSize="3.5"
-                    fontWeight="bold"
-                    dominantBaseline="middle"
-                    textAnchor="middle"
-                  >
-                    <textPath 
-                      href={`#${textPathId}`} 
-                      startOffset="50%"
+            {Array.isArray(prizes) && prizes.length > 0 ? (
+              prizes.map((prize, index) => {
+                // Calculate slice angles
+                const startAngle = index * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+                
+                // Convert to radians
+                const startRad = (startAngle - 90) * (Math.PI / 180);
+                const endRad = (endAngle - 90) * (Math.PI / 180);
+                
+                // Calculate points
+                const x1 = 50 + 50 * Math.cos(startRad);
+                const y1 = 50 + 50 * Math.sin(startRad);
+                const x2 = 50 + 50 * Math.cos(endRad);
+                const y2 = 50 + 50 * Math.sin(endRad);
+                
+                // Calculate midpoint for text positioning
+                const midAngleRad = ((startAngle + endAngle) / 2 - 90) * (Math.PI / 180);
+                const textPathRadius = 35;
+                
+                const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+                const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                
+                const textPathId = `textPath-${prize.id}`;
+                const textArcStart = 50 + textPathRadius * Math.cos(startRad);
+                const textArcStartY = 50 + textPathRadius * Math.sin(startRad);
+                const textArcEnd = 50 + textPathRadius * Math.cos(endRad);
+                const textArcEndY = 50 + textPathRadius * Math.sin(endRad);
+                
+                const textPathD = `M ${textArcStart} ${textArcStartY} A ${textPathRadius} ${textPathRadius} 0 ${largeArcFlag} 1 ${textArcEnd} ${textArcEndY}`;
+                
+                return (
+                  <g key={prize.id}>
+                    <path
+                      d={path}
+                      fill={prize.color}
+                      stroke="white"
+                      strokeWidth="0.5"
+                    />
+                    
+                    <path
+                      id={textPathId}
+                      d={textPathD}
+                      fill="none"
+                      stroke="none"
+                    />
+                    
+                    <text 
+                      fill="white" 
+                      fontSize="3.5"
+                      fontWeight="bold"
+                      dominantBaseline="middle"
+                      textAnchor="middle"
                     >
-                      {prize.name}
-                    </textPath>
-                  </text>
-                </g>
-              );
-            })}
+                      <textPath 
+                        href={`#${textPathId}`} 
+                        startOffset="50%"
+                      >
+                        {prize.name}
+                      </textPath>
+                    </text>
+                  </g>
+                );
+              })
+            ) : (
+              // Default wheel segments if no prizes
+              Array.from({ length: 8 }).map((_, index) => {
+                const startAngle = index * 45;
+                const endAngle = startAngle + 45;
+                const startRad = (startAngle - 90) * (Math.PI / 180);
+                const endRad = (endAngle - 90) * (Math.PI / 180);
+                const x1 = 50 + 50 * Math.cos(startRad);
+                const y1 = 50 + 50 * Math.sin(startRad);
+                const x2 = 50 + 50 * Math.cos(endRad);
+                const y2 = 50 + 50 * Math.sin(endRad);
+                
+                return (
+                  <g key={index}>
+                    <path
+                      d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
+                      fill="#1a1a1a"
+                      stroke="white"
+                      strokeWidth="0.5"
+                    />
+                  </g>
+                );
+              })
+            )}
             
             {/* Center circle */}
             <circle cx="50" cy="50" r="12" fill="#06b6d4" />
@@ -269,7 +535,7 @@ const SpinWheel: React.FC = () => {
             'bg-gradient-to-r from-xforge-teal to-teal-500 text-xforge-dark hover:brightness-110'
           }`}
         >
-          {isSpinning ? 'Spinning...' : canSpin ? 'SPIN THE WHEEL' : 'No Spins Left Today'}
+          {isSpinning ? 'Spinning...' : canSpin ? 'SPIN THE WHEEL' : `Need ${gameConfig.points - userPoints} more points to spin`}
         </Button>
       </div>
       
@@ -278,10 +544,10 @@ const SpinWheel: React.FC = () => {
         <DialogContent className="bg-gradient-to-br from-xforge-dark to-xforge-darkgray border border-xforge-teal/30">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-white">
-              Congratulations!
+              {selectedPrize?.value === 'Try Again' ? 'Better luck next time!' : 'Congratulations!'}
             </DialogTitle>
             <DialogDescription className="text-xforge-gray">
-              You've won a prize from the wheel!
+              {selectedPrize?.value === 'Try Again' ? 'Spin again to try your luck!' : "You've won a prize from the wheel!"}
             </DialogDescription>
           </DialogHeader>
           
@@ -291,17 +557,17 @@ const SpinWheel: React.FC = () => {
                 <span className="text-white font-bold">{selectedPrize.name}</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">{selectedPrize.name}</h3>
-              {selectedPrize.type === 'minor' && !selectedPrize.multiplier && (
-                <p className="text-xforge-gray text-center">You've won some points! These have been added to your account.</p>
+              {selectedPrize.type === 'minor' && !isNaN(Number(selectedPrize.value)) && (
+                <p className="text-xforge-gray text-center">You've won {selectedPrize.value} points! These have been added to your account.</p>
               )}
-              {selectedPrize.multiplier && (
-                <p className="text-xforge-gray text-center">You've activated a {selectedPrize.multiplier}x point multiplier for 24 hours! All points earned will be multiplied.</p>
+              {selectedPrize.value === 'Free Spin' && (
+                <p className="text-xforge-gray text-center">Your next spin is free! No points will be deducted.</p>
+              )}
+              {selectedPrize.value === 'Try Again' && (
+                <p className="text-xforge-gray text-center">No prize this time. Try again with another spin!</p>
               )}
               {selectedPrize.type === 'major' && (
-                <p className="text-xforge-gray text-center">You've won an XForge Bike! Contact customer support to claim your prize.</p>
-              )}
-              {selectedPrize.type === 'final' && (
-                <p className="text-xforge-gray text-center">Wow! You've won an iPhone 16! Contact customer support immediately to verify and claim your prize.</p>
+                <p className="text-xforge-gray text-center">You've won a special prize! Check your rewards inventory.</p>
               )}
               
               <Button 

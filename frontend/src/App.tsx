@@ -74,22 +74,23 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/rewards"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Rewards />  
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+           
             <Route
               path="/promo-code"
               element={
                 <ProtectedRoute>
                   <Layout>
                     <PromoCode />  
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/rewards"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Rewards />  
                   </Layout>
                 </ProtectedRoute>
               }

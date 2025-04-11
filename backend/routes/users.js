@@ -57,4 +57,96 @@ router.get("/top-retailers", async (req, res) => {
     res.status(500).send({ message: "Error fetching retailers" });
   }
 });
+
+// Points management routes
+router.post("/points/deduct", async (req, res) => {
+  try {
+    const { points, userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (user.points < points) {
+      return res.status(400).json({ success: false, message: "Insufficient points" });
+    }
+
+    user.points -= points;
+    await user.save();
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Points deducted successfully",
+      newPoints: user.points 
+    });
+  } catch (error) {
+    console.error("Error deducting points:", error);
+    return res.status(500).json({ success: false, message: "Failed to deduct points" });
+  }
+});
+
+router.post("/points/add", async (req, res) => {
+  try {
+    const { points, userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.points += points;
+    await user.save();
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Points added successfully",
+      newPoints: user.points 
+    });
+  } catch (error) {
+    console.error("Error adding points:", error);
+    return res.status(500).json({ success: false, message: "Failed to add points" });
+  }
+});
+
+// Prize claiming route
+router.post("/prizes/claim", async (req, res) => {
+  try {
+    const { userId, prizeId, prizeName, gameId } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Add the prize to user's prizeClaimed array
+    user.prizeClaimed.push({
+      prizeId,
+      name: prizeName,
+      claimedAt: new Date()
+    });
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Prize claimed successfully",
+      prize: {
+        id: prizeId,
+        name: prizeName,
+        claimedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error("Error claiming prize:", error);
+    return res.status(500).json({ success: false, message: "Failed to claim prize" });
+  }
+});
+
 module.exports = router;

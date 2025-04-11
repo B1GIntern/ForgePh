@@ -28,6 +28,10 @@ const gameSchema = new mongoose.Schema({
       ref: "Prize",
       required: false
     },
+    prizeName: {
+      type: String,
+      required: false
+    },
     multiplier: {
       type: Number,
       required: false

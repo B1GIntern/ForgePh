@@ -64,7 +64,7 @@ const Header: React.FC = () => {
       }
 
       // Then, fetch fresh user data from the server
-      const response = await fetch("http://localhost:5001/api/auth/me", {
+      const response = await fetch("http://localhost:5001/api/users/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

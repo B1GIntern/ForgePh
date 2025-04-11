@@ -57,12 +57,29 @@ interface User {
   rewardsclaimed: RewardClaimed[]; // Add this line to include claimed rewards
 }
 
+interface Game {
+  _id: string;
+  name: string;
+  gameType: "SpinTheWheel" | "SlotMachine" | "CardMatchingGame";
+  points: number;
+  featured: boolean;
+  config?: {
+    spinConfig?: {
+      includeFreeSpin: boolean;
+      includeTryAgain: boolean;
+    };
+  };
+  prizedAssigned?: Array<{
+    prizeId: string;
+    multiplier?: number;
+  }>;
+}
+
 const Rewards: React.FC = () => {
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(
-    "all"
-  );
+  const [expandedCategory, setExpandedCategory] = useState<string | null>("all");
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
   const [activeGameTab, setActiveGameTab] = useState<string>("wheel");
+  const [games, setGames] = useState<Game[]>([]);
   const { addNotification } = useNotifications();
   const { toast: uiToast } = useToast();
 
@@ -141,6 +158,7 @@ const Rewards: React.FC = () => {
   useEffect(() => {
     fetchUserData();
     fetchRewards();
+    fetchGames();
 
     window.addEventListener("storage", fetchUserData);
 
@@ -181,6 +199,39 @@ const Rewards: React.FC = () => {
       console.error("Error fetching rewards:", error);
       uiToast({
         description: "Could not load rewards. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchGames = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/games");
+      if (!response.ok) {
+        throw new Error("Failed to fetch games");
+      }
+      const gamesData: Game[] = await response.json();
+      setGames(gamesData);
+
+      // Set active tab based on featured game
+      const featuredGame = gamesData.find(game => game.featured);
+      if (featuredGame) {
+        switch (featuredGame.gameType) {
+          case "SpinTheWheel":
+            setActiveGameTab("wheel");
+            break;
+          case "SlotMachine":
+            setActiveGameTab("slots");
+            break;
+          case "CardMatchingGame":
+            setActiveGameTab("memory");
+            break;
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching games:", error);
+      uiToast({
+        description: "Could not load games. Please try again later.",
         variant: "destructive",
       });
     }
@@ -625,72 +676,156 @@ const Rewards: React.FC = () => {
             </div>
 
             <div className="relative z-10">
-              <div
-                className={`transition-all duration-500 ${activeGameTab === "wheel" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
-              >
-                <SpinWheel />
-              </div>
-
-              <div
-                className={`transition-all duration-500 ${activeGameTab === "slots" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
-              >
-                <SlotMachine />
-              </div>
-
-              {/* Memory Game (Coming Soon) */}
-              <div
-                className={`transition-all duration-500 h-full ${activeGameTab === "memory" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
-              >
-                <MemoryGame />
-              </div>
-
-              {/* XForge Quiz (Coming Soon) */}
-              <div
-                className={`transition-all duration-500 h-full ${activeGameTab === "quiz" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
-              >
-                <div className="flex flex-col items-center justify-center h-full py-16">
-                  <div className="bg-[#8B5CF6]/20 p-6 rounded-full mb-6">
-                    <Zap className="h-16 w-16 text-[#8B5CF6]" />
+              {games.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[400px]">
+                  <div className="bg-xforge-teal/20 p-6 rounded-full mb-6">
+                    <Gamepad className="h-16 w-16 text-xforge-teal" />
                   </div>
                   <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                    Forge Knowledge Quiz
+                    No Games Available
                   </h3>
-                  <p className="text-xforge-gray text-center max-w-md mb-8">
-                    Test your knowledge about XForge products and earn points
-                    for correct answers. New questions every week!
+                  <p className="text-xforge-gray text-center max-w-md">
+                    Check back later for exciting games and chances to win points!
                   </p>
-                  <button
-                    onClick={playQuizGame}
-                    className="px-8 py-4 bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] text-white font-bold rounded-full hover:shadow-lg hover:shadow-[#8B5CF6]/20 transition-all duration-300"
-                  >
-                    Coming Soon
-                  </button>
                 </div>
-              </div>
-
-              {/* Daily Challenge (Coming Soon) */}
-              <div
-                className={`transition-all duration-500 h-full ${activeGameTab === "daily" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
-              >
-                <div className="flex flex-col items-center justify-center h-full py-16">
-                  <div className="bg-[#F97316]/20 p-6 rounded-full mb-6">
-                    <Crown className="h-16 w-16 text-[#F97316]" />
+              ) : (
+                <>
+                  {/* Spin The Wheel Game */}
+                  <div
+                    className={`transition-all duration-500 ${
+                      activeGameTab === "wheel" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"
+                    }`}
+                  >
+                    {games.find(game => game.gameType === "SpinTheWheel" && game.featured) ? (
+                      <SpinWheel 
+                        userPoints={currentPoints} 
+                        onPointsUpdate={(newPoints) => {
+                          setCurrentPoints(newPoints);
+                          // Update user in storage
+                          const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                          if (storedUser) {
+                            const userData = JSON.parse(storedUser);
+                            userData.points = newPoints;
+                            if (localStorage.getItem('user')) {
+                              localStorage.setItem('user', JSON.stringify(userData));
+                            } else {
+                              sessionStorage.setItem('user', JSON.stringify(userData));
+                            }
+                          }
+                          // Trigger update event
+                          window.dispatchEvent(new Event('userUpdated'));
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[400px]">
+                        <div className="bg-xforge-teal/20 p-6 rounded-full mb-6">
+                          <Target className="h-16 w-16 text-xforge-teal" />
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                          Prize Wheel Coming Soon
+                        </h3>
+                        <p className="text-xforge-gray text-center max-w-md">
+                          The Prize Wheel is not currently featured. Check back later!
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                    Daily Challenge
-                  </h3>
-                  <p className="text-xforge-gray text-center max-w-md mb-8">
-                    Complete a new challenge every day to earn bonus points.
-                    Chain consecutive days for multipliers!
-                  </p>
-                  <button
-                    onClick={playDailyChallenge}
-                    className="px-8 py-4 bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white font-bold rounded-full hover:shadow-lg hover:shadow-[#F97316]/20 transition-all duration-300"
+
+                  {/* Slot Machine Game */}
+                  <div
+                    className={`transition-all duration-500 ${
+                      activeGameTab === "slots" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"
+                    }`}
                   >
-                    Coming Soon
-                  </button>
-                </div>
-              </div>
+                    {games.find(game => game.gameType === "SlotMachine" && game.featured) ? (
+                      <SlotMachine />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[400px]">
+                        <div className="bg-xforge-teal/20 p-6 rounded-full mb-6">
+                          <Dices className="h-16 w-16 text-xforge-teal" />
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                          Slot Machine Coming Soon
+                        </h3>
+                        <p className="text-xforge-gray text-center max-w-md">
+                          The Slot Machine is not currently featured. Check back later!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Memory Game */}
+                  <div
+                    className={`transition-all duration-500 h-full ${
+                      activeGameTab === "memory" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"
+                    }`}
+                  >
+                    {games.find(game => game.gameType === "CardMatchingGame" && game.featured) ? (
+                      <MemoryGame />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[400px]">
+                        <div className="bg-xforge-teal/20 p-6 rounded-full mb-6">
+                          <Target className="h-16 w-16 text-xforge-teal" />
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                          Memory Game Coming Soon
+                        </h3>
+                        <p className="text-xforge-gray text-center max-w-md">
+                          The Memory Game is not currently featured. Check back later!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* XForge Quiz (Coming Soon) */}
+                  <div
+                    className={`transition-all duration-500 h-full ${activeGameTab === "quiz" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
+                  >
+                    <div className="flex flex-col items-center justify-center h-full py-16">
+                      <div className="bg-[#8B5CF6]/20 p-6 rounded-full mb-6">
+                        <Zap className="h-16 w-16 text-[#8B5CF6]" />
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                        Forge Knowledge Quiz
+                      </h3>
+                      <p className="text-xforge-gray text-center max-w-md mb-8">
+                        Test your knowledge about XForge products and earn points
+                        for correct answers. New questions every week!
+                      </p>
+                      <button
+                        onClick={playQuizGame}
+                        className="px-8 py-4 bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] text-white font-bold rounded-full hover:shadow-lg hover:shadow-[#8B5CF6]/20 transition-all duration-300"
+                      >
+                        Coming Soon
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Daily Challenge (Coming Soon) */}
+                  <div
+                    className={`transition-all duration-500 h-full ${activeGameTab === "daily" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 absolute pointer-events-none"}`}
+                  >
+                    <div className="flex flex-col items-center justify-center h-full py-16">
+                      <div className="bg-[#F97316]/20 p-6 rounded-full mb-6">
+                        <Crown className="h-16 w-16 text-[#F97316]" />
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                        Daily Challenge
+                      </h3>
+                      <p className="text-xforge-gray text-center max-w-md mb-8">
+                        Complete a new challenge every day to earn bonus points.
+                        Chain consecutive days for multipliers!
+                      </p>
+                      <button
+                        onClick={playDailyChallenge}
+                        className="px-8 py-4 bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white font-bold rounded-full hover:shadow-lg hover:shadow-[#F97316]/20 transition-all duration-300"
+                      >
+                        Coming Soon
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
