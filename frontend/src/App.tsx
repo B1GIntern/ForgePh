@@ -29,6 +29,7 @@ import VerificationFailed from "./pages/VerificationFailed";
 import ShopsLeaderboard from "./pages/ShopsLeaderboard";
 
 import { NotificationsProvider } from "./context/NotificationsContext";
+import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -40,10 +41,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <NotificationsProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <AuthProvider>
+        <NotificationsProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
         <ScrollToTop />
           <Routes>
             <Route path="/" element={<AgeVerification />} />
@@ -154,8 +156,9 @@ const App = () => (
               
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </NotificationsProvider>
+          </BrowserRouter>
+        </NotificationsProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

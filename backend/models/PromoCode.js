@@ -16,10 +16,19 @@ const promoCodeSchema = new mongoose.Schema(
       required: true,
       default: 10, // Default points set to 10
     },
+    promoCodeRedeemed: {
+      type: Boolean,
+      default: false,
+    },
     redeemedBy: {
       consumerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User", // Reference to the consumer who redeemed the promo code
+        required: false,
+      },
+      retailerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User", // Reference to the retailer selected during redemption
         required: false,
       },
       redeemedAt: {

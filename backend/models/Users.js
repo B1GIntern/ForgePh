@@ -95,6 +95,19 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    rewardsclaimed: [
+      {
+        rewardsid: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Reward",
+          required: true,
+        },
+        rewardsname: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
@@ -155,6 +168,12 @@ const validateUser = (data) => {
       .valid("Bronze", "Silver", "Gold")
       .default("Bronze")
       .label("Rank"), // Add this if rank is passed in the request
+    rewardsclaimed: Joi.array().items(
+      Joi.object({
+        rewardId: Joi.string().required(),
+        rewardName: Joi.string().required()
+      })
+    ).default([])
   });
 
   return schema.validate(data);

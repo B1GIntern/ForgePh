@@ -5,6 +5,7 @@ const Joi = require("joi");
 const bcrypt = require("bcrypt");
 const passwordComplexity = require("joi-password-complexity");
 const jwt = require("jsonwebtoken");
+const auth = require("../middleware/auth");
 
 // Global variable to store the io instance
 let io;
@@ -34,6 +35,14 @@ router.post("/login", async (req, res) => {
     const token = user.generateAuthToken();
     console.log("Generated Token:", token);
 
+    // Set HTTP-only cookie with the token
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
     // Emit socket event for successful login
     if (io) {
       // Emit to admin users about new login
@@ -44,9 +53,9 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Modified login route to include userStatus
+    // Modified login route to include userStatus and token
     res.status(200).send({
-      token,
+      token, // Keep sending token for backward compatibility
       user: {
         id: user._id,
         name: user.name,
@@ -57,12 +66,13 @@ router.post("/login", async (req, res) => {
           city: user.location?.city || "",
         },
         userType: user.userType,
-        points: user.points,
+        points: user.points || 50,
         rewardsclaimed: user.rewardsclaimed || [],
         birthdate: user.birthdate || "",
-        registrationDate: user.registrationDate || "",
-        userStatus: user.userStatus || "Not Verified", // Added userStatus field
-        rank: user.rank || "Bronze", // You might want to include rank as well
+        registrationDate: user.registrationDate || new Date(),
+        userStatus: user.userStatus || "Not Verified",
+        rank: user.rank || "Bronze",
+        verified: user.verified || false
       },
       message: "Logged In Successfully",
     });
@@ -316,33 +326,36 @@ router.post("/redeem-reward", async (req, res) => {
       .send({ message: "Internal Server Error", error: error.message });
   }
 });
-// Fetch user information without authentication
-router.get("/me", async (req, res) => {
+// Get current authenticated user
+router.get("/me", auth, async (req, res) => {
   try {
-    // Fetch the user from the database (you can adjust the query based on your needs)
-    const user = await User.findOne(); // Adjust this if you want to fetch by a specific criterion
-
+    const user = await User.findById(req.user._id).select("-password");
+    
     if (!user) {
       return res.status(404).send({ message: "User not found" });
     }
-
-    // Send the user details, including phoneNumber and location (province and city)
+    
     res.status(200).send({
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        location: user.location, // Send full location object (province and city)
-        phoneNumber: user.phoneNumber, // Send phoneNumber field
-        birthdate: user.birthdate,
-        userType: user.userType,
-        points: user.points,
-        rewardsclaimed: user.rewardsclaimed,
-        registrationDate: user.registrationDate,
-      },
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber || "",
+      location: user.location || { province: "", city: "" },
+      birthdate: user.birthdate || "",
+      userType: user.userType,
+      points: user.points || 0,
+      rewardsclaimed: user.rewardsclaimed || [],
+      registrationDate: user.registrationDate || new Date(),
+      userStatus: user.userStatus || "Not Verified",
+      rank: user.rank || "Bronze",
+      verified: user.verified || false,
+      shopName: user.shopName,
+      redeemedPromoCodes: user.redeemedPromoCodes || [],
+      redemptionCount: user.redemptionCount || 3,
+      lastRedemptionDate: user.lastRedemptionDate || null
     });
   } catch (error) {
-    console.error("Error fetching user info:", error);
+    console.error("Error fetching user data:", error);
     res.status(500).send({ message: "Internal Server Error" });
   }
 });

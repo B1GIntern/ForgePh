@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const promoCodeController = require("../controllers/promoCodeController");
+const auth = require("../middleware/auth");
 
 // Set up multer for handling file uploads
 const storage = multer.memoryStorage(); // Store file in memory
@@ -35,7 +36,10 @@ router.post(
 // Get all promo codes
 router.get("/", promoCodeController.getAllPromoCodes);
 
-// Redeem a promo code
-router.post("/redeem", promoCodeController.redeemPromoCode);
+// Redeem a promo code - requires authentication
+router.post("/redeem", auth, promoCodeController.redeemPromoCode);
+
+// Get verified retailers
+router.get("/retailers", promoCodeController.getVerifiedRetailers);
 
 module.exports = router;

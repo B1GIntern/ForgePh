@@ -1,6 +1,7 @@
 // controllers/promoCodeController.js
 const XLSX = require("xlsx");
 const PromoCode = require("../models/PromoCode.js");
+const { User } = require("../models/Users.js");
 
 // Upload promo codes from Excel file to MongoDB
 const uploadPromoCodes = async (req, res) => {
@@ -86,11 +87,15 @@ const uploadPromoCodes = async (req, res) => {
             results.duplicates++;
           }
         } else {
-          // Create new promo code with default values
+          // Create new promo code with default values and empty redemption fields
           await PromoCode.create({
             code,
             points: 10, // Default points
-            // redeemedBy is left undefined for new codes
+            redeemedBy: {
+              consumerId: null,
+              shopName: null,
+              redeemedAt: null
+            }
           });
           results.added++;
         }
@@ -139,13 +144,13 @@ const getAllPromoCodes = async (req, res) => {
 // Redeem a promo code
 const redeemPromoCode = async (req, res) => {
   try {
-    const { code, consumerId, shopName } = req.body;
+    const { code, userId, shopName } = req.body;
 
-    if (!code || !consumerId || !shopName) {
+    if (!code || !userId || !shopName) {
       return res.status(400).json({
         success: false,
         message:
-          "Missing required fields: code, consumerId, and shopName are required",
+          "Missing required fields: code, userId, and shopName are required",
       });
     }
 
@@ -160,20 +165,57 @@ const redeemPromoCode = async (req, res) => {
     }
 
     // Check if already redeemed
-    if (promoCode.redeemedBy && promoCode.redeemedBy.consumerId) {
+    if (promoCode.promoCodeRedeemed) {
       return res.status(400).json({
         success: false,
         message: "This promo code has already been redeemed",
       });
     }
 
-    // Set redemption details
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user || user.userType !== "Consumer") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID or user is not a consumer",
+      });
+    }
+
+    // Find the retailer by shop name
+    const retailer = await User.findOne({
+      userType: "Retailer",
+      userStatus: "Verified",
+      shopName: shopName
+    });
+
+    if (!retailer) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or unverified retailer shop name",
+      });
+    }
+
+    // Update user's points and redeemed promo codes
+    user.points += promoCode.points;
+    user.redeemedPromoCodes.push({
+      promoCodeId: promoCode._id,
+      shopName: shopName,
+      redeemedAt: new Date()
+    });
+    await user.save();
+
+    // Update retailer's points
+    retailer.points += promoCode.points;
+    await retailer.save();
+
+    // Set redemption details and mark as redeemed
     promoCode.redeemedBy = {
-      consumerId,
+      consumerId: userId,
+      retailerId: retailer._id,
       shopName,
       redeemedAt: new Date(),
     };
-
+    promoCode.promoCodeRedeemed = true;
     await promoCode.save();
 
     return res.status(200).json({
@@ -181,6 +223,8 @@ const redeemPromoCode = async (req, res) => {
       message: "Promo code redeemed successfully",
       points: promoCode.points,
       promoCode,
+      userPoints: user.points,
+      retailerPoints: retailer.points
     });
   } catch (error) {
     console.error("Error redeeming promo code:", error);
@@ -191,8 +235,32 @@ const redeemPromoCode = async (req, res) => {
   }
 };
 
+// Get verified retailers
+const getVerifiedRetailers = async (req, res) => {
+  try {
+    const retailers = await User.find({
+      userType: "Retailer",
+      userStatus: "Verified"
+    }).select('_id shopName');
+
+    return res.status(200).json({
+      success: true,
+      count: retailers.length,
+      data: retailers
+    });
+  } catch (error) {
+    console.error("Error fetching verified retailers:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch verified retailers",
+      data: []
+    });
+  }
+};
+
 module.exports = {
   uploadPromoCodes,
   getAllPromoCodes,
   redeemPromoCode,
+  getVerifiedRetailers
 };

@@ -21,10 +21,19 @@ interface User {
   userType: string;
   points: number;
   rewardsclaimed: any[];
-  birthdate?: string;
-  registrationDate?: string;
-  userStatus: string; // Add userStatus field
-  rank?: string;      // Add rank field too if needed
+  birthdate: string;
+  registrationDate: string;
+  userStatus: string;
+  rank: string;
+  shopName?: string;
+  verified?: boolean;
+  redemptionCount?: number;
+  lastRedemptionDate?: string;
+  redeemedPromoCodes?: Array<{
+    promoCodeId: string;
+    redeemedAt: string;
+    shopName: string;
+  }>;
 }
 
 
@@ -50,7 +59,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       });
       return;
     }
-  
+
     setIsLoading(true);
     
     try {
@@ -75,9 +84,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         
         throw new Error(errorMessage);
       }
-  
+
       const data = await response.json();
-  
+
       const userData: User = {
         id: data.user.id,
         name: data.user.name,
@@ -92,37 +101,42 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         rewardsclaimed: data.user.rewardsclaimed || [],
         birthdate: data.user.birthdate || "",
         registrationDate: data.user.registrationDate || "",
-        userStatus: data.user.userStatus || "Not Verified", // Add userStatus
-        rank: data.user.rank || "Bronze", // Add rank if needed
+        userStatus: data.user.userStatus || "Not Verified",
+        rank: data.user.rank || "Bronze",
+        shopName: data.user.shopName || "",
+        verified: data.user.verified || false,
+        redemptionCount: data.user.redemptionCount || 3,
+        lastRedemptionDate: data.user.lastRedemptionDate || "",
+        redeemedPromoCodes: data.user.redeemedPromoCodes || []
       };
       
       const token = data.token;
-  
+
       if (rememberMe) {
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", token);
-        console.log("Stored Token in Local Storage:", token);
+        console.log("Stored user data in Local Storage:", userData);
       } else {
         sessionStorage.setItem("user", JSON.stringify(userData));
         sessionStorage.setItem("token", token);
-        console.log("Stored Token in Session Storage:", token);
+        console.log("Stored user data in Session Storage:", userData);
       }
-  
+
       toast({
         title: "Login successful",
         description: `Welcome back ${userData.name} to ForgePhilippines!`,
       });
-  
+
       onClose();
       setEmail("");
       setPassword("");
-  
+
       if (userData.userType === "Retailer") {
         window.location.href = "/retailers";
       } else {
         window.location.href = "/home";
       }
-  
+
     } catch (error) {
       console.error("Login error:", error);
       toast({
