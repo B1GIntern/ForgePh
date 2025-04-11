@@ -12,6 +12,7 @@ const authRoutes = require("./routes/auth");
 const { User } = require("./models/Users.js");
 const emailVerificationRoutes = require("./routes/emailverification"); // Update the path if necessary
 const promoCodeRoutes = require("./routes/promoCodeRoutes");
+const prizeRoutes = require("./routes/prizeRoutes");
 
 console.log(crypto.randomBytes(64).toString("hex"));
 
@@ -77,6 +78,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/emailverification", emailVerificationRoutes); // This will prefix all routes in emailVerification.js with /api/auth
 app.use("/api/promocodes", promoCodeRoutes);
+app.use("/api/prizes", prizeRoutes);
 
 // Initialize Socket.IO in auth routes
 authRoutes.initializeSocketIO(io);

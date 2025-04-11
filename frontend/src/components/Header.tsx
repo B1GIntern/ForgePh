@@ -64,7 +64,7 @@ const Header: React.FC = () => {
       }
 
       // Then, fetch fresh user data from the server
-      const response = await fetch("http://localhost:5001/api/users/me", {
+      const response = await fetch("http://localhost:5001/api/auth/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -132,6 +132,12 @@ const Header: React.FC = () => {
   useEffect(() => {
     if (user) {
       setCurrentPoints(user.points);
+      // Update storage to ensure consistency
+      if (localStorage.getItem("user")) {
+        localStorage.setItem("user", JSON.stringify(user));
+      } else if (sessionStorage.getItem("user")) {
+        sessionStorage.setItem("user", JSON.stringify(user));
+      }
     }
   }, [user]);
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -41,6 +40,7 @@ interface User {
   redemptionCount: number;
   lastRedemptionDate?: string;
   rank: string;
+  dailyLimitReached: boolean;
 }
 
 const PromoCodes: React.FC = () => {
@@ -177,7 +177,8 @@ const PromoCodes: React.FC = () => {
         if (user) {
           const updatedUser = {
             ...user,
-            redemptionCount: data.remainingRedemptions
+            redemptionCount: data.remainingRedemptions,
+            dailyLimitReached: data.dailyLimitReached
           };
           
           setUser(updatedUser);
@@ -192,7 +193,9 @@ const PromoCodes: React.FC = () => {
         
         uiToast({
           title: "Updated",
-          description: `You have ${data.remainingRedemptions} redemptions remaining today`,
+          description: data.dailyLimitReached 
+            ? "Daily limit reached (0/3)" 
+            : `You have ${data.remainingRedemptions} redemptions remaining today`,
         });
       } else {
         console.error("Failed to refresh redemption count");
@@ -242,6 +245,19 @@ const PromoCodes: React.FC = () => {
       const userData = await response.json();
       console.log("Received user data:", userData);
       
+      // Check if we need to reset redemption count
+      const currentDate = new Date();
+      const lastRedemptionDate = userData.lastRedemptionDate ? new Date(userData.lastRedemptionDate) : null;
+      
+      if (!lastRedemptionDate || 
+          lastRedemptionDate.getDate() !== currentDate.getDate() ||
+          lastRedemptionDate.getMonth() !== currentDate.getMonth() ||
+          lastRedemptionDate.getFullYear() !== currentDate.getFullYear()) {
+        // Reset redemption count if it's a new day
+        userData.redemptionCount = 3;
+        userData.lastRedemptionDate = currentDate.toISOString();
+      }
+      
       // Update state with fresh user data
       setUser(userData);
       setCurrentPoints(userData.points);
@@ -255,6 +271,8 @@ const PromoCodes: React.FC = () => {
       
       window.dispatchEvent(new Event("authChange"));
       console.log("Updated user data from server:", userData);
+      await refreshRedemptionCount();
+
     } catch (error) {
       console.error("Error fetching user data:", error);
       uiToast({
@@ -362,6 +380,7 @@ const PromoCodes: React.FC = () => {
             ...user,
             points: data.userPoints || (user.points + data.points),
             redemptionCount: data.remainingRedemptions || (user.redemptionCount - 1),
+            dailyLimitReached: data.dailyLimitReached || (data.remainingRedemptions === 0),
             redeemedPromoCodes: [
               ...(user.redeemedPromoCodes || []),
               {
@@ -482,8 +501,10 @@ const PromoCodes: React.FC = () => {
     <main className="flex-grow container mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Promo Codes</h1>
-        <p className="text-gray-600">
-          Redeem promo codes to earn points, discounts, and special rewards
+        <p className={`text-gray-600 ${user?.dailyLimitReached ? 'text-red-500 font-medium' : ''}`}>
+          {user?.dailyLimitReached 
+            ? "Daily redemption limit reached. Try again tomorrow!" 
+            : "Redeem promo codes to earn points, discounts, and special rewards"}
         </p>
       </div>
 
@@ -558,8 +579,16 @@ const PromoCodes: React.FC = () => {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center gap-2">
-                              <div className={`text-sm ${user?.redemptionCount === 0 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                                {user ? `Redemptions left today: ${user.redemptionCount || 0}/3` : 'Loading...'}
+                              <div className={`text-sm ${user?.dailyLimitReached ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                                {user ? (
+                                  user.dailyLimitReached ? (
+                                    "Daily limit reached (0/3)"
+                                  ) : (
+                                    `Redemptions left today: ${user.redemptionCount}/3`
+                                  )
+                                ) : (
+                                  'Loading...'
+                                )}
                               </div>
                               <Button 
                                 variant="ghost" 

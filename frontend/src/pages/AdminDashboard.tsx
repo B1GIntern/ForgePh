@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
 import { 
   Award, 
@@ -59,6 +58,26 @@ import {
 import { useEffect } from 'react';
 import axios from "axios";
 
+// Define types for our data
+interface Prize {
+  _id: string;
+  name: string;
+  description: string;
+  quantity: number;
+  prizedAssignedToGame: boolean;
+  gameId?: string;
+  createdAt: string;
+  updatedAt: string;
+  prizeClaimedBy?: Array<{
+    userId: string;
+    claimedAt: string;
+  }>;
+}
+
+interface Game {
+  _id: string;
+  name: string;
+}
 // Define types for our data
 interface PromoCode {
   _id: string;
@@ -153,13 +172,13 @@ const AdminDashboard: React.FC = () => {
   const [rewards, setRewards] = useState<Array<{ id: number, name: string, points: number, stock: number, type: string }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [prizes, setPrizes] = useState([
-    { id: 1, name: "iPhone 16", description: "Latest Apple smartphone", quantity: 1 },
-    { id: 2, name: "Gaming Console", description: "Next-gen gaming system", quantity: 3 },
-    { id: 3, name: "Smart Watch", description: "Fitness and health tracker", quantity: 5 }
-  ]);
-  const [newPrize, setNewPrize] = useState({ name: "", description: "", quantity: 1 });
-  const [flashPromos, setFlashPromos] = useState(mockPromos);
+  const [newPrize, setNewPrize] = useState({
+    name: "",
+    description: "",
+    quantity: 1,
+    prizedAssignedToGame: false,
+    gameId: ""
+  });
   const [newFlashPromo, setNewFlashPromo] = useState({
     name: "",
     startDate: "",
@@ -171,7 +190,11 @@ const AdminDashboard: React.FC = () => {
   
   // Declare state for retailers
   const [retailers, setRetailers] = useState<any[]>([]); // <== Add this line to declare retailers state
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [selectedTab, setSelectedTab] = useState("rewards");
+  const [isLoadingRewards, setIsLoadingRewards] = useState(false);
   useEffect(() => {
     const fetchRetailers = async () => {
       try {
@@ -331,91 +354,9 @@ const AdminDashboard: React.FC = () => {
     }, 1000);
   };
 
-  const addPrize = () => {
-    if (!newPrize.name) {
-      toast({
-        title: "Invalid Prize",
-        description: "Please enter a prize name",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const prize = {
-      id: prizes.length + 1,
-      ...newPrize
-    };
-    
-    setPrizes([...prizes, prize]);
-    setNewPrize({ name: "", description: "", quantity: 1 });
-    
-    toast({
-      title: "Prize Added",
-      description: `${prize.name} has been added to the prize pool`,
-    });
-  };
+  
 
-  const deletePrize = (id: number) => {
-    setPrizes(prizes.filter(p => p.id !== id));
-    toast({
-      title: "Prize Deleted",
-      description: "The prize has been removed from the pool",
-    });
-  };
-
-  const addFlashPromo = () => {
-    if (!newFlashPromo.name || !newFlashPromo.startDate || !newFlashPromo.endDate || !newFlashPromo.prize || newFlashPromo.totalWinners <= 0) {
-      toast({
-        title: "Invalid Flash Promo",
-        description: "Please fill all fields with valid values",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const promo = {
-      id: flashPromos.length + 1,
-      ...newFlashPromo,
-      remainingWinners: newFlashPromo.totalWinners
-    };
-    
-    setFlashPromos([...flashPromos, promo]);
-    setNewFlashPromo({
-      name: "",
-      startDate: "",
-      endDate: "",
-      prize: "",
-      totalWinners: 0,
-      active: false
-    });
-    
-    toast({
-      title: "Flash Promo Added",
-      description: `${promo.name} has been added to active promotions`,
-    });
-  };
-
-  const deleteFlashPromo = (id: number) => {
-    setFlashPromos(flashPromos.filter(p => p.id !== id));
-    toast({
-      title: "Flash Promo Deleted",
-      description: "The promotion has been removed",
-    });
-  };
-
-  const togglePromoStatus = (id: number) => {
-    setFlashPromos(flashPromos.map(promo => 
-      promo.id === id ? { ...promo, active: !promo.active } : promo
-    ));
-    
-    const promo = flashPromos.find(p => p.id === id);
-    if (promo) {
-      toast({
-        title: promo.active ? "Promo Deactivated" : "Promo Activated",
-        description: `${promo.name} is now ${promo.active ? 'inactive' : 'active'}`,
-      });
-    }
-  };
+ 
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [redemptions, setRedemptions] = useState(mockRedemptions);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -662,7 +603,122 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
   const redemptionMetrics = getRedemptionMetrics();
 
 
+   // Fetch all prizes
+   const fetchPrizes = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get('/api/prizes');
+      if (response.data.success) {
+        setPrizes(response.data.data);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load prizes",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching prizes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load prizes",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Fetch all games for dropdown
+  const fetchGames = async () => {
+    try {
+      const response = await axios.get('/api/games');
+      if (response.data.success) {
+        setGames(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching games:", error);
+    }
+  };
+
+  // Add new prize
+  const addPrize = async () => {
+    if (!newPrize.name || !newPrize.description || newPrize.quantity < 1) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPrize.prizedAssignedToGame && !newPrize.gameId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a game for this prize",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/prizes', newPrize);
+      
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: "Prize added successfully"
+        });
+        
+        // Reset form and refresh prizes
+        setNewPrize({
+          name: "",
+          description: "",
+          quantity: 1,
+          prizedAssignedToGame: false,
+          gameId: ""
+        });
+        fetchPrizes();
+      }
+    } catch (error) {
+      console.error("Error adding prize:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add prize",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Delete prize
+  const deletePrize = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this prize?")) {
+      try {
+        const response = await axios.delete(`/api/prizes/${id}`);
+        
+        if (response.data.success) {
+          toast({
+            title: "Success",
+            description: "Prize deleted successfully"
+          });
+          fetchPrizes();
+        }
+      } catch (error) {
+        console.error("Error deleting prize:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete prize",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchPrizes();
+    fetchGames();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-xforge-darkgray to-xforge-dark">
@@ -993,117 +1049,168 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
           </TabsContent>
 
           <TabsContent value="prizes" className="space-y-6 animate-fade-in">
-            <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-xl">Add New Prize</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <Label htmlFor="prize-name" className="text-xforge-gray">Prize Name</Label>
-                    <Input 
-                      id="prize-name" 
-                      placeholder="e.g. iPhone 16" 
-                      value={newPrize.name}
-                      onChange={(e) => setNewPrize({...newPrize, name: e.target.value})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="prize-description" className="text-xforge-gray">Description</Label>
-                    <Input 
-                      id="prize-description" 
-                      placeholder="Brief description" 
-                      value={newPrize.description}
-                      onChange={(e) => setNewPrize({...newPrize, description: e.target.value})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="prize-quantity" className="text-xforge-gray">Quantity</Label>
-                    <Input 
-                      id="prize-quantity" 
-                      type="number" 
-                      placeholder="Number available" 
-                      value={newPrize.quantity || ''}
-                      onChange={(e) => setNewPrize({...newPrize, quantity: parseInt(e.target.value) || 1})}
-                      className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
-                      min="1"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      onClick={addPrize}
-                      className="bg-gradient-to-r from-xforge-teal to-cyan-500 text-xforge-dark hover:brightness-110 w-full shadow-glow"
-                    >
-                      <Plus size={16} className="mr-2" />
-                      Add Prize
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-white text-xl">Add New Prize</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="prize-name" className="text-xforge-gray">Prize Name</Label>
+              <Input 
+                id="prize-name" 
+                placeholder="e.g. iPhone 16" 
+                value={newPrize.name}
+                onChange={(e) => setNewPrize({...newPrize, name: e.target.value})}
+                className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+              />
+            </div>
+            <div>
+              <Label htmlFor="prize-description" className="text-xforge-gray">Description</Label>
+              <Input 
+                id="prize-description" 
+                placeholder="Brief description" 
+                value={newPrize.description}
+                onChange={(e) => setNewPrize({...newPrize, description: e.target.value})}
+                className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+              />
+            </div>
+            <div>
+              <Label htmlFor="prize-quantity" className="text-xforge-gray">Quantity</Label>
+              <Input 
+                id="prize-quantity" 
+                type="number" 
+                placeholder="Number available" 
+                value={newPrize.quantity || ''}
+                onChange={(e) => setNewPrize({...newPrize, quantity: parseInt(e.target.value) || 1})}
+                className="input-field bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+                min="1"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button 
+                onClick={addPrize}
+                className="bg-gradient-to-r from-xforge-teal to-cyan-500 text-xforge-dark hover:brightness-110 w-full shadow-glow"
+              >
+                <Plus size={16} className="mr-2" />
+                Add Prize
+              </Button>
+            </div>
+          </div>
+          
+          {/* Optional: Game Assignment (uncomment if needed) */}
+          {/* <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="assign-to-game" 
+                checked={newPrize.prizedAssignedToGame}
+                onCheckedChange={(checked) => 
+                  setNewPrize({...newPrize, prizedAssignedToGame: checked === true, gameId: checked === true ? newPrize.gameId : ""})
+                }
+                className="border-xforge-teal data-[state=checked]:bg-xforge-teal"
+              />
+              <label 
+                htmlFor="assign-to-game" 
+                className="text-sm text-xforge-gray cursor-pointer"
+              >
+                Assign prize to specific game
+              </label>
+            </div>
+            
+            {newPrize.prizedAssignedToGame && (
+              <div>
+                <Label htmlFor="game-select" className="text-xforge-gray">Select Game</Label>
+                <Select 
+                  value={newPrize.gameId} 
+                  onValueChange={(value) => setNewPrize({...newPrize, gameId: value})}
+                >
+                  <SelectTrigger 
+                    id="game-select" 
+                    className="bg-xforge-darkgray/30 border-xforge-gray/20 focus:border-xforge-teal"
+                  >
+                    <SelectValue placeholder="Select a game" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-xforge-darkgray border-xforge-gray/20">
+                    {games.map((game) => (
+                      <SelectItem key={game._id} value={game._id}>
+                        {game.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div> */}
+        </CardContent>
+      </Card>
+      
+      <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardTitle className="text-white text-xl">Prize Pool</CardTitle>
+          <div className="bg-xforge-darkgray/60 px-3 py-1 rounded-full flex items-center text-xforge-gray text-sm">
+            <Trophy size={14} className="mr-2 text-amber-400" />
+            {prizes.reduce((total, prize) => total + prize.quantity, 0)} Total Prizes
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-xforge-darkgray/30">
+                <TableRow>
+                  <TableHead className="text-xforge-teal font-bold">ID</TableHead>
+                  <TableHead className="text-xforge-teal font-bold">Prize</TableHead>
+                  <TableHead className="text-xforge-teal font-bold">Description</TableHead>
+                  <TableHead className="text-xforge-teal font-bold">Quantity</TableHead>
+                  <TableHead className="text-xforge-teal font-bold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {prizes.map((prize) => (
+                  <TableRow key={prize._id} className="hover:bg-xforge-teal/5 border-b border-xforge-darkgray/50">
+                    <TableCell className="font-medium">{prize._id.substring(0, 8)}...</TableCell>
+                    <TableCell>
+                      <span className="flex items-center">
+                        <Trophy size={16} className="text-amber-400 mr-2" />
+                        {prize.name}
+                      </span>
+                    </TableCell>
+                    <TableCell>{prize.description}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full ${
+                        prize.quantity > 3 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                        prize.quantity > 1 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                        'bg-red-500/10 text-red-400 border border-red-500/20'
+                      }`}>
+                        {prize.quantity}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => deletePrize(prize._id)}
+                        className="hover:bg-red-700 transition-colors"
+                      >
+                        <Trash size={16} />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {prizes.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-xforge-gray">
+                      No prizes available. Add your first prize above.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </TabsContent>
 
-            <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
-              <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-white text-xl">Prize Pool</CardTitle>
-                <div className="bg-xforge-darkgray/60 px-3 py-1 rounded-full flex items-center text-xforge-gray text-sm">
-                  <Trophy size={14} className="mr-2 text-amber-400" />
-                  {prizes.reduce((total, prize) => total + prize.quantity, 0)} Total Prizes
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-xforge-darkgray/30">
-                      <TableRow>
-                        <TableHead className="text-xforge-teal font-bold">ID</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Prize</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Description</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Quantity</TableHead>
-                        <TableHead className="text-xforge-teal font-bold">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {prizes.map((prize) => (
-                        <TableRow key={prize.id} className="hover:bg-xforge-teal/5 border-b border-xforge-darkgray/50">
-                          <TableCell className="font-medium">{prize.id}</TableCell>
-                          <TableCell>
-                            <span className="flex items-center">
-                              <Trophy size={16} className="text-amber-400 mr-2" />
-                              {prize.name}
-                            </span>
-                          </TableCell>
-                          <TableCell>{prize.description}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full ${
-                              prize.quantity > 3 ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                              prize.quantity > 1 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                              'bg-red-500/10 text-red-400 border border-red-500/20'
-                            }`}>
-                              {prize.quantity}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => deletePrize(prize.id)}
-                              className="hover:bg-red-700 transition-colors"
-                            >
-                              <Trash size={16} />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="flash-promos" className="space-y-6 animate-fade-in">
+          {/* <TabsContent value="flash-promos" className="space-y-6 animate-fade-in">
             <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
               <CardHeader className="pb-2">
                 <CardTitle className="text-white text-xl">Create New Flash Promotion</CardTitle>
@@ -1164,7 +1271,7 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
                   </div>
                   <div className="flex items-end">
                     <Button 
-                      onClick={addFlashPromo}
+                      onClick={}
                       className="bg-gradient-to-r from-xforge-teal to-cyan-500 text-xforge-dark hover:brightness-110 w-full shadow-glow"
                     >
                       <Plus size={16} className="mr-2" />
@@ -1260,7 +1367,7 @@ const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="games" className="glass-dark p-6 rounded-lg border border-xforge-teal/10 shadow-lg animate-fade-in">
             <h2 className="text-xl font-bold mb-6 text-white flex items-center">

@@ -148,8 +148,7 @@ const redeemPromoCode = async (req, res) => {
     if (!code || !userId || !shopName) {
       return res.status(400).json({
         success: false,
-        message:
-          "Missing required fields: code, userId, and shopName are required",
+        message: "Missing required fields: code, userId, and shopName are required",
       });
     }
     
@@ -193,9 +192,13 @@ const redeemPromoCode = async (req, res) => {
     
     // Check if user has redemptions left
     if (user.redemptionCount <= 0) {
+      user.dailyLimitReached = true;
+      await user.save();
       return res.status(400).json({
         success: false,
         message: "You have reached your daily redemption limit of 3 promo codes",
+        remainingRedemptions: 0,
+        dailyLimitReached: true
       });
     }
     
@@ -217,12 +220,15 @@ const redeemPromoCode = async (req, res) => {
     user.redeemedPromoCodes.push({
       promoCodeId: promoCode._id,
       shopName: shopName,
-      redeemedAt: new Date()
+      redeemedAt: new Date(),
+      code: promoCode.code,
+      points: promoCode.points
     });
     
     // Decrement redemption count and update last redemption date
     user.redemptionCount -= 1;
     user.lastRedemptionDate = currentDate;
+    user.dailyLimitReached = user.redemptionCount === 0;
     await user.save();
     
     // Update retailer's points
@@ -246,7 +252,8 @@ const redeemPromoCode = async (req, res) => {
       promoCode,
       userPoints: user.points,
       retailerPoints: retailer.points,
-      remainingRedemptions: user.redemptionCount
+      remainingRedemptions: user.redemptionCount,
+      dailyLimitReached: user.dailyLimitReached
     });
   } catch (error) {
     console.error("Error redeeming promo code:", error);
@@ -272,20 +279,23 @@ const checkRemainingRedemptions = async (req, res) => {
     
     // Reset redemption count if it's a new day
     const currentDate = new Date();
-    if (
-      !user.lastRedemptionDate ||
-      new Date(user.lastRedemptionDate).getDate() !== currentDate.getDate() ||
-      new Date(user.lastRedemptionDate).getMonth() !== currentDate.getMonth() ||
-      new Date(user.lastRedemptionDate).getFullYear() !== currentDate.getFullYear()
-    ) {
-      user.redemptionCount = 3; // Reset to max count
+    const lastRedemptionDate = user.lastRedemptionDate ? new Date(user.lastRedemptionDate) : null;
+    
+    if (!lastRedemptionDate || 
+        lastRedemptionDate.getDate() !== currentDate.getDate() ||
+        lastRedemptionDate.getMonth() !== currentDate.getMonth() ||
+        lastRedemptionDate.getFullYear() !== currentDate.getFullYear()) {
+      // Reset redemption count if it's a new day
+      user.redemptionCount = 3;
       user.lastRedemptionDate = currentDate;
+      user.dailyLimitReached = false;
       await user.save();
     }
     
     return res.status(200).json({
       success: true,
       remainingRedemptions: user.redemptionCount,
+      dailyLimitReached: user.dailyLimitReached,
       nextResetAt: getNextMidnight()
     });
   } catch (error) {

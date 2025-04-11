@@ -326,21 +326,23 @@ router.post("/redeem-reward", async (req, res) => {
       .send({ message: "Internal Server Error", error: error.message });
   }
 });
-// Get current authenticated user
+// Fetch authenticated user information
 router.get("/me", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
-    
+    // Use the user ID from the authenticated request
+    const user = await User.findById(req.user._id);
+
     if (!user) {
       return res.status(404).send({ message: "User not found" });
     }
-    
+
+    // Send the user details directly (not nested in a user object)
     res.status(200).send({
       id: user._id.toString(),
       name: user.name,
       email: user.email,
-      phoneNumber: user.phoneNumber || "",
       location: user.location || { province: "", city: "" },
+      phoneNumber: user.phoneNumber || "",
       birthdate: user.birthdate || "",
       userType: user.userType,
       points: user.points || 0,
@@ -350,12 +352,13 @@ router.get("/me", auth, async (req, res) => {
       rank: user.rank || "Bronze",
       verified: user.verified || false,
       shopName: user.shopName,
+      // Add the redemption-related fields
       redeemedPromoCodes: user.redeemedPromoCodes || [],
       redemptionCount: user.redemptionCount || 3,
       lastRedemptionDate: user.lastRedemptionDate || null
     });
   } catch (error) {
-    console.error("Error fetching user data:", error);
+    console.error("Error fetching user info:", error);
     res.status(500).send({ message: "Internal Server Error" });
   }
 });

@@ -65,8 +65,16 @@ const userSchema = new mongoose.Schema(
         },
         shopName: {
           type: String,
-          required: true, // The shop name selected by the consumer during redemption
+          required: true,
         },
+        code: {
+          type: String,
+          required: true,
+        },
+        points: {
+          type: Number,
+          required: true,
+        }
       },
     ],
     redemptionCount: {
@@ -76,6 +84,11 @@ const userSchema = new mongoose.Schema(
     },
     lastRedemptionDate: {
       type: Date,
+      default: null,
+    },
+    dailyLimitReached: {
+      type: Boolean,
+      default: false,
     },
     verified: {
       type: Boolean,
@@ -105,6 +118,23 @@ const userSchema = new mongoose.Schema(
         rewardsname: {
           type: String,
           required: true,
+        },
+      },
+    ],
+    prizeClaimed: [
+      {
+        prizeId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Prize",
+          required: true,
+        },
+        name: {
+          type: String,
+          required: true,
+        },
+        claimedAt: {
+          type: Date,
+          default: Date.now,
         },
       },
     ],
