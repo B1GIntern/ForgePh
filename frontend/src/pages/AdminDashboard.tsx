@@ -25,6 +25,9 @@ import {
   Tag,
   CheckCircle, 
   AlertCircle,
+  ChevronLeft, 
+  ChevronRight,
+  Eye,
   Calendar as CalendarIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -421,6 +424,10 @@ const AdminDashboard: React.FC = () => {
   const [currentFileName, setCurrentFileName] = useState('');
   const [currentFileDate, setCurrentFileDate] = useState<Date | null>(null);
   const [fileCheckRetries, setFileCheckRetries] = useState(0);
+  const [availablePromoCodes, setAvailablePromoCodes] = useState<PromoCode[]>([]);
+  const [redeemedPromoCodes, setRedeemedPromoCodes] = useState<PromoCode[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
   // Fetch promo codes on component mount
   useEffect(() => {
@@ -428,51 +435,80 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   // Fetch promo codes with defensive programming
-  const fetchPromoCodes = async () => {
-    try {
-      const response = await axios.get('/api/promocodes');
+// Fetch promo codes with defensive programming
+const fetchPromoCodes = async () => {
+  try {
+    const response = await axios.get('/api/promocodes');
+    
+    // Debug: Log the actual response structure
+    console.log('API Response:', response.data);
+    
+    // Handle potential response formats
+    if (response.data) {
+      let allCodes: PromoCode[] = [];
       
-      // Debug: Log the actual response structure
-      console.log('API Response:', response.data);
-      
-      // Handle potential response formats
-      if (response.data) {
-        // If the response is an array directly
-        if (Array.isArray(response.data)) {
-          setPromoCodes(response.data);
-          
-          // Update file info if we have promo codes
-          if (response.data.length > 0) {
-            updateLatestFileInfo(response.data);
-          }
-        } 
-        // If data is in a nested property
-        else if (response.data.data && Array.isArray(response.data.data)) {
-          setPromoCodes(response.data.data);
-          
-          // Update file info if we have promo codes
-          if (response.data.data.length > 0) {
-            updateLatestFileInfo(response.data.data);
-          }
-        } 
-        // Handle case where response might contain direct promo codes list
-        else {
-          console.warn('Unexpected API response format:', response.data);
-          setPromoCodes([]);
-        }
+      // If the response is an array directly
+      if (Array.isArray(response.data)) {
+        allCodes = response.data;
+      } 
+      // If data is in a nested property
+      else if (response.data.data && Array.isArray(response.data.data)) {
+        allCodes = response.data.data;
       } else {
-        setPromoCodes([]);
+        console.warn('Unexpected API response format:', response.data);
+        allCodes = [];
       }
-    } catch (error) {
-      console.error('Error fetching promo codes:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load promo codes',
-        variant: 'destructive',
-      });
+      
+      // Set all promo codes
+      setPromoCodes(allCodes);
+      
+      // Separate available and redeemed codes
+      const available = allCodes.filter(
+        promo => !promo.redeemedBy || !promo.redeemedBy.consumerId
+      );
+      const redeemed = allCodes.filter(
+        promo => promo.redeemedBy && promo.redeemedBy.consumerId
+      );
+      
+      setAvailablePromoCodes(available);
+      setRedeemedPromoCodes(redeemed);
+      
+      // Update file info if we have promo codes
+      if (allCodes.length > 0) {
+        updateLatestFileInfo(allCodes);
+      }
+    } else {
       setPromoCodes([]);
+      setAvailablePromoCodes([]);
+      setRedeemedPromoCodes([]);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching promo codes:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to load promo codes',
+      variant: 'destructive',
+    });
+    setPromoCodes([]);
+    setAvailablePromoCodes([]);
+    setRedeemedPromoCodes([]);
+  }
+};
+
+// Pagination handlers
+const nextPage = () => {
+  setCurrentPage(prev => Math.min(prev + 1, Math.ceil(availablePromoCodes.length / itemsPerPage)));
+};
+
+const prevPage = () => {
+  setCurrentPage(prev => Math.max(prev - 1, 1));
+};
+
+// Get current page items
+const getCurrentPageItems = (items: any[], page: number, perPage: number) => {
+  const startIndex = (page - 1) * perPage;
+  return items.slice(startIndex, startIndex + perPage);
+};
 
   // Helper to update file info from promo codes
   const updateLatestFileInfo = (codes: PromoCode[]) => {
@@ -1467,89 +1503,138 @@ const AdminDashboard: React.FC = () => {
             </Card>
           </div>
 
-          {/* Two-column layout */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Recent Promo Codes */}
-            <Card className="md:col-span-2 bg-[#1a1a1a] border border-[#333] shadow-lg">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-xl">Recent Promo Codes</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Showing the 5 most recently added promo codes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {Array.isArray(promoCodes) && promoCodes.length > 0 ? (
-                  <div className="space-y-3">
-                    {promoCodes.slice(0, 5).map((promo) => (
-                      <div 
-                        key={promo._id} 
-                        className="p-3 rounded-lg border border-[#333] bg-[#222] hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-mono text-sm text-white font-medium">{promo.code}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                            promo.redeemedBy && promo.redeemedBy.consumerId
-                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                              : 'bg-green-500/10 text-green-400 border border-green-500/20'
-                          }`}>
-                            {promo.redeemedBy && promo.redeemedBy.consumerId ? 'Redeemed' : 'Active'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-[#00D6A4]">{promo.points} Points</span>
-                          <span className="text-gray-500">
-                            {promo.createdAt ? new Date(promo.createdAt).toLocaleDateString() : 'N/A'}
-                          </span>
-                        </div>
+         {/* Two-column layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Recent Promo Codes - Available Only */}
+              <Card className="md:col-span-2 bg-[#1a1a1a] border border-[#333] shadow-lg">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white text-xl">Recent Promo Codes</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Showing available promo codes ({availablePromoCodes.length})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {Array.isArray(availablePromoCodes) && availablePromoCodes.length > 0 ? (
+                    <>
+                      <div className="space-y-3">
+                        {getCurrentPageItems(availablePromoCodes, currentPage, itemsPerPage).map((promo) => (
+                          <div 
+                            key={promo._id} 
+                            className="p-3 rounded-lg border border-[#333] bg-[#222] hover:bg-[#2a2a2a] transition-colors"
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-mono text-sm text-white font-medium">{promo.code}</span>
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                Active
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-[#00D6A4]">{promo.points} Points</span>
+                              <span className="text-gray-500">
+                                {promo.createdAt ? new Date(promo.createdAt).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    No promo codes found. Upload an Excel file to add promo codes.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      
+                      {/* Pagination Controls */}
+                      {availablePromoCodes.length > itemsPerPage && (
+                        <div className="flex justify-between items-center mt-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={prevPage}
+                            disabled={currentPage === 1}
+                            className="text-gray-400 hover:text-white hover:bg-[#333]"
+                          >
+                            <ChevronLeft size={16} className="mr-1" /> Prev
+                          </Button>
+                          <span className="text-sm text-gray-400">
+                            Page {currentPage} of {Math.ceil(availablePromoCodes.length / itemsPerPage)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={nextPage}
+                            disabled={currentPage >= Math.ceil(availablePromoCodes.length / itemsPerPage)}
+                            className="text-gray-400 hover:text-white hover:bg-[#333]"
+                          >
+                            Next <ChevronRight size={16} className="ml-1" />
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      No available promo codes found. Upload an Excel file to add promo codes.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Latest Redemptions */}
-            <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-xl">Latest Redemptions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {Array.isArray(redemptions) && redemptions.length > 0 ? (
-                  <div className="space-y-3">
-                    {redemptions.slice(0, 5).map((redemption) => (
-                      <div 
-                        key={redemption.id} 
-                        className="p-3 rounded-lg border border-[#333] bg-[#222] hover:bg-[#2a2a2a] transition-colors"
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-mono text-sm text-white font-medium">{redemption.code}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                            redemption.status === 'Success' 
-                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                          }`}>
-                            {redemption.status}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-400">{redemption.user}</span>
-                          <span className="text-gray-500">{redemption.timestamp}</span>
-                        </div>
+              {/* Latest Redemptions - Using actual redeemed promo codes */}
+              <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white text-xl">Latest Redemptions</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Recently redeemed codes ({redeemedPromoCodes.length})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {Array.isArray(redeemedPromoCodes) && redeemedPromoCodes.length > 0 ? (
+                    <>
+                      <div className="space-y-3">
+                        {redeemedPromoCodes.slice(0, 5).map((promo) => (
+                          <div 
+                            key={promo._id} 
+                            className="p-3 rounded-lg border border-[#333] bg-[#222] hover:bg-[#2a2a2a] transition-colors"
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-mono text-sm text-white font-medium">{promo.code}</span>
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                Redeemed
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-gray-400">{promo.redeemedBy?.shopName || 'Unknown Shop'}</span>
+                              <span className="text-gray-500">
+                                {promo.redeemedBy?.redeemedAt ? new Date(promo.redeemedBy.redeemedAt).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    No redemptions yet.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                      
+                      {/* View More Button */}
+                      {redeemedPromoCodes.length > 5 && (
+                        <div className="mt-4 flex justify-center">
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            className="text-gray-400 border-[#333] hover:text-white hover:bg-[#333]"
+                            onClick={() => {
+                              // You can implement a modal or separate page view for all redemptions
+                              toast({
+                                title: "Feature Coming Soon",
+                                description: "View all redemptions feature will be available soon.",
+                              });
+                            }}
+                          >
+                            <Eye size={14} className="mr-2" />
+                            View All Redemptions
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      No redemptions yet.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
         </TabsContent>
         </Tabs>
       </div>

@@ -1,7 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { BadgePercent, CheckCircle, AlertCircle, Copy, Gift, Clock, Calendar, Tag, BadgeCheck, Zap, Sparkles, Award, BookOpen, Timer, Ticket, Trophy } from "lucide-react";
+import { 
+  BadgePercent, CheckCircle, AlertCircle, Copy, Gift, Clock, Calendar, 
+  Tag, BadgeCheck, Zap, Sparkles, Award, BookOpen, Timer, Ticket, Trophy, RefreshCw
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -11,6 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define interfaces to match your MongoDB schema
 interface RedeemedPromoCode {
@@ -47,12 +57,27 @@ const PromoCodes: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentPoints, setCurrentPoints] = useState<number>(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [timeToNextReset, setTimeToNextReset] = useState<string>("");
+  const [isRefreshingCount, setIsRefreshingCount] = useState(false);
  
   const formatTimeRemaining = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Calculate time until next midnight reset
+  const calculateTimeToNextReset = () => {
+    const now = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const diffMs = tomorrow.getTime() - now.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    
+    return formatTimeRemaining(diffSec);
   };
   
   // Example promo codes for validation
@@ -64,14 +89,25 @@ const PromoCodes: React.FC = () => {
     fetchRetailers();
     
     // Set up timer for flash deals
-    const timer = setInterval(() => {
+    const flashTimer = setInterval(() => {
       setFlashTimeRemaining(prevTime => {
         if (prevTime <= 0) return 0;
         return prevTime - 1;
       });
     }, 1000);
+    
+    // Set up timer for midnight reset countdown
+    const resetTimer = setInterval(() => {
+      setTimeToNextReset(calculateTimeToNextReset());
+    }, 1000);
 
-    return () => clearInterval(timer);
+    // Initial calculation
+    setTimeToNextReset(calculateTimeToNextReset());
+
+    return () => {
+      clearInterval(flashTimer);
+      clearInterval(resetTimer);
+    };
   }, []);
 
   // Check if user is authenticated
@@ -105,6 +141,66 @@ const PromoCodes: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching retailers:", error);
+    }
+  };
+  
+  // Refresh redemption count
+  const refreshRedemptionCount = async () => {
+    try {
+      setIsRefreshingCount(true);
+      
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (!token) {
+        console.log("No token found, cannot refresh redemption count");
+        return;
+      }
+      
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
+      const userId = userData?.id || user?.id;
+      
+      if (!userId) {
+        console.log("User ID not found, cannot refresh redemption count");
+        return;
+      }
+      
+      const response = await fetch(`/api/promocodes/check-redemptions/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Redemption count refreshed:", data);
+        
+        if (user) {
+          const updatedUser = {
+            ...user,
+            redemptionCount: data.remainingRedemptions
+          };
+          
+          setUser(updatedUser);
+          
+          // Update storage
+          if (localStorage.getItem("user")) {
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          } else if (sessionStorage.getItem("user")) {
+            sessionStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+        
+        uiToast({
+          title: "Updated",
+          description: `You have ${data.remainingRedemptions} redemptions remaining today`,
+        });
+      } else {
+        console.error("Failed to refresh redemption count");
+      }
+    } catch (error) {
+      console.error("Error refreshing redemption count:", error);
+    } finally {
+      setIsRefreshingCount(false);
     }
   };
   
@@ -222,8 +318,8 @@ const PromoCodes: React.FC = () => {
     // Check if user has used all their daily redemptions
     if (user && user.redemptionCount <= 0) {
       uiToast({
-        title: "Error",
-        description: "You've used all your daily promo code redemptions",
+        title: "Daily Limit Reached",
+        description: `You've used all your daily promo code redemptions. Next reset in ${timeToNextReset}`,
         variant: "destructive",
       });
       return;
@@ -264,12 +360,12 @@ const PromoCodes: React.FC = () => {
         if (user) {
           const updatedUser = {
             ...user,
-            points: data.updatedPoints || user.points + data.points,
-            redemptionCount: user.redemptionCount - 1,
+            points: data.userPoints || (user.points + data.points),
+            redemptionCount: data.remainingRedemptions || (user.redemptionCount - 1),
             redeemedPromoCodes: [
               ...(user.redeemedPromoCodes || []),
               {
-                promoCodeId: data.promoCodeId,
+                promoCodeId: data.promoCode._id,
                 redeemedAt: new Date().toISOString(),
                 shopName: selectedRetailer,
                 points: data.points,
@@ -290,7 +386,7 @@ const PromoCodes: React.FC = () => {
         
         uiToast({
           title: "Success",
-          description: `You've earned ${data.points} points!`,
+          description: `You've earned ${data.points} points! (${data.remainingRedemptions} redemptions remaining today)`,
           variant: "default",
         });
         
@@ -299,16 +395,23 @@ const PromoCodes: React.FC = () => {
           message: `You've successfully redeemed ${promoCode.toUpperCase()} for ${data.points} points!`,
           type: "points"
         });
-        
-        // Refresh user data to get updated redemption count and points
-        fetchUserData();
       } else {
         setStatus("error");
-        uiToast({
-          title: "Error",
-          description: data.message || "Failed to redeem promo code",
-          variant: "destructive",
-        });
+        
+        // Check for specific error messages
+        if (data.message.includes("daily redemption limit")) {
+          uiToast({
+            title: "Daily Limit Reached",
+            description: `You've used all your daily promo code redemptions. Next reset in ${timeToNextReset}`,
+            variant: "destructive",
+          });
+        } else {
+          uiToast({
+            title: "Error",
+            description: data.message || "Failed to redeem promo code",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Error redeeming promo code:", error);
@@ -372,114 +475,139 @@ const PromoCodes: React.FC = () => {
     }
   ];
 
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Promo Codes</h1>
-          <p className="text-gray-600">
-            Redeem promo codes to earn points, discounts, and special rewards
-          </p>
-        </div>
+    <Header />
+    <main className="flex-grow container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Promo Codes</h1>
+        <p className="text-gray-600">
+          Redeem promo codes to earn points, discounts, and special rewards
+        </p>
+      </div>
 
-        {!isAuthenticated ? (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Authentication Required</CardTitle>
-              <CardDescription>
-                Please log in to redeem promo codes and view your rewards
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => window.location.href = "/login"}>
-                Log In
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Promo Code Form */}
-            <div className="lg:col-span-2">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <BadgePercent className="mr-2" />
-                    Redeem a Promo Code
-                  </CardTitle>
-                  <CardDescription>
-                    Enter your promo code below to earn points and rewards
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium mb-1">
-                          Promo Code
-                        </label>
-                        <Input
-                          placeholder="Enter promo code"
-                          value={promoCode}
-                          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                          className="uppercase"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Retailer
-                        </label>
-                        <Select 
-                          value={selectedRetailer} 
-                          onValueChange={setSelectedRetailer}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select retailer" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {retailers.map((retailer, index) => (
-                              <SelectItem key={index} value={retailer.shopName}>
-                                {retailer.shopName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+      {!isAuthenticated ? (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>
+              Please log in to redeem promo codes and view your rewards
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => window.location.href = "/login"}>
+              Log In
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Promo Code Form */}
+          <div className="lg:col-span-2">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BadgePercent className="mr-2" />
+                  Redeem a Promo Code
+                </CardTitle>
+                <CardDescription>
+                  Enter your promo code below to earn points and rewards
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">
+                        Promo Code
+                      </label>
+                      <Input
+                        id="promoCodeInput"
+                        placeholder="Enter promo code"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                        className="uppercase"
+                      />
                     </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-500">
-                          {user && `Redemptions remaining today: ${user.redemptionCount || 0}`}
-                        </p>
-                      </div>
-                      <div className="flex space-x-3">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={resetForm}
-                          disabled={isSubmitting}
-                        >
-                          Clear
-                        </Button>
-                        <Button 
-                          type="submit" 
-                          disabled={isSubmitting}
-                          className="relative"
-                        >
-                          {isSubmitting ? 'Redeeming...' : 'Redeem Code'}
-                          {status === "success" && (
-                            <CheckCircle className="absolute right-2 top-2 h-4 w-4 text-green-500" />
-                          )}
-                          {status === "error" && (
-                            <AlertCircle className="absolute right-2 top-2 h-4 w-4 text-red-500" />
-                          )}
-                        </Button>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Retailer
+                      </label>
+                      <Select 
+                        value={selectedRetailer} 
+                        onValueChange={setSelectedRetailer}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select retailer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {retailers.map((retailer, index) => (
+                            <SelectItem key={index} value={retailer.shopName}>
+                              {retailer.shopName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </form>
-                </CardContent>
-              </Card>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2">
+                              <div className={`text-sm ${user?.redemptionCount === 0 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                                {user ? `Redemptions left today: ${user.redemptionCount || 0}/3` : 'Loading...'}
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  refreshRedemptionCount();
+                                }}
+                                disabled={isRefreshingCount}
+                                className="h-6 w-6"
+                              >
+                                <RefreshCw className={`h-3 w-3 ${isRefreshingCount ? 'animate-spin' : ''}`} />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Next reset in {timeToNextReset}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <div className="flex space-x-3">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={resetForm}
+                        disabled={isSubmitting}
+                      >
+                        Clear
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={isSubmitting || (user && user.redemptionCount <= 0)}
+                        className="relative"
+                      >
+                        {isSubmitting ? 'Redeeming...' : 'Redeem Code'}
+                        {status === "success" && (
+                          <CheckCircle className="absolute right-2 top-2 h-4 w-4 text-green-500" />
+                        )}
+                        {status === "error" && (
+                          <AlertCircle className="absolute right-2 top-2 h-4 w-4 text-red-500" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
                 <TabsList className="w-full grid grid-cols-3">

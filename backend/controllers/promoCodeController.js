@@ -145,7 +145,6 @@ const getAllPromoCodes = async (req, res) => {
 const redeemPromoCode = async (req, res) => {
   try {
     const { code, userId, shopName } = req.body;
-
     if (!code || !userId || !shopName) {
       return res.status(400).json({
         success: false,
@@ -153,17 +152,16 @@ const redeemPromoCode = async (req, res) => {
           "Missing required fields: code, userId, and shopName are required",
       });
     }
-
+    
     // Find the promo code
     const promoCode = await PromoCode.findOne({ code: code.toUpperCase() });
-
     if (!promoCode) {
       return res.status(404).json({
         success: false,
         message: "Promo code not found",
       });
     }
-
+    
     // Check if already redeemed
     if (promoCode.promoCodeRedeemed) {
       return res.status(400).json({
@@ -171,7 +169,7 @@ const redeemPromoCode = async (req, res) => {
         message: "This promo code has already been redeemed",
       });
     }
-
+    
     // Find the user
     const user = await User.findById(userId);
     if (!user || user.userType !== "Consumer") {
@@ -180,21 +178,40 @@ const redeemPromoCode = async (req, res) => {
         message: "Invalid user ID or user is not a consumer",
       });
     }
-
+    
+    // Check daily redemption limit
+    // Reset redemption count if it's a new day
+    const currentDate = new Date();
+    if (
+      !user.lastRedemptionDate ||
+      new Date(user.lastRedemptionDate).getDate() !== currentDate.getDate() ||
+      new Date(user.lastRedemptionDate).getMonth() !== currentDate.getMonth() ||
+      new Date(user.lastRedemptionDate).getFullYear() !== currentDate.getFullYear()
+    ) {
+      user.redemptionCount = 3; // Reset to max count
+    }
+    
+    // Check if user has redemptions left
+    if (user.redemptionCount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "You have reached your daily redemption limit of 3 promo codes",
+      });
+    }
+    
     // Find the retailer by shop name
     const retailer = await User.findOne({
       userType: "Retailer",
       userStatus: "Verified",
       shopName: shopName
     });
-
     if (!retailer) {
       return res.status(400).json({
         success: false,
         message: "Invalid or unverified retailer shop name",
       });
     }
-
+    
     // Update user's points and redeemed promo codes
     user.points += promoCode.points;
     user.redeemedPromoCodes.push({
@@ -202,12 +219,16 @@ const redeemPromoCode = async (req, res) => {
       shopName: shopName,
       redeemedAt: new Date()
     });
+    
+    // Decrement redemption count and update last redemption date
+    user.redemptionCount -= 1;
+    user.lastRedemptionDate = currentDate;
     await user.save();
-
+    
     // Update retailer's points
     retailer.points += promoCode.points;
     await retailer.save();
-
+    
     // Set redemption details and mark as redeemed
     promoCode.redeemedBy = {
       consumerId: userId,
@@ -217,14 +238,15 @@ const redeemPromoCode = async (req, res) => {
     };
     promoCode.promoCodeRedeemed = true;
     await promoCode.save();
-
+    
     return res.status(200).json({
       success: true,
       message: "Promo code redeemed successfully",
       points: promoCode.points,
       promoCode,
       userPoints: user.points,
-      retailerPoints: retailer.points
+      retailerPoints: retailer.points,
+      remainingRedemptions: user.redemptionCount
     });
   } catch (error) {
     console.error("Error redeeming promo code:", error);
@@ -233,6 +255,54 @@ const redeemPromoCode = async (req, res) => {
       message: error.message || "Failed to redeem promo code",
     });
   }
+};
+
+// Add a new endpoint to check remaining redemptions
+const checkRemainingRedemptions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    
+    // Reset redemption count if it's a new day
+    const currentDate = new Date();
+    if (
+      !user.lastRedemptionDate ||
+      new Date(user.lastRedemptionDate).getDate() !== currentDate.getDate() ||
+      new Date(user.lastRedemptionDate).getMonth() !== currentDate.getMonth() ||
+      new Date(user.lastRedemptionDate).getFullYear() !== currentDate.getFullYear()
+    ) {
+      user.redemptionCount = 3; // Reset to max count
+      user.lastRedemptionDate = currentDate;
+      await user.save();
+    }
+    
+    return res.status(200).json({
+      success: true,
+      remainingRedemptions: user.redemptionCount,
+      nextResetAt: getNextMidnight()
+    });
+  } catch (error) {
+    console.error("Error checking redemptions:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to check remaining redemptions",
+    });
+  }
+};
+
+// Helper function to get next midnight timestamp
+const getNextMidnight = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
 };
 
 // Get verified retailers
@@ -262,5 +332,6 @@ module.exports = {
   uploadPromoCodes,
   getAllPromoCodes,
   redeemPromoCode,
-  getVerifiedRetailers
+  getVerifiedRetailers,
+  checkRemainingRedemptions
 };
