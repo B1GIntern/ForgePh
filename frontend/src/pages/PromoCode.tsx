@@ -614,7 +614,7 @@ const PromoCodes: React.FC = () => {
               {/* Points/Status Card */}
               <Card className="glass-dark border-xforge-teal/20 overflow-hidden relative p-4">
                 <CardContent className="pt-4 sm:pt-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="flex flex-col items-center justify-center p-3 sm:p-4 border border-xforge-teal/20 rounded-lg bg-gradient-to-br from-xforge-dark/80 to-xforge-dark">
                       <span className="text-muted-foreground text-xs sm:text-sm mb-1">
                         Current Points
@@ -624,19 +624,7 @@ const PromoCodes: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center p-3 sm:p-4 border border-xforge-teal/20 rounded-lg bg-gradient-to-br from-xforge-dark/80 to-xforge-dark">
-                      <span className="text-muted-foreground text-xs sm:text-sm mb-1">
-                        Redemptions Left
-                      </span>
-                      <div className="flex items-center">
-                        <span className="text-3xl sm:text-4xl font-bold text-gradient-teal">
-                          {user?.redemptionCount || 0}
-                        </span>
-                        <span className="text-muted-foreground text-base sm:text-lg ml-1">
-                          /3
-                        </span>
-                      </div>
-                    </div>
+                    
 
                     <div className="flex flex-col items-center justify-center p-3 sm:p-4 border border-xforge-teal/20 rounded-lg bg-gradient-to-br from-xforge-dark/80 to-xforge-dark">
                       <span className="text-muted-foreground text-xs sm:text-sm mb-1">
@@ -706,42 +694,7 @@ const PromoCodes: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-2">
-                      <div className="flex items-center">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`text-sm ${user?.dailyLimitReached ? "text-red-400 font-medium" : "text-muted-foreground"}`}
-                                >
-                                  {user
-                                    ? user.dailyLimitReached
-                                      ? "Daily limit reached (0/3)"
-                                      : `Redemptions left today: ${user.redemptionCount}/3`
-                                    : "Loading..."}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    refreshRedemptionCount();
-                                  }}
-                                  disabled={isRefreshingCount}
-                                  className="h-6 w-6 text-xforge-teal/60 hover:text-xforge-teal"
-                                >
-                                  <RefreshCw
-                                    className={`h-3 w-3 ${isRefreshingCount ? "animate-spin" : ""}`}
-                                  />
-                                </Button>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="glass-dark border-xforge-teal/30">
-                              <p>Next reset in {timeToNextReset}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      
                       <br />
                       <div className="flex space-x-3">
                         <Button
