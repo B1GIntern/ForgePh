@@ -197,9 +197,36 @@ const RetailersLanding: React.FC = () => {
     document.title = "Forge Philippines";
   }, []);
 
+  // Calculate user tier based on points
+  const calculateTier = (points: number) => {
+    if (points >= 300) return "Platinum";
+    if (points >= 201) return "Gold";
+    if (points >= 101) return "Silver";
+    return "Bronze";
+  };
+
+  // Calculate progress to next tier
+  const calculateProgress = (points: number) => {
+    if (points >= 300) return 100;
+    if (points >= 201) return ((points - 201) / 99) * 100;
+    if (points >= 101) return ((points - 101) / 100) * 100;
+    return (points / 101) * 100; // Adjusted to show accurate progress within Bronze tier
+  };
+
+  // Calculate points needed for next tier
+  const calculatePointsToNextTier = (points: number) => {
+    if (points >= 300) return 0;
+    if (points >= 201) return 300 - points;
+    if (points >= 101) return 201 - points;
+    return 101 - points;
+  };
+
   // Fallback values for when user data is loading
   const userName = user ? user.name : "Retailer";
   const userPoints = user ? user.points : 0;
+  const userTier = calculateTier(userPoints);
+  const progressToNextTier = calculateProgress(userPoints);
+  const pointsToNextTier = calculatePointsToNextTier(userPoints);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-xforge-dark via-xforge-darkgray to-black relative">
@@ -237,7 +264,7 @@ const RetailersLanding: React.FC = () => {
                     </Badge>
                   )}
                   <span className="text-xforge-lightgray bg-xforge-dark/50 px-4 py-1.5 rounded-full border border-xforge-gray/20">
-                    Silver Member
+                    {userTier} Member
                   </span>
                 </div>
                 <p className="text-xforge-lightgray max-w-xl mb-8 text-lg leading-relaxed">
@@ -274,7 +301,7 @@ const RetailersLanding: React.FC = () => {
                         <div className="absolute inset-2 rounded-full bg-xforge-dark/80 flex items-center justify-center">
                           <div className="text-center">
                             <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400">
-                              Silver
+                              {userTier}
                             </div>
                             <div className="text-xforge-lightgray text-sm mt-1">
                               Tier Ranking
@@ -291,10 +318,10 @@ const RetailersLanding: React.FC = () => {
                           <span>Platinum</span>
                         </div>
                         <div className="h-2 bg-xforge-dark/60 rounded-full overflow-hidden">
-                          <div className="h-full w-[45%] bg-gradient-to-r from-xforge-teal to-cyan-400 rounded-full"></div>
+                          <div className="h-full bg-gradient-to-r from-xforge-teal to-cyan-400 rounded-full" style={{ width: `${progressToNextTier}%` }}></div>
                         </div>
                         <div className="text-right text-xs text-xforge-teal mt-1">
-                          5,000 more points to Gold
+                          {pointsToNextTier > 0 ? `${pointsToNextTier} more points to ${calculateTier(userPoints + pointsToNextTier)}` : 'Maximum tier reached!'}
                         </div>
                       </div>
 
@@ -391,7 +418,7 @@ const RetailersLanding: React.FC = () => {
                   <div className="flex items-center justify-center bg-gradient-to-br from-xforge-teal/10 to-cyan-400/10 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400 mb-0.5 sm:mb-1">
-                        Silver
+                        {userTier}
                       </div>
                       <div className="text-xs sm:text-sm text-xforge-lightgray">
                         Tier Ranking
@@ -403,10 +430,10 @@ const RetailersLanding: React.FC = () => {
                       Points Balance
                     </div>
                     <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-                      10,000
+                      {userPoints.toLocaleString()}
                     </div>
                     <div className="text-xs text-xforge-teal mt-0.5 sm:mt-1">
-                      5,000 more points to reach Gold
+                      {pointsToNextTier > 0 ? `${pointsToNextTier} more points to ${calculateTier(userPoints + pointsToNextTier)}` : 'Maximum tier reached!'}
                     </div>
                   </div>
                 </div>
@@ -437,7 +464,7 @@ const RetailersLanding: React.FC = () => {
                           </span>
                         </div>
                         <span className="text-xs text-xforge-teal font-semibold">
-                          10,000
+                          {userPoints.toLocaleString()}
                         </span>
                       </div>
                       <div className="h-1 flex-grow mx-1 sm:mx-2 md:mx-3 bg-xforge-dark/80"></div>
