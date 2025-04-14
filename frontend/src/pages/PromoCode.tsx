@@ -481,22 +481,26 @@ const PromoCodes: React.FC = () => {
   const raffles = [
     {
       id: 1,
-      title: "XForge Mega Raffle",
-      prize: "Gaming PC + XForge Ultimate Pack",
-      endDate: "August 1, 2023",
-      description: "Win a high-end gaming PC and the complete XForge collection!",
-      totalEntries: 1287,
-      yourEntries: raffleEntries,
+      title: "iPhone 16 Giveaway",
+      prize: "iPhone 16 Pro",
+      endDate: "Dec 31, 2023",
+      description: "Enter to win the latest iPhone 16 Pro!",
+      totalEntries: 1200,
+      yourEntries: 3,
+      entries: 3,
+      status: "ACTIVE",
       image: "/placeholder.svg"
     },
     {
       id: 2,
-      title: "Monthly Cash Draw",
-      prize: "$500 Cash Prize",
-      endDate: "July 31, 2023",
-      description: "Monthly cash raffle - this month's prize is $500!",
-      totalEntries: 876,
-      yourEntries: raffleEntries > 0 ? 1 : 0,
+      title: "PS5 Raffle",
+      prize: "PlayStation 5",
+      endDate: "Nov 15, 2023",
+      description: "Win a brand new PlayStation 5 with two controllers",
+      totalEntries: 890,
+      yourEntries: 1,
+      entries: 1,
+      status: "ACTIVE",
       image: "/placeholder.svg"
     }
   ];
@@ -505,10 +509,12 @@ const PromoCodes: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
     <Header />
-    <main className="flex-grow container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Promo Codes</h1>
-        <p className={`text-gray-600 ${user?.dailyLimitReached ? 'text-red-500 font-medium' : ''}`}>
+    <main className="flex-grow container mx-auto px-4 py-8 bg-gradient-to-b from-background to-background/80">
+      <div className="mb-8 text-center relative">
+        <div className="absolute -top-14 -left-14 w-40 h-40 bg-xforge-teal/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-14 -right-14 w-40 h-40 bg-xforge-teal/10 rounded-full blur-3xl"></div>
+        <h1 className="text-4xl font-bold mb-2 text-gradient-teal relative z-10">Promo Codes & Rewards</h1>
+        <p className={`text-xl ${user?.dailyLimitReached ? 'text-red-400 font-medium' : 'text-muted-foreground'} max-w-2xl mx-auto`}>
           {user?.dailyLimitReached 
             ? "Daily redemption limit reached. Try again tomorrow!" 
             : "Redeem promo codes to earn points, discounts, and special rewards"}
@@ -516,38 +522,65 @@ const PromoCodes: React.FC = () => {
       </div>
 
       {!isAuthenticated ? (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
+        <Card className="mb-6 glass-dark card-3d max-w-md mx-auto animate-fade-in">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-gradient-teal">Authentication Required</CardTitle>
             <CardDescription>
               Please log in to redeem promo codes and view your rewards
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => window.location.href = "/login"}>
+            <Button onClick={() => window.location.href = "/login"} className="w-full bg-xforge-teal text-xforge-dark hover:brightness-110">
               Log In
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Promo Code Form */}
-          <div className="lg:col-span-2">
-            <Card className="mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Promo Code Form & User Points */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Points/Status Card */}
+            <Card className="glass-dark border-xforge-teal/20 overflow-hidden relative">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex flex-col items-center justify-center p-4 border border-xforge-teal/20 rounded-lg bg-gradient-to-br from-xforge-dark/80 to-xforge-dark">
+                    <span className="text-muted-foreground text-sm mb-1">Current Points</span>
+                    <span className="text-4xl font-bold text-gradient-teal">{currentPoints}</span>
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center p-4 border border-xforge-teal/20 rounded-lg bg-gradient-to-br from-xforge-dark/80 to-xforge-dark">
+                    <span className="text-muted-foreground text-sm mb-1">Redemptions Left</span>
+                    <div className="flex items-center">
+                      <span className="text-4xl font-bold text-gradient-teal">{user?.redemptionCount || 0}</span>
+                      <span className="text-muted-foreground text-lg ml-1">/3</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center p-4 border border-xforge-teal/20 rounded-lg bg-gradient-to-br from-xforge-dark/80 to-xforge-dark">
+                    <span className="text-muted-foreground text-sm mb-1">Next Reset</span>
+                    <span className="text-xl font-mono font-bold text-xforge-teal">{timeToNextReset}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Promo Code Redemption Form */}
+            <Card className="glass-dark border-xforge-teal/20 overflow-hidden relative card-3d animate-fade-in">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-xforge-teal/10 blur-3xl rounded-full"></div>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BadgePercent className="mr-2" />
+                <CardTitle className="flex items-center text-2xl">
+                  <BadgePercent className="mr-3 text-xforge-teal" />
                   Redeem a Promo Code
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-base">
                   Enter your promo code below to earn points and rewards
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-sm font-medium mb-2 text-xforge-gray">
                         Promo Code
                       </label>
                       <Input
@@ -555,23 +588,23 @@ const PromoCodes: React.FC = () => {
                         placeholder="Enter promo code"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                        className="uppercase"
+                        className="uppercase glass-dark border-xforge-teal/30 focus:border-xforge-teal/80 h-12 text-lg transition-all duration-300"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-sm font-medium mb-2 text-xforge-gray">
                         Retailer
                       </label>
                       <Select 
                         value={selectedRetailer} 
                         onValueChange={setSelectedRetailer}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="glass-dark border-xforge-teal/30 h-12 text-lg">
                           <SelectValue placeholder="Select retailer" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="glass-dark border-xforge-teal/30">
                           {retailers.map((retailer, index) => (
-                            <SelectItem key={index} value={retailer.shopName}>
+                            <SelectItem key={index} value={retailer.shopName} className="focus:bg-xforge-teal/20 focus:text-xforge-gray">
                               {retailer.shopName}
                             </SelectItem>
                           ))}
@@ -586,7 +619,7 @@ const PromoCodes: React.FC = () => {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center gap-2">
-                              <div className={`text-sm ${user?.dailyLimitReached ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                              <div className={`text-sm ${user?.dailyLimitReached ? 'text-red-400 font-medium' : 'text-muted-foreground'}`}>
                                 {user ? (
                                   user.dailyLimitReached ? (
                                     "Daily limit reached (0/3)"
@@ -605,13 +638,13 @@ const PromoCodes: React.FC = () => {
                                   refreshRedemptionCount();
                                 }}
                                 disabled={isRefreshingCount}
-                                className="h-6 w-6"
+                                className="h-6 w-6 text-xforge-teal/60 hover:text-xforge-teal"
                               >
                                 <RefreshCw className={`h-3 w-3 ${isRefreshingCount ? 'animate-spin' : ''}`} />
                               </Button>
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent className="glass-dark border-xforge-teal/30">
                             <p>Next reset in {timeToNextReset}</p>
                           </TooltipContent>
                         </Tooltip>
@@ -623,15 +656,25 @@ const PromoCodes: React.FC = () => {
                         variant="outline" 
                         onClick={resetForm}
                         disabled={isSubmitting}
+                        className="border-xforge-teal/50 text-xforge-teal hover:bg-xforge-teal/10 transition-all duration-300"
                       >
                         Clear
                       </Button>
                       <Button 
                         type="submit" 
                         disabled={isSubmitting || (user && user.redemptionCount <= 0)}
-                        className="relative"
+                        className="relative bg-xforge-teal text-xforge-dark hover:brightness-110 transition-all duration-300"
                       >
-                        {isSubmitting ? 'Redeeming...' : 'Redeem Code'}
+                        {isSubmitting ? (
+                          <>
+                            <span className="mr-2">Redeeming</span>
+                            <span className="flex items-center justify-center">
+                              <span className="animate-ping h-1.5 w-1.5 rounded-full bg-xforge-dark opacity-75 mx-0.5"></span>
+                              <span className="animate-ping h-1.5 w-1.5 rounded-full bg-xforge-dark opacity-75 mx-0.5 delay-150"></span>
+                              <span className="animate-ping h-1.5 w-1.5 rounded-full bg-xforge-dark opacity-75 mx-0.5 delay-300"></span>
+                            </span>
+                          </>
+                        ) : 'Redeem Code'}
                         {status === "success" && (
                           <CheckCircle className="absolute right-2 top-2 h-4 w-4 text-green-500" />
                         )}
@@ -645,228 +688,228 @@ const PromoCodes: React.FC = () => {
               </CardContent>
             </Card>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-                <TabsList className="w-full grid grid-cols-3">
-                  <TabsTrigger value="promos" className="flex items-center">
-                    <BadgeCheck className="mr-2 h-4 w-4" />
-                    <span>Active Promos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="flash" className="flex items-center">
-                    <Zap className="mr-2 h-4 w-4" />
-                    <span>Flash Deals</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="raffles" className="flex items-center">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    <span>Raffles</span>
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="promos" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {validPromoCodes.map((code, index) => (
-                      <Card key={index}>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center">
-                            <Tag className="mr-2 h-5 w-5" />
-                            {code}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <p className="text-sm text-gray-500">
-                            {code.includes("10") ? "10% discount on all products" : 
-                             code.includes("15") ? "15% off for new customers" :
-                             code.includes("25") ? "25% off selected items" :
-                             code.includes("50") ? "50% off flash sale" :
-                             code.includes("RAFFLE") ? "1 raffle entry" :
-                             "Special offer"}
-                          </p>
-                        </CardContent>
-                        <CardFooter className="pt-0">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-xs"
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6 animate-fade-in">
+              <TabsList className="w-full grid grid-cols-3 bg-xforge-dark/80 p-1 border border-xforge-teal/20">
+                <TabsTrigger value="promos" className="flex items-center data-[state=active]:bg-xforge-teal/20 data-[state=active]:text-xforge-teal">
+                  <BadgeCheck className="mr-2 h-4 w-4" />
+                  <span>Active Promos</span>
+                </TabsTrigger>
+                <TabsTrigger value="flash" className="flex items-center data-[state=active]:bg-xforge-teal/20 data-[state=active]:text-xforge-teal">
+                  <Zap className="mr-2 h-4 w-4" />
+                  <span>Flash Deals</span>
+                </TabsTrigger>
+                <TabsTrigger value="raffles" className="flex items-center data-[state=active]:bg-xforge-teal/20 data-[state=active]:text-xforge-teal">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Raffles</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="promos" className="space-y-4 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {validPromoCodes.map((code, index) => (
+                    <Card key={index} className="glass-dark border-xforge-teal/20 hover:border-xforge-teal/50 transition-all duration-300 card-3d">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center text-gradient-teal">
+                          <Tag className="mr-2 h-5 w-5 text-xforge-teal" />
+                          {code}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <p className="text-sm text-muted-foreground">
+                          {code.includes("10") ? "10% discount on all products" : 
+                          code.includes("15") ? "15% off for new customers" :
+                          code.includes("25") ? "25% off selected items" :
+                          code.includes("50") ? "50% off flash sale" :
+                          code.includes("RAFFLE") ? "1 raffle entry" :
+                          "Special offer"}
+                        </p>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs text-xforge-teal hover:bg-xforge-teal/10"
+                          onClick={() => {
+                            setPromoCode(code);
+                            document.getElementById("promoCodeInput")?.focus();
+                          }}
+                        >
+                          <Copy className="mr-1 h-3 w-3" />
+                          Copy code
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="flash" className="space-y-6 mt-6">
+                {flashPromos.map((promo) => (
+                  <Card key={promo.id} className="glass-dark border-xforge-teal/20 overflow-hidden relative animate-fade-in card-3d">
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-500/10 rounded-full blur-3xl"></div>
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-xl">
+                        <Clock className="mr-2 h-5 w-5 text-red-400" />
+                        {promo.title}
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        Time remaining: <span className="font-mono text-red-400">{promo.expiry}</span>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground">{promo.description}</p>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Participants: {promo.participants}/{promo.maxParticipants}</span>
+                          <span>{Math.round((promo.participants / promo.maxParticipants) * 100)}%</span>
+                        </div>
+                        <div className="h-2 bg-xforge-dark/60 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-xforge-teal to-red-400" 
+                            style={{ width: `${(promo.participants / promo.maxParticipants) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="bg-xforge-dark/60 p-4 rounded-md flex items-center justify-between border border-xforge-teal/20">
+                        <div className="flex items-center">
+                          <span className="text-lg font-mono font-bold mr-2 text-xforge-teal">{promo.code}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
-                              setPromoCode(code);
+                              setPromoCode(promo.code);
                               document.getElementById("promoCodeInput")?.focus();
                             }}
+                            className="text-xforge-teal hover:bg-xforge-teal/10"
                           >
-                            <Copy className="mr-1 h-3 w-3" />
-                            Copy code
+                            <Copy className="h-4 w-4" />
                           </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="flash" className="space-y-6 mt-4">
-                  {flashPromos.map((promo) => (
-                    <Card key={promo.id}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-xl">
-                          <Clock className="mr-2 h-5 w-5 text-red-500" />
-                          {promo.title}
-                        </CardTitle>
-                        <CardDescription>
-                          Time remaining: <span className="font-mono">{promo.expiry}</span>
+                        </div>
+                        <div>
+                          <span className="text-lg font-bold text-red-400">{promo.discount}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="raffles" className="space-y-6 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {raffles.map((raffle) => (
+                    <Card key={raffle.id} className="glass-dark border-xforge-teal/20 overflow-hidden relative card-3d animate-fade-in">
+                      <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-xforge-teal via-purple-500 to-xforge-teal"></div>
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-xl flex items-center text-gradient-teal">
+                            <Trophy className="mr-2 h-5 w-5 text-purple-400" />
+                            {raffle.title}
+                          </CardTitle>
+                          <span className="text-xs py-1 px-3 bg-xforge-dark/60 text-purple-400 border border-purple-400/30 rounded-full">
+                            {raffle.status}
+                          </span>
+                        </div>
+                        <CardDescription className="text-base">
+                          {raffle.description}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p>{promo.description}</p>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Participants: {promo.participants}/{promo.maxParticipants}</span>
-                            <span>{Math.round((promo.participants / promo.maxParticipants) * 100)}%</span>
+                      <CardContent className="pt-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground">End Date</span>
+                            <span className="flex items-center text-muted">
+                              <Calendar className="h-3 w-3 mr-1" /> 
+                              {raffle.endDate}
+                            </span>
                           </div>
-                          <Progress value={(promo.participants / promo.maxParticipants) * 100} />
-                        </div>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md flex items-center justify-between">
-                          <div className="flex items-center">
-                            <span className="text-lg font-mono font-bold mr-2">{promo.code}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setPromoCode(promo.code);
-                                document.getElementById("promoCodeInput")?.focus();
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div>
-                            <span className="text-lg font-bold text-red-500">{promo.discount}</span>
+                          <div className="flex flex-col items-end">
+                            <span className="text-xs text-muted-foreground">Prize</span>
+                            <span className="text-lg font-bold text-gradient-teal">
+                              {raffle.prize}
+                            </span>
                           </div>
                         </div>
                       </CardContent>
+                      <CardFooter className="bg-xforge-dark/60 border-t border-xforge-teal/10">
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-sm text-muted-foreground">
+                            Your entries: <span className="text-purple-400 font-bold">{raffle.entries}</span>
+                          </span>
+                          <Button 
+                            size="sm" 
+                            className="bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30"
+                            onClick={() => {
+                              setPromoCode("RAFFLE10");
+                              document.getElementById("promoCodeInput")?.focus();
+                            }}
+                          >
+                            <Ticket className="h-4 w-4 mr-1" />
+                            Enter Raffle
+                          </Button>
+                        </div>
+                      </CardFooter>
                     </Card>
                   ))}
-                </TabsContent>
-                
-                <TabsContent value="raffles" className="space-y-6 mt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {raffles.map((raffle) => (
-                      <Card key={raffle.id}>
-                        <CardHeader>
-                          <CardTitle className="flex items-center">
-                            <Award className="mr-2 h-5 w-5 text-yellow-500" />
-                            {raffle.title}
-                          </CardTitle>
-                          <CardDescription>
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              Ends: {raffle.endDate}
-                            </div>
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center">
-                            <Trophy className="h-12 w-12 text-yellow-500" />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+          
+          {/* Right Column - Redeemed Codes and History */}
+          <div>
+            <Card className="glass-dark border-xforge-teal/20 overflow-hidden sticky top-20 animate-fade-in card-3d">
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-xforge-teal/10 rounded-full blur-3xl"></div>
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl">
+                  <Gift className="mr-2 h-5 w-5 text-xforge-teal" />
+                  Your Redeemed Codes
+                </CardTitle>
+                <CardDescription>
+                  Recent promo codes you've redeemed
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {user && user.redeemedPromoCodes && user.redeemedPromoCodes.length > 0 ? (
+                  <div className="space-y-3">
+                    {user.redeemedPromoCodes.slice(0, 5).map((code, index) => (
+                      <div key={index} className="flex justify-between p-3 bg-xforge-dark/60 rounded-lg border border-xforge-teal/10 transition-all duration-300 hover:border-xforge-teal/30">
+                        <div>
+                          <div className="font-medium text-xforge-gray">{code.code || 'XXXXXXXX'}</div>
+                          <div className="text-xs text-muted-foreground">{code.shopName}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-xforge-teal">+{code.points || 10} pts</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(code.redeemedAt).toLocaleDateString()}
                           </div>
-                          <div>
-                            <h4 className="font-semibold">Prize: {raffle.prize}</h4>
-                            <p className="text-sm text-gray-500">{raffle.description}</p>
-                          </div>
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>Total entries: {raffle.totalEntries}</span>
-                              <span>Your entries: {raffle.yourEntries}</span>
-                            </div>
-                            <Progress value={(raffle.yourEntries / 10) * 100} max={100} />
-                          </div>
-                        </CardContent>
-                        <CardFooter>
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                            onClick={() => setPromoCode("RAFFLE10")}
-                          >
-                            <Ticket className="mr-2 h-4 w-4" />
-                            Enter with code RAFFLE10
-                          </Button>
-                        </CardFooter>
-                      </Card>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-            
-            {/* Right Column - Stats and History */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center">
-                    <Sparkles className="mr-2 h-5 w-5 text-yellow-500" />
-                    Your Points
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold">{currentPoints}</div>
-                  <p className="text-sm text-gray-500 mt-1">Available Points</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center">
-                    <BookOpen className="mr-2 h-5 w-5" />
-                    Recent Redemptions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {recentRedemptions.length > 0 ? (
-                    <ul className="space-y-3">
-                      {recentRedemptions.map((item) => (
-                        <li key={item.id} className="flex justify-between items-center border-b pb-2 last:border-0">
-                          <div>
-                            <p className="font-medium">{item.code}</p>
-                            <p className="text-xs text-gray-500">{item.date} • {item.shopName}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-medium text-green-600">+{item.points}</span>
-                            {'special' in item && (
-                              <p className="text-xs text-purple-600">{item.special as string}</p>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-500">No recent redemptions</p>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center">
-                    <Gift className="mr-2 h-5 w-5 text-red-500" />
-                    How It Works
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start">
-                      <span className="bg-gray-200 dark:bg-gray-700 rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">1</span>
-                      <span>Enter a valid promo code from retailers or promotional materials</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-gray-200 dark:bg-gray-700 rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">2</span>
-                      <span>Select the retailer where you received the code</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-gray-200 dark:bg-gray-700 rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">3</span>
-                      <span>Earn points that can be redeemed for rewards and discounts</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <div className="inline-block p-3 rounded-full bg-xforge-dark/60 mb-4">
+                      <Gift className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">No redeemed promo codes yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Redeem your first code to see it here
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="border-t border-xforge-teal/10 flex justify-center bg-xforge-dark/40">
+                <div className="p-4 text-center w-full">
+                  <div className="text-sm text-muted-foreground mb-1">Your Current Points</div>
+                  <div className="text-3xl font-bold text-gradient-teal">{currentPoints}</div>
+                </div>
+              </CardFooter>
+            </Card>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+    </main>
     </div>
   );
 };
