@@ -39,6 +39,15 @@ const VerificationSuccess: React.FC = () => {
     const queryParams = new URLSearchParams(location.search);
     const status = queryParams.get("status");
     const alreadyVerified = queryParams.get("already");
+    const newToken = queryParams.get("token");
+    const userId = queryParams.get("userId");
+    
+    // If we have a new token from email verification, update it in storage
+    if (newToken && userId) {
+      // Update the token in localStorage
+      localStorage.setItem("token", newToken);
+      console.log("Updated token after email verification");
+    }
     
     if (status === "success") {
       setVerificationStatus("success");
@@ -107,10 +116,13 @@ const VerificationSuccess: React.FC = () => {
           }
         }
 
+        // If we received a new token from verification, use that instead
+        const tokenToUse = newToken || token;
+        
         // Fetch updated user data from the server
-        const response = await fetch(`http://localhost:5001/me`, {
+        const response = await fetch(`http://localhost:5001/api/auth/me`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${tokenToUse}`,
           },
         });
 
