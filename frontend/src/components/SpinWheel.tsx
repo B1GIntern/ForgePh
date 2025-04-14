@@ -259,9 +259,7 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
       });
 
       if (deductResponse.data.success) {
-        // Update points through parent component
         onPointsUpdate(userPoints - pointsToDeduct);
-        
         setIsSpinning(true);
         
         // Weighted random selection based on probability
@@ -280,12 +278,19 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
         const prize = prizes[selectedIndex];
         setSelectedPrize(prize);
         
+        // Calculate rotation to land exactly on the selected prize
         const sliceDegrees = 360 / prizes.length;
-        const prizeRotation = 3600 + (selectedIndex * sliceDegrees) + (sliceDegrees / 2);
-        const randomOffset = Math.random() * (sliceDegrees * 0.8) - (sliceDegrees * 0.4);
-        const finalRotation = prizeRotation + randomOffset;
+        const targetDegree = (360 - (selectedIndex * sliceDegrees) + 90) % 360; // Add 90 degrees to align with right side
+        const spins = 5; // Number of full rotations
+        const finalRotation = (spins * 360) + targetDegree + 360; // Add extra rotation to ensure continuous spinning
         
-        setRotation(finalRotation);
+        // Reset rotation first to allow multiple spins
+        setRotation(rotation % 360);
+        
+        // Use requestAnimationFrame to ensure smooth transition
+        requestAnimationFrame(() => {
+          setRotation(finalRotation);
+        });
         
         // After the animation is complete, process the prize
         setTimeout(async () => {
@@ -414,16 +419,43 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
       </div>
       
       <div className="relative">
-        {/* Wheel pointer */}
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10 text-xforge-teal">
-          <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[30px] border-l-transparent border-r-transparent border-t-xforge-teal mx-auto"></div>
+        {/* Wheel pointer and landing marker - now on the right side */}
+        <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 z-10">
+          <div className="relative">
+            <div className="w-0 h-0 border-t-[15px] border-b-[15px] border-r-[30px] border-t-transparent border-b-transparent border-r-xforge-teal mx-auto filter drop-shadow-lg"></div>
+            <div className="absolute left-[-2px] top-1/2 transform -translate-y-1/2 h-1 w-8 bg-xforge-teal/50"></div>
+          </div>
+        </div>
+
+        {/* Landing position markers - adjusted for right side */}
+        <div className="absolute top-0 left-1/2 w-[calc(100%+16px)] h-[calc(100%+16px)] -translate-x-1/2 -translate-y-2 pointer-events-none">
+          {Array.from({ length: 8 }).map((_, index) => {
+            const angle = (index * 5) + 90; // Add 90 degrees to align with right side
+            const radius = 160; // Adjust based on wheel size
+            const x = radius * Math.cos(angle * (Math.PI / 180));
+            const y = radius * Math.sin(angle * (Math.PI / 180));
+            return (
+              <div
+                key={`marker-${index}`}
+                className="absolute w-2 h-2 rounded-full bg-xforge-teal/30"
+                style={{
+                  left: `calc(50% + ${x}px)`,
+                  top: `calc(50% + ${y}px)`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              />
+            );
+          })}
         </div>
         
-        {/* Prize wheel */}
+        {/* Prize wheel - update initial rotation to align with right side */}
         <div 
           ref={wheelRef}
-          className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-4 border-xforge-teal/30 shadow-lg transform transition-transform duration-5000 ease-out"
-          style={{ transform: `rotate(${rotation}deg)` }}
+          className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-4 border-xforge-teal/30 shadow-lg"
+          style={{ 
+            transform: `rotate(${rotation - 90}deg)`, // Subtract 90 degrees to align with right side
+            transition: isSpinning ? 'transform 5s cubic-bezier(0.32, 0, 0.16, 1)' : 'none'
+          }}
         >
           {/* Create SVG wheel with proper pie slices */}
           <svg className="w-full h-full" viewBox="0 0 100 100">
