@@ -194,7 +194,7 @@ const RetailersLanding: React.FC = () => {
 
   useEffect(() => {
     // Set page title
-    document.title = "ForgePh Retailers Portal";
+    document.title = "Forge Philippines";
   }, []);
 
   // Fallback values for when user data is loading
