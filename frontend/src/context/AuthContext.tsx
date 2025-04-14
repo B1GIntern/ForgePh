@@ -9,6 +9,7 @@ type User = {
   points?: number;
   rank?: string;
   shopName?: string;
+  verified?: boolean;
 };
 
 type AuthContextType = {
@@ -17,6 +18,7 @@ type AuthContextType = {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  refreshUserData: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,10 +26,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
 
+  // Listen for token changes in localStorage
   useEffect(() => {
-    checkAuth();
-  }, []);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' && e.newValue !== token) {
+        setToken(e.newValue);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [token]);
+
+  // Check auth when token changes
+  useEffect(() => {
+    if (token) {
+      checkAuth();
+    } else {
+      setUser(null);
+      setIsLoading(false);
+    }
+  }, [token]);
 
   const checkAuth = async () => {
     try {
@@ -86,13 +107,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  // Function to refresh user data
+  const refreshUserData = async () => {
+    await checkAuth();
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       login,
       logout,
       isAuthenticated: !!user,
-      isLoading
+      isLoading,
+      refreshUserData
     }}>
       {children}
     </AuthContext.Provider>

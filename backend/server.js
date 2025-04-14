@@ -78,7 +78,7 @@ app.use(cors());
 // Define API routes first
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/email-verification", emailVerificationRoutes);
+app.use("/api/emailverification", emailVerificationRoutes);
 app.use("/api/promo-codes", promoCodeRoutes);
 app.use("/api/prizes", prizeRoutes);
 app.use("/api/flash-promos", flashPromoRoutes);

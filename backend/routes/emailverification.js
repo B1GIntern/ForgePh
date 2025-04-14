@@ -106,9 +106,20 @@ router.get("/verify-email", async (req, res) => {
     }
     // Update user status to "Verified"
     user.userStatus = "Verified";
+    user.verified = true;
     await user.save();
-    // Redirect to frontend success page
-    return res.redirect(`/verification-success?status=success`);
+    
+    // Generate a new token with updated user information
+    const updatedToken = jwt.sign(
+      { id: user._id, userStatus: user.userStatus, verified: true },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    
+    // Redirect to frontend success page with updated token
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/verification-success?status=success&token=${updatedToken}&userId=${user._id}`
+    );
   } catch (error) {
     console.error(error);
     return res.redirect(
