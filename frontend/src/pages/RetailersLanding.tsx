@@ -139,7 +139,7 @@ const RetailersLanding: React.FC = () => {
 
   useEffect(() => {
     // Set page title
-    document.title = "XForge Retailers Portal";
+    document.title = "ForgePh Retailers Portal";
   }, []);
 
   // Fallback values for when user data is loading
@@ -257,33 +257,35 @@ const RetailersLanding: React.FC = () => {
 
         {/* Milestone Dialog/Modal */}
         <Dialog open={showMilestones} onOpenChange={setShowMilestones}>
-          <DialogContent className="bg-gradient-to-b from-xforge-dark to-xforge-darkgray/95 border-xforge-teal/20 text-white max-w-5xl max-h-[85vh] overflow-hidden rounded-2xl p-0">
+          <DialogContent className="bg-gradient-to-b from-xforge-dark to-xforge-darkgray/95 border-xforge-teal/20 text-white max-w-5xl max-h-[85vh] overflow-y-auto rounded-2xl p-0">
             {/* Header area with decorative elements */}
-            <div className="relative h-48 overflow-hidden rounded-t-2xl">
-              <div className="absolute inset-0 bg-gradient-to-r from-xforge-teal/30 to-purple-600/30 overflow-hidden">
-                <div className="absolute -left-20 -top-20 w-64 h-64 bg-xforge-teal/20 rounded-full blur-3xl"></div>
-                <div className="absolute -right-10 top-10 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl"></div>
-              </div>
-              
-              <div className="absolute inset-0 backdrop-blur-sm flex flex-col justify-center px-10">
-                <div className="flex items-center">
-                  <div className="bg-gradient-to-r from-xforge-teal to-cyan-500 p-3 rounded-2xl mr-5 shadow-lg shadow-xforge-teal/20">
-                    <Award className="h-8 w-8 text-black" />
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400">
-                      Your Milestone Journey
-                    </h2>
-                    <p className="text-xforge-lightgray text-lg mt-1">
-                      Track your achievements and unlock exclusive rewards
-                    </p>
+            <div className="sticky top-0 z-20 bg-gradient-to-b from-xforge-dark to-xforge-darkgray/95">
+              <div className="relative h-48 overflow-hidden rounded-t-2xl">
+                <div className="absolute inset-0 bg-gradient-to-r from-xforge-teal/30 to-purple-600/30 overflow-hidden">
+                  <div className="absolute -left-20 -top-20 w-64 h-64 bg-xforge-teal/20 rounded-full blur-3xl"></div>
+                  <div className="absolute -right-10 top-10 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl"></div>
+                </div>
+                
+                <div className="absolute inset-0 backdrop-blur-sm flex flex-col justify-center px-10">
+                  <div className="flex items-center">
+                    <div className="bg-gradient-to-r from-xforge-teal to-cyan-500 p-3 rounded-2xl mr-5 shadow-lg shadow-xforge-teal/20">
+                      <Award className="h-8 w-8 text-black" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400">
+                        Your Milestone Journey
+                      </h2>
+                      <p className="text-xforge-lightgray text-lg mt-1">
+                        Track your achievements and unlock exclusive rewards
+                      </p>
+                    </div>
                   </div>
                 </div>
+                
+                <button onClick={() => setShowMilestones(false)} className="absolute top-4 right-4 rounded-full p-2 hover:bg-xforge-dark/60 bg-black/30 backdrop-blur-md transition-all duration-300 z-10">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              
-              <DialogClose className="absolute top-4 right-4 rounded-full p-2 hover:bg-xforge-dark/60 bg-black/30 backdrop-blur-md transition-all duration-300 z-10">
-                <X className="h-5 w-5" />
-              </DialogClose>
             </div>
             
             {/* Progress tracker */}
@@ -352,7 +354,7 @@ const RetailersLanding: React.FC = () => {
             </div>
             
             {/* Milestone benefits */}
-            <div className="p-10 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 350px)' }}>
+            <div className="p-10">
               <h3 className="text-xl font-bold text-white mb-6">Unlocked Benefits</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -365,72 +367,6 @@ const RetailersLanding: React.FC = () => {
                       <h4 className="font-semibold text-white mb-1">Priority Customer Support</h4>
                       <p className="text-sm text-xforge-lightgray">Get prioritized support with dedicated account manager access</p>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="bg-xforge-dark/40 rounded-xl p-5 border border-xforge-teal/20 transition-all duration-300 hover:border-xforge-teal/40 hover:bg-xforge-dark/50">
-                  <div className="flex items-start">
-                    <div className="bg-gradient-to-r from-xforge-teal/20 to-cyan-400/20 p-3 rounded-lg mr-4">
-                      <Store className="h-6 w-6 text-xforge-teal" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-white mb-1">Exclusive Promotional Materials</h4>
-                      <p className="text-sm text-xforge-lightgray">Access to digital and physical marketing materials for your store</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-xforge-dark/40 rounded-xl p-5 border border-xforge-teal/20 transition-all duration-300 hover:border-xforge-teal/40 hover:bg-xforge-dark/50">
-                  <div className="flex items-start">
-                    <div className="bg-gradient-to-r from-xforge-teal/20 to-cyan-400/20 p-3 rounded-lg mr-4">
-                      <Users className="h-6 w-6 text-xforge-teal" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-white mb-1">Retailer Community Access</h4>
-                      <p className="text-sm text-xforge-lightgray">Connect with other silver tier retailers and share best practices</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-xforge-dark/40 rounded-xl p-5 border border-xforge-teal/20 transition-all duration-300 hover:border-xforge-teal/40 hover:bg-xforge-dark/50">
-                  <div className="flex items-start">
-                    <div className="bg-gradient-to-r from-xforge-teal/20 to-cyan-400/20 p-3 rounded-lg mr-4">
-                      <Bell className="h-6 w-6 text-xforge-teal" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-white mb-1">Early Product Notifications</h4>
-                      <p className="text-sm text-xforge-lightgray">Get notified about new products before general retailers</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <h3 className="text-xl font-bold text-white mb-6">Next Tier Benefits</h3>
-              
-              <div className="bg-xforge-dark/20 rounded-xl p-6 border border-white/5 mb-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center mr-3 opacity-70">
-                    <span className="text-black font-bold text-sm">Gold</span>
-                  </div>
-                  <h4 className="text-lg font-semibold text-white">Gold Tier Benefits (15,000 points)</h4>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center">
-                    <ChevronRight className="text-xforge-teal mr-2 h-5 w-5" />
-                    <p className="text-sm text-xforge-lightgray">Discounted wholesale pricing</p>
-                  </div>
-                  <div className="flex items-center">
-                    <ChevronRight className="text-xforge-teal mr-2 h-5 w-5" />
-                    <p className="text-sm text-xforge-lightgray">Quarterly bonus product allocations</p>
-                  </div>
-                  <div className="flex items-center">
-                    <ChevronRight className="text-xforge-teal mr-2 h-5 w-5" />
-                    <p className="text-sm text-xforge-lightgray">Exclusive Gold tier events</p>
-                  </div>
-                  <div className="flex items-center">
-                    <ChevronRight className="text-xforge-teal mr-2 h-5 w-5" />
-                    <p className="text-sm text-xforge-lightgray">Enhanced retailer profile visibility</p>
                   </div>
                 </div>
               </div>
