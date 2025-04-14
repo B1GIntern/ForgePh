@@ -40,7 +40,9 @@ export const mockRetailers = Array.from({ length: 50 }, (_, i) => ({
       prize: "PHP 200 GCash Voucher", 
       totalWinners: 100, 
       remainingWinners: 100, 
-      active: true 
+      currentParticipants: 0,
+      active: true,
+      multiplier: 2
     },
     { 
       id: 2, 
@@ -49,8 +51,10 @@ export const mockRetailers = Array.from({ length: 50 }, (_, i) => ({
       endDate: "2025-08-15", 
       prize: "XForge Premium Pack + PHP 500 GCash", 
       totalWinners: 50, 
-      remainingWinners: 50, 
-      active: false 
+      remainingWinners: 40, 
+      currentParticipants: 10,
+      active: false,
+      multiplier: 3
     }
   ];
   

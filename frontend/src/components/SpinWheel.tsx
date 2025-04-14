@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNotifications } from "@/context/NotificationsContext";
 import axios from "axios";
+import { getActiveFlashPromos } from '@/services/flashPromoService';
 
 // Define the prize types
 type Prize = {
@@ -49,11 +50,14 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const { addNotification } = useNotifications();
+  const [spinGame, setSpinGame] = useState<any>(null);
+  const [activeFlashPromos, setActiveFlashPromos] = useState<any[]>([]);
   const wheelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchGameConfig();
     fetchPrizes();
+    fetchActiveFlashPromos();
   }, []);
 
   useEffect(() => {
@@ -200,12 +204,34 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
     }
   };
 
+  const fetchActiveFlashPromos = async () => {
+    try {
+      const activePromos = await getActiveFlashPromos();
+      console.log('Active flash promos:', activePromos);
+      setActiveFlashPromos(activePromos);
+    } catch (error) {
+      console.error('Error fetching active flash promos:', error);
+    }
+  };
+
   const getRandomColor = () => {
     const colors = [
       '#f97316', '#8b5cf6', '#06b6d4', '#ec4899',
       '#84cc16', '#eab308', '#f43f5e', '#d946ef'
     ];
     return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  // Add a helper function to get the current multiplier based on active promos
+  const getFlashPromoMultiplier = () => {
+    if (!activeFlashPromos || activeFlashPromos.length === 0) {
+      return 1; // Default multiplier if no active promos
+    }
+
+    // Get the highest multiplier from active promos
+    return Math.max(
+      ...activeFlashPromos.map(promo => promo.multiplier || 1)
+    );
   };
 
   const spinWheel = async () => {
@@ -314,9 +340,14 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
                 type: "system"
               });
             } else if (prize.type === 'minor' && !isNaN(Number(prize.value))) {
+              // Apply flash promo multiplier for minor prizes
+              const basePoints = Number(prize.value);
+              const multiplier = getFlashPromoMultiplier();
+              const totalPoints = basePoints * multiplier;
+              
               // Add points to user's account
               const addResponse = await axios.post('/api/users/points/add', {
-                points: Number(prize.value),
+                points: totalPoints,
                 userId: userId
               }, {
                 headers: { 
@@ -326,13 +357,22 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
 
               if (addResponse.data.success) {
                 // Update points through parent component
-                onPointsUpdate(userPoints - pointsToDeduct + Number(prize.value));
+                onPointsUpdate(userPoints - pointsToDeduct + totalPoints);
                 
-                addNotification({
-                  title: "Points Won!",
-                  message: `You've won ${prize.value} points!`,
-                  type: "points"
-                });
+                // Different message based on whether a multiplier was applied
+                if (multiplier > 1) {
+                  addNotification({
+                    title: "Points Won with Multiplier!",
+                    message: `You've won ${basePoints} points x${multiplier} = ${totalPoints} points!`,
+                    type: "points"
+                  });
+                } else {
+                  addNotification({
+                    title: "Points Won!",
+                    message: `You've won ${totalPoints} points!`,
+                    type: "points"
+                  });
+                }
               }
             } else if (prize.type === 'major') {
               // Handle major prize (assigned from admin)
@@ -391,6 +431,20 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
 
   const sliceAngle = 360 / prizes.length;
 
+  // Update the FlashPromoIndicator component
+  const FlashPromoIndicator = () => {
+    const multiplier = getFlashPromoMultiplier();
+    
+    if (multiplier <= 1) return null;
+    
+    return (
+      <div className="mb-4 bg-gradient-to-r from-amber-500 to-pink-500 text-white px-4 py-2 rounded-md text-base font-bold inline-flex items-center animate-pulse">
+        <span className="mr-2 text-xl">⚡</span> 
+        {multiplier}x Points Multiplier Active!
+      </div>
+    );
+  };
+
   if (!gameConfig || prizes.length === 0) {
     return (
       <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4">
@@ -407,7 +461,7 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
   }
 
   return (
-    <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4">
+    <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4 relative">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-4 inline-block border-b-2 border-xforge-teal pb-2">
           Spin to <span className="text-xforge-teal">Win</span>
@@ -416,202 +470,209 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
           Try your luck with our prize wheel! {gameConfig.points} points required per spin.
           You have {userPoints} points available.
         </p>
+        
+        {activeFlashPromos.length > 0 && <FlashPromoIndicator />}
       </div>
       
-      <div className="relative">
-        {/* Wheel pointer and landing marker - now on the right side */}
-        <div className="absolute top-1/2 -right-8 transform -translate-y-1/2 z-10">
-          <div className="relative">
-            <div className="w-0 h-0 border-t-[15px] border-b-[15px] border-r-[30px] border-t-transparent border-b-transparent border-r-xforge-teal mx-auto filter drop-shadow-lg"></div>
-            <div className="absolute left-[-2px] top-1/2 transform -translate-y-1/2 h-1 w-8 bg-xforge-teal/50"></div>
+      <div className="relative w-80 h-80 mx-auto">
+        <div className="relative">
+          {/* Wheel pointer and landing marker - now on the right side */}
+          <div 
+            className="absolute -right-4 top-1/2 transform -translate-y-1/2 z-10"
+            style={{ height: '30px', width: '30px' }}
+          >
+            <div 
+              className="h-0 w-0 border-y-[15px] border-y-transparent border-l-[24px] border-l-xforge-teal"
+              style={{ filter: 'drop-shadow(0 0 6px rgba(20, 184, 166, 0.7))' }}
+            ></div>
           </div>
-        </div>
 
-        {/* Landing position markers - adjusted for right side */}
-        <div className="absolute top-0 left-1/2 w-[calc(100%+16px)] h-[calc(100%+16px)] -translate-x-1/2 -translate-y-2 pointer-events-none">
-          {Array.from({ length: 8 }).map((_, index) => {
-            const angle = (index * 5) + 90; // Add 90 degrees to align with right side
-            const radius = 160; // Adjust based on wheel size
-            const x = radius * Math.cos(angle * (Math.PI / 180));
-            const y = radius * Math.sin(angle * (Math.PI / 180));
-            return (
-              <div
-                key={`marker-${index}`}
-                className="absolute w-2 h-2 rounded-full bg-xforge-teal/30"
-                style={{
-                  left: `calc(50% + ${x}px)`,
-                  top: `calc(50% + ${y}px)`,
-                  transform: 'translate(-50%, -50%)'
-                }}
-              />
-            );
-          })}
-        </div>
-        
-        {/* Prize wheel - update initial rotation to align with right side */}
-        <div 
-          ref={wheelRef}
-          className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-4 border-xforge-teal/30 shadow-lg"
-          style={{ 
-            transform: `rotate(${rotation - 90}deg)`, // Subtract 90 degrees to align with right side
-            transition: isSpinning ? 'transform 5s cubic-bezier(0.32, 0, 0.16, 1)' : 'none'
-          }}
-        >
-          {/* Create SVG wheel with proper pie slices */}
-          <svg className="w-full h-full" viewBox="0 0 100 100">
-            {Array.isArray(prizes) && prizes.length > 0 ? (
-              prizes.map((prize, index) => {
-                // Calculate slice angles
-                const startAngle = index * sliceAngle;
-                const endAngle = startAngle + sliceAngle;
-                
-                // Convert to radians
-                const startRad = (startAngle - 90) * (Math.PI / 180);
-                const endRad = (endAngle - 90) * (Math.PI / 180);
-                
-                // Calculate points
-                const x1 = 50 + 50 * Math.cos(startRad);
-                const y1 = 50 + 50 * Math.sin(startRad);
-                const x2 = 50 + 50 * Math.cos(endRad);
-                const y2 = 50 + 50 * Math.sin(endRad);
-                
-                // Calculate midpoint for text positioning
-                const midAngleRad = ((startAngle + endAngle) / 2 - 90) * (Math.PI / 180);
-                const textPathRadius = 35;
-                
-                const largeArcFlag = sliceAngle > 180 ? 1 : 0;
-                const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-                
-                const textPathId = `textPath-${prize.id}`;
-                const textArcStart = 50 + textPathRadius * Math.cos(startRad);
-                const textArcStartY = 50 + textPathRadius * Math.sin(startRad);
-                const textArcEnd = 50 + textPathRadius * Math.cos(endRad);
-                const textArcEndY = 50 + textPathRadius * Math.sin(endRad);
-                
-                const textPathD = `M ${textArcStart} ${textArcStartY} A ${textPathRadius} ${textPathRadius} 0 ${largeArcFlag} 1 ${textArcEnd} ${textArcEndY}`;
-                
-                return (
-                  <g key={prize.id}>
-                    <path
-                      d={path}
-                      fill={prize.color}
-                      stroke="white"
-                      strokeWidth="0.5"
-                    />
-                    
-                    <path
-                      id={textPathId}
-                      d={textPathD}
-                      fill="none"
-                      stroke="none"
-                    />
-                    
-                    <text 
-                      fill="white" 
-                      fontSize="3.5"
-                      fontWeight="bold"
-                      dominantBaseline="middle"
-                      textAnchor="middle"
-                    >
-                      <textPath 
-                        href={`#${textPathId}`} 
-                        startOffset="50%"
-                      >
-                        {prize.name}
-                      </textPath>
-                    </text>
-                  </g>
-                );
-              })
-            ) : (
-              // Default wheel segments if no prizes
-              Array.from({ length: 8 }).map((_, index) => {
-                const startAngle = index * 45;
-                const endAngle = startAngle + 45;
-                const startRad = (startAngle - 90) * (Math.PI / 180);
-                const endRad = (endAngle - 90) * (Math.PI / 180);
-                const x1 = 50 + 50 * Math.cos(startRad);
-                const y1 = 50 + 50 * Math.sin(startRad);
-                const x2 = 50 + 50 * Math.cos(endRad);
-                const y2 = 50 + 50 * Math.sin(endRad);
-                
-                return (
-                  <g key={index}>
-                    <path
-                      d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
-                      fill="#1a1a1a"
-                      stroke="white"
-                      strokeWidth="0.5"
-                    />
-                  </g>
-                );
-              })
-            )}
-            
-            {/* Center circle */}
-            <circle cx="50" cy="50" r="12" fill="#06b6d4" />
-            <foreignObject x="40" y="40" width="20" height="20">
-              <div className="flex items-center justify-center w-full h-full">
-                <Sparkles className="text-xforge-dark h-full w-full" />
-              </div>
-            </foreignObject>
-          </svg>
-        </div>
-        
-        <Button
-          onClick={spinWheel}
-          disabled={!canSpin || isSpinning}
-          size="lg"
-          className={`mt-8 px-8 py-6 text-lg font-bold ${
-            !canSpin ? 'bg-xforge-darkgray text-xforge-gray cursor-not-allowed' : 
-            'bg-gradient-to-r from-xforge-teal to-teal-500 text-xforge-dark hover:brightness-110'
-          }`}
-        >
-          {isSpinning ? 'Spinning...' : canSpin ? 'SPIN THE WHEEL' : `Need ${gameConfig.points - userPoints} more points to spin`}
-        </Button>
-      </div>
-      
-      {/* Result Dialog */}
-      <Dialog open={showResult} onOpenChange={setShowResult}>
-        <DialogContent className="bg-gradient-to-br from-xforge-dark to-xforge-darkgray border border-xforge-teal/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white">
-              {selectedPrize?.value === 'Try Again' ? 'Better luck next time!' : 'Congratulations!'}
-            </DialogTitle>
-            <DialogDescription className="text-xforge-gray">
-              {selectedPrize?.value === 'Try Again' ? 'Spin again to try your luck!' : "You've won a prize from the wheel!"}
-            </DialogDescription>
-          </DialogHeader>
+          {/* Landing position markers - adjusted for right side */}
+          <div className="absolute top-0 left-1/2 w-[calc(100%+16px)] h-[calc(100%+16px)] -translate-x-1/2 -translate-y-2 pointer-events-none">
+            {Array.from({ length: 8 }).map((_, index) => {
+              const angle = (index * 5) + 90; // Add 90 degrees to align with right side
+              const radius = 160; // Adjust based on wheel size
+              const x = radius * Math.cos(angle * (Math.PI / 180));
+              const y = radius * Math.sin(angle * (Math.PI / 180));
+              return (
+                <div
+                  key={`marker-${index}`}
+                  className="absolute w-2 h-2 rounded-full bg-xforge-teal/30"
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `calc(50% + ${y}px)`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                />
+              );
+            })}
+          </div>
           
-          {selectedPrize && (
-            <div className="py-6 flex flex-col items-center">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4`} style={{ background: selectedPrize.color }}>
-                <span className="text-white font-bold">{selectedPrize.name}</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-2">{selectedPrize.name}</h3>
-              {selectedPrize.type === 'minor' && !isNaN(Number(selectedPrize.value)) && (
-                <p className="text-xforge-gray text-center">You've won {selectedPrize.value} points! These have been added to your account.</p>
-              )}
-              {selectedPrize.value === 'Free Spin' && (
-                <p className="text-xforge-gray text-center">Your next spin is free! No points will be deducted.</p>
-              )}
-              {selectedPrize.value === 'Try Again' && (
-                <p className="text-xforge-gray text-center">No prize this time. Try again with another spin!</p>
-              )}
-              {selectedPrize.type === 'major' && (
-                <p className="text-xforge-gray text-center">You've won a special prize! Check your rewards inventory.</p>
+          {/* Prize wheel - update initial rotation to align with right side */}
+          <div 
+            ref={wheelRef}
+            className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-4 border-xforge-teal/30 shadow-lg"
+            style={{ 
+              transform: `rotate(${rotation - 90}deg)`, // Subtract 90 degrees to align with right side
+              transition: isSpinning ? 'transform 5s cubic-bezier(0.32, 0, 0.16, 1)' : 'none'
+            }}
+          >
+            {/* Create SVG wheel with proper pie slices */}
+            <svg className="w-full h-full" viewBox="0 0 100 100">
+              {Array.isArray(prizes) && prizes.length > 0 ? (
+                prizes.map((prize, index) => {
+                  // Calculate slice angles
+                  const startAngle = index * sliceAngle;
+                  const endAngle = startAngle + sliceAngle;
+                  
+                  // Convert to radians
+                  const startRad = (startAngle - 90) * (Math.PI / 180);
+                  const endRad = (endAngle - 90) * (Math.PI / 180);
+                  
+                  // Calculate points
+                  const x1 = 50 + 50 * Math.cos(startRad);
+                  const y1 = 50 + 50 * Math.sin(startRad);
+                  const x2 = 50 + 50 * Math.cos(endRad);
+                  const y2 = 50 + 50 * Math.sin(endRad);
+                  
+                  // Calculate midpoint for text positioning
+                  const midAngleRad = ((startAngle + endAngle) / 2 - 90) * (Math.PI / 180);
+                  const textPathRadius = 35;
+                  
+                  const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+                  const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                  
+                  const textPathId = `textPath-${prize.id}`;
+                  const textArcStart = 50 + textPathRadius * Math.cos(startRad);
+                  const textArcStartY = 50 + textPathRadius * Math.sin(startRad);
+                  const textArcEnd = 50 + textPathRadius * Math.cos(endRad);
+                  const textArcEndY = 50 + textPathRadius * Math.sin(endRad);
+                  
+                  const textPathD = `M ${textArcStart} ${textArcStartY} A ${textPathRadius} ${textPathRadius} 0 ${largeArcFlag} 1 ${textArcEnd} ${textArcEndY}`;
+                  
+                  return (
+                    <g key={prize.id}>
+                      <path
+                        d={path}
+                        fill={prize.color}
+                        stroke="white"
+                        strokeWidth="0.5"
+                      />
+                      
+                      <path
+                        id={textPathId}
+                        d={textPathD}
+                        fill="none"
+                        stroke="none"
+                      />
+                      
+                      <text 
+                        fill="white" 
+                        fontSize="3.5"
+                        fontWeight="bold"
+                        dominantBaseline="middle"
+                        textAnchor="middle"
+                      >
+                        <textPath 
+                          href={`#${textPathId}`} 
+                          startOffset="50%"
+                        >
+                          {prize.name}
+                        </textPath>
+                      </text>
+                    </g>
+                  );
+                })
+              ) : (
+                // Default wheel segments if no prizes
+                Array.from({ length: 8 }).map((_, index) => {
+                  const startAngle = index * 45;
+                  const endAngle = startAngle + 45;
+                  const startRad = (startAngle - 90) * (Math.PI / 180);
+                  const endRad = (endAngle - 90) * (Math.PI / 180);
+                  const x1 = 50 + 50 * Math.cos(startRad);
+                  const y1 = 50 + 50 * Math.sin(startRad);
+                  const x2 = 50 + 50 * Math.cos(endRad);
+                  const y2 = 50 + 50 * Math.sin(endRad);
+                  
+                  return (
+                    <g key={index}>
+                      <path
+                        d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`}
+                        fill="#1a1a1a"
+                        stroke="white"
+                        strokeWidth="0.5"
+                      />
+                    </g>
+                  );
+                })
               )}
               
-              <Button 
-                onClick={closeResult} 
-                className="mt-6 bg-gradient-to-r from-xforge-teal to-teal-500 text-xforge-dark hover:brightness-110"
-              >
-                Close
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+              {/* Center circle */}
+              <circle cx="50" cy="50" r="12" fill="#06b6d4" />
+              <foreignObject x="40" y="40" width="20" height="20">
+                <div className="flex items-center justify-center w-full h-full">
+                  <Sparkles className="text-xforge-dark h-full w-full" />
+                </div>
+              </foreignObject>
+            </svg>
+          </div>
+          
+          <Button
+            onClick={spinWheel}
+            disabled={!canSpin || isSpinning}
+            size="lg"
+            className={`mt-8 px-8 py-6 text-lg font-bold ${
+              !canSpin ? 'bg-xforge-darkgray text-xforge-gray cursor-not-allowed' : 
+              'bg-gradient-to-r from-xforge-teal to-teal-500 text-xforge-dark hover:brightness-110'
+            }`}
+          >
+            {isSpinning ? 'Spinning...' : canSpin ? 'SPIN THE WHEEL' : `Need ${gameConfig.points - userPoints} more points to spin`}
+          </Button>
+        </div>
+        
+        {/* Result Dialog */}
+        <Dialog open={showResult} onOpenChange={setShowResult}>
+          <DialogContent className="bg-gradient-to-br from-xforge-dark to-xforge-darkgray border border-xforge-teal/30">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-white">
+                {selectedPrize?.value === 'Try Again' ? 'Better luck next time!' : 'Congratulations!'}
+              </DialogTitle>
+              <DialogDescription className="text-xforge-gray">
+                {selectedPrize?.value === 'Try Again' ? 'Spin again to try your luck!' : "You've won a prize from the wheel!"}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedPrize && (
+              <div className="py-6 flex flex-col items-center">
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4`} style={{ background: selectedPrize.color }}>
+                  <span className="text-white font-bold">{selectedPrize.name}</span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">{selectedPrize.name}</h3>
+                {selectedPrize.type === 'minor' && !isNaN(Number(selectedPrize.value)) && (
+                  <p className="text-xforge-gray text-center">You've won {selectedPrize.value} points! These have been added to your account.</p>
+                )}
+                {selectedPrize.value === 'Free Spin' && (
+                  <p className="text-xforge-gray text-center">Your next spin is free! No points will be deducted.</p>
+                )}
+                {selectedPrize.value === 'Try Again' && (
+                  <p className="text-xforge-gray text-center">No prize this time. Try again with another spin!</p>
+                )}
+                {selectedPrize.type === 'major' && (
+                  <p className="text-xforge-gray text-center">You've won a special prize! Check your rewards inventory.</p>
+                )}
+                
+                <Button 
+                  onClick={closeResult} 
+                  className="mt-6 bg-gradient-to-r from-xforge-teal to-teal-500 text-xforge-dark hover:brightness-110"
+                >
+                  Close
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };

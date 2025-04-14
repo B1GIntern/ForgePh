@@ -72,7 +72,7 @@ const RetailersLanding: React.FC = () => {
       window.removeEventListener("orientationchange", checkOrientation);
     };
   }, [showMilestones, toast]);
-
+  
   const [news, setNews] = useState([
     {
       id: 1,
@@ -109,7 +109,7 @@ const RetailersLanding: React.FC = () => {
   // Fetch user data function
   const fetchUserData = async () => {
     try {
-      setLoading(true);
+      setLoading(true); 
       // Get auth token from storage
       const token =
         localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -209,7 +209,7 @@ const RetailersLanding: React.FC = () => {
       <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl"></div>
 
       <Header />
-
+      
       <main className="flex-grow pt-24 relative z-10">
         {/* Welcome Banner with Animated Elements */}
         <section className="py-16 relative overflow-hidden">
@@ -246,7 +246,7 @@ const RetailersLanding: React.FC = () => {
                   retail partners.
                 </p>
               </div>
-
+              
               <div className="w-full md:w-2/5 max-w-md">
                 <div className="glass-card relative backdrop-blur-xl bg-xforge-dark/40 p-8 rounded-2xl border border-xforge-teal/20 shadow-xl animate-fade-in transition-transform duration-300 hover:translate-y-[-5px] hover:shadow-2xl">
                   <h3 className="text-2xl font-bold text-white mb-4">
@@ -256,7 +256,7 @@ const RetailersLanding: React.FC = () => {
                   <div className="mb-6 bg-xforge-dark/50 p-4 rounded-xl border border-white/5">
                     <div className="text-sm text-xforge-lightgray mb-1">
                       Your Points Balance
-                    </div>
+                </div>
                     <div className="flex items-end">
                       <span className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400">
                         {userPoints.toLocaleString()}
@@ -264,7 +264,7 @@ const RetailersLanding: React.FC = () => {
                       <span className="text-xforge-lightgray ml-2 mb-1">
                         points
                       </span>
-                    </div>
+                </div>
                   </div>
 
                   <div className="mb-6">
@@ -547,7 +547,7 @@ const RetailersLanding: React.FC = () => {
                 View All News <ChevronRight className="ml-1" />
               </Button>
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {news.map((item, index) => (
                 <Card
@@ -556,9 +556,9 @@ const RetailersLanding: React.FC = () => {
                   style={{ animationDelay: `${index * 150}ms` }}
                 >
                   <div className="h-52 overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.title}
+                    <img 
+                      src={item.image} 
+                      alt={item.title} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -596,7 +596,7 @@ const RetailersLanding: React.FC = () => {
             </div>
           </div>
         </section>
-
+        
         {/* Terms & Conditions Section */}
         <section className="pb-16 relative z-10">
           <div className="container">

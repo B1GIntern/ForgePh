@@ -231,8 +231,8 @@ const redeemPromoCode = async (req, res) => {
     user.dailyLimitReached = user.redemptionCount === 0;
     await user.save();
     
-    // Update retailer's points
-    retailer.points += promoCode.points;
+    // Update retailer's points - now only 1 point per redemption regardless of code value
+    retailer.points += 1; // Changed from promoCode.points to fixed value of 1
     await retailer.save();
     
     // Set redemption details and mark as redeemed
@@ -247,7 +247,7 @@ const redeemPromoCode = async (req, res) => {
     
     return res.status(200).json({
       success: true,
-      message: "Promo code redeemed successfully",
+      message: `Promo code redeemed successfully! Consumer received ${promoCode.points} points, retailer received 1 point.`,
       points: promoCode.points,
       promoCode,
       userPoints: user.points,

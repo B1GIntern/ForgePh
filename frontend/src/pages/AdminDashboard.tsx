@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Award, 
@@ -55,7 +55,6 @@ import {
   CardFooter,
   CardDescription,
 } from "@/components/ui/card";
-import { useEffect } from 'react';
 import axios from "axios";
 import {
   Dialog,
@@ -68,6 +67,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
+import { FlashPromosTab } from "@/components/admin/tabs/FlashPromosTab";
 
 // Define types for our data
 interface Prize {
@@ -242,15 +242,6 @@ const AdminDashboard: React.FC = () => {
     prizedAssignedToGame: false,
     gameId: ""
   });
-  const [newFlashPromo, setNewFlashPromo] = useState<NewFlashPromo>({
-    name: '',
-    startDate: '',
-    endDate: '',
-    maxParticipants: 1,
-    multiplier: 1,
-    prize: '',
-    isActive: true
-  });
   
   // Declare state for retailers
   const [retailers, setRetailers] = useState<any[]>([]); // <== Add this line to declare retailers state
@@ -260,6 +251,15 @@ const AdminDashboard: React.FC = () => {
   const [isLoadingRewards, setIsLoadingRewards] = useState(false);
   // Initialize with empty array instead of mockFlashPromos
   const [flashPromos, setFlashPromos] = useState<FlashPromo[]>([]);
+  const [newFlashPromo, setNewFlashPromo] = useState<NewFlashPromo>({
+    name: '',
+    startDate: '',
+    endDate: '',
+    maxParticipants: 1,
+    multiplier: 1,
+    prize: '',
+    isActive: true
+  });
   useEffect(() => {
     const fetchRetailers = async () => {
       try {
@@ -804,6 +804,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     // Calculate Flash Promo metrics
+    // NOTE: No longer being used - moved to FlashPromo component
     const getFlashPromoMetrics = () => {
       if (!Array.isArray(flashPromos)) return { total: 0, active: 0, inactive: 0 };
       
@@ -817,7 +818,6 @@ const AdminDashboard: React.FC = () => {
     // Stats for display
     const promoMetrics = getPromoCodeMetrics();
     const redemptionMetrics = getRedemptionMetrics();
-    const flashPromoMetrics = getFlashPromoMetrics();
 
 
      // Fetch all prizes
@@ -928,6 +928,7 @@ const AdminDashboard: React.FC = () => {
     }, []);
 
     // Fetch flash promos
+    // NOTE: No longer being used - moved to FlashPromo component
     const fetchFlashPromos = async () => {
       try {
         const response = await axios.get('/api/flash-promos');
@@ -969,6 +970,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     // Add new flash promo
+    // NOTE: No longer being used - moved to FlashPromo component
     const addFlashPromo = async () => {
       try {
         // Validate inputs
@@ -1090,6 +1092,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     // Toggle flash promo status
+    // NOTE: No longer being used - moved to FlashPromo component
     const toggleFlashPromoStatus = async (id: string, currentStatus: boolean) => {
       try {
         const response = await axios.patch(`/api/flash-promos/${id}/status`, {
@@ -1117,6 +1120,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     // Delete flash promo
+    // NOTE: No longer being used - moved to FlashPromo component
     const deleteFlashPromo = async (id: string) => {
       try {
         await axios.delete(`/api/flash-promos/${id}`);
@@ -1136,11 +1140,13 @@ const AdminDashboard: React.FC = () => {
     };
 
     // Calculate progress percentage
+    // NOTE: No longer being used - moved to FlashPromo component
     const calculateProgress = (current: number, max: number) => {
       return Math.min((current / max) * 100, 100);
     };
 
     // Load flash promos on component mount
+    // NOTE: No longer being used - moved to FlashPromo component
     useEffect(() => {
       fetchFlashPromos();
     }, []);
@@ -1916,239 +1922,7 @@ const AdminDashboard: React.FC = () => {
       </TabsContent>
 
               <TabsContent value="flash-promos" className="space-y-6 animate-fade-in">
-                <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-xl">Create Flash Promo</CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Set up a new flash promotion with limited participants and multiplier
-                    </CardDescription>
-                  </CardHeader>
-
-                  {/* Add Summary Cards */}
-                  <CardContent className="pb-0">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      {/* Total Flash Promos Card */}
-                      <Card className="bg-[#222] border border-[#333] shadow-lg">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-[#00D6A4] text-lg">Total Flash Promos</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center justify-between">
-                            <div className="text-3xl font-bold text-white">{flashPromoMetrics.total}</div>
-                            <div className="p-2 rounded-full bg-[#00D6A4]/10">
-                              <Zap size={20} className="text-[#00D6A4]" />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Active Flash Promos Card */}
-                      <Card className="bg-[#222] border border-[#333] shadow-lg">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-green-400 text-lg">Active Promos</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center justify-between">
-                            <div className="text-3xl font-bold text-white">{flashPromoMetrics.active}</div>
-                            <div className="p-2 rounded-full bg-green-500/10">
-                              <CheckCircle size={20} className="text-green-400" />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Inactive Flash Promos Card */}
-                      <Card className="bg-[#222] border border-[#333] shadow-lg">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-amber-400 text-lg">Inactive Promos</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center justify-between">
-                            <div className="text-3xl font-bold text-white">{flashPromoMetrics.inactive}</div>
-                            <div className="p-2 rounded-full bg-amber-500/10">
-                              <AlertCircle size={20} className="text-amber-400" />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="promo-name" className="text-gray-400">Promo Name</Label>
-                        <Input 
-                          id="promo-name" 
-                          placeholder="Enter promo name" 
-                          value={newFlashPromo.name}
-                          onChange={(e) => setNewFlashPromo({...newFlashPromo, name: e.target.value})}
-                          className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="start-date" className="text-gray-400">Start Date</Label>
-                        <Input 
-                          id="start-date" 
-                          type="datetime-local" 
-                          value={newFlashPromo.startDate}
-                          onChange={(e) => setNewFlashPromo({...newFlashPromo, startDate: e.target.value})}
-                          className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="end-date" className="text-gray-400">End Date</Label>
-                        <Input 
-                          id="end-date" 
-                          type="datetime-local" 
-                          value={newFlashPromo.endDate}
-                          onChange={(e) => setNewFlashPromo({...newFlashPromo, endDate: e.target.value})}
-                          className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="promo-participants" className="text-gray-400">Max Participants</Label>
-                        <Input 
-                          id="promo-participants" 
-                          type="number" 
-                          placeholder="Number of participants" 
-                          value={newFlashPromo.maxParticipants || ''}
-                          onChange={(e) => setNewFlashPromo({...newFlashPromo, maxParticipants: parseInt(e.target.value) || 0})}
-                          className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
-                          min="1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="promo-multiplier" className="text-gray-400">Entry Multiplier</Label>
-                        <Input 
-                          id="promo-multiplier" 
-                          type="number" 
-                          placeholder="Entry multiplier" 
-                          value={newFlashPromo.multiplier || ''}
-                          onChange={(e) => setNewFlashPromo({...newFlashPromo, multiplier: parseInt(e.target.value) || 1})}
-                          className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
-                          min="1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="promo-prize" className="text-gray-400">Prize</Label>
-                        <Input 
-                          id="promo-prize" 
-                          placeholder="Prize description" 
-                          value={newFlashPromo.prize}
-                          onChange={(e) => setNewFlashPromo({...newFlashPromo, prize: e.target.value})}
-                          className="bg-[#222] border-[#333] focus:border-[#00D6A4]"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                      <Button 
-                        onClick={addFlashPromo}
-                        className="bg-gradient-to-r from-[#00D6A4] to-cyan-500 text-[#121212] hover:brightness-110"
-                      >
-                        <Plus size={16} className="mr-2" />
-                        Create Flash Promo
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Active Flash Promos */}
-                <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-white text-xl">Flash Promos</CardTitle>
-                      <div className="bg-[#222] px-3 py-1 rounded-full flex items-center text-gray-400 text-sm">
-                        <Calendar size={14} className="mr-2 text-[#00D6A4]" />
-                        {flashPromoMetrics.active} Active Promos
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader className="bg-[#222]">
-                        <TableRow>
-                          <TableHead className="text-[#00D6A4] font-bold">Name</TableHead>
-                          <TableHead className="text-[#00D6A4] font-bold">Period</TableHead>
-                          <TableHead className="text-[#00D6A4] font-bold">Prize</TableHead>
-                          <TableHead className="text-[#00D6A4] font-bold">Participants</TableHead>
-                          <TableHead className="text-[#00D6A4] font-bold">Multiplier</TableHead>
-                          <TableHead className="text-[#00D6A4] font-bold">Status</TableHead>
-                          <TableHead className="text-[#00D6A4] font-bold">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Array.isArray(flashPromos) && flashPromos.length > 0 ? (
-                          flashPromos.map((promo) => (
-                            <TableRow key={promo._id} className="hover:bg-[#222] border-b border-[#333]">
-                              <TableCell>{promo.name}</TableCell>
-                              <TableCell>
-                                <div className="flex flex-col">
-                                  <span className="text-sm text-gray-400">
-                                    {new Date(promo.startDate).toLocaleDateString()}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    to {new Date(promo.endDate).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell>{promo.prize}</TableCell>
-                              <TableCell>
-                                <div className="flex flex-col">
-                                  <span className="text-[#00D6A4]">{promo.currentParticipants}/{promo.maxParticipants}</span>
-                                  <div className="h-1.5 w-24 bg-[#222] rounded-full mt-1">
-                                    <div 
-                                      className="h-full bg-gradient-to-r from-[#00D6A4] to-cyan-500 rounded-full" 
-                                      style={{ width: `${calculateProgress(promo.currentParticipants, promo.maxParticipants)}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>{promo.multiplier}x</TableCell>
-                              <TableCell>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  promo.isActive
-                                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                    : 'bg-[#222] text-gray-400 border border-[#333]'
-                                }`}>
-                                  {promo.isActive ? 'Active' : 'Inactive'}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => toggleFlashPromoStatus(promo._id, promo.isActive)}
-                                    className={
-                                      promo.isActive
-                                        ? "border-amber-500 text-amber-400 hover:bg-amber-500/20"
-                                        : "border-green-500 text-green-400 hover:bg-green-500/20"
-                                    }
-                                  >
-                                    {promo.isActive ? 'Deactivate' : 'Activate'}
-                                  </Button>
-                                  <Button 
-                                    variant="destructive" 
-                                    size="sm"
-                                    onClick={() => deleteFlashPromo(promo._id)}
-                                    className="hover:bg-red-700 transition-colors"
-                                  >
-                                    <Trash size={14} />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-6 text-gray-400">
-                              No flash promos available. Create your first flash promo above.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                <FlashPromosTab />
               </TabsContent>
 
               <TabsContent value="promo-codes" className="space-y-6">

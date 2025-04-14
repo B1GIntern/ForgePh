@@ -48,6 +48,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import FlashPromo from "../components/admin/FlashPromo";
 
 // Define interfaces to match your MongoDB schema
 interface RedeemedPromoCode {
@@ -817,79 +818,45 @@ const PromoCodes: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="flash" className="space-y-6 mt-6">
-                  {flashPromos.map((promo) => (
-                    <Card
-                      key={promo.id}
-                      className="glass-dark border-xforge-teal/20 overflow-hidden relative animate-fade-in card-3d"
-                    >
-                      <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-500/10 rounded-full blur-3xl"></div>
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-xl">
-                          <Clock className="mr-2 h-5 w-5 text-red-400" />
-                          {promo.title}
-                        </CardTitle>
-                        <CardDescription className="text-base">
-                          Time remaining:{" "}
-                          <span className="font-mono text-red-400">
-                            {promo.expiry}
-                          </span>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p className="text-muted-foreground">
-                          {promo.description}
-                        </p>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>
-                              Participants: {promo.participants}/
-                              {promo.maxParticipants}
-                            </span>
-                            <span>
-                              {Math.round(
-                                (promo.participants / promo.maxParticipants) *
-                                  100
-                              )}
-                              %
-                            </span>
-                          </div>
-                          <div className="h-2 bg-xforge-dark/60 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-xforge-teal to-red-400"
-                              style={{
-                                width: `${(promo.participants / promo.maxParticipants) * 100}%`,
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                        <div className="bg-xforge-dark/60 p-4 rounded-md flex items-center justify-between border border-xforge-teal/20">
-                          <div className="flex items-center">
-                            <span className="text-lg font-mono font-bold mr-2 text-xforge-teal">
-                              {promo.code}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setPromoCode(promo.code);
-                                document
-                                  .getElementById("promoCodeInput")
-                                  ?.focus();
-                              }}
-                              className="text-xforge-teal hover:bg-xforge-teal/10"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div>
-                            <span className="text-lg font-bold text-red-400">
-                              {promo.discount}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <FlashPromo isAdmin={false} userId={user?.id} onJoinPromo={async (promoId) => {
+                    try {
+                      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+                      if (!token) throw new Error("Not authenticated");
+                      
+                      const response = await fetch(`/api/flash-promos/${promoId}/join`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ userId: user?.id })
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (response.ok) {
+                        uiToast({
+                          title: "Success",
+                          description: "You've entered the flash promo!",
+                        });
+                        
+                        addNotification({
+                          title: "Flash Promo Joined",
+                          message: "You've successfully joined the flash promotion!",
+                          type: "points"
+                        });
+                      } else {
+                        throw new Error(data.message || "Failed to join promo");
+                      }
+                    } catch (error) {
+                      console.error("Error joining flash promo:", error);
+                      uiToast({
+                        title: "Error",
+                        description: error.message || "Failed to join flash promo",
+                        variant: "destructive"
+                      });
+                    }
+                  }} />
                 </TabsContent>
 
                 <TabsContent value="raffles" className="space-y-6 mt-6">

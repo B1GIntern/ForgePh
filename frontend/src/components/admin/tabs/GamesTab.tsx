@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockGames } from "@/data/mockAdmindata";
+import { mockPromos as initialMockPromos } from "@/data/mockAdminData";
 
 export const GamesTab: React.FC = () => {
   const { toast } = useToast();

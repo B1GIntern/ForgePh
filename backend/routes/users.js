@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { User, validateUser } = require("../models/Users.js");
 const PromoCode = require("../models/PromoCode.js");
 const bcrypt = require("bcrypt");
+const FlashPromo = require("../models/FlashPromo.js");
 
 router.post("/register", async (req, res) => {
   try {
@@ -113,6 +114,63 @@ router.post("/points/add", async (req, res) => {
   } catch (error) {
     console.error("Error adding points:", error);
     return res.status(500).json({ success: false, message: "Failed to add points" });
+  }
+});
+
+// Flash Promos routes
+router.post("/flash-promos/:id/join", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const promoId = req.params.id;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    // Get the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Find the flash promo
+    const flashPromo = await FlashPromo.findById(promoId);
+    if (!flashPromo) {
+      return res.status(404).json({ success: false, message: "Flash promo not found" });
+    }
+
+    // Check if promo is active
+    if (!flashPromo.isActive) {
+      return res.status(400).json({ success: false, message: "This flash promo is no longer active" });
+    }
+
+    // Check if user is already participating
+    const alreadyParticipating = flashPromo.participants.some(p => p.userId.toString() === userId.toString());
+    if (alreadyParticipating) {
+      return res.status(400).json({ success: false, message: "You're already participating in this flash promo" });
+    }
+
+    // Check if maximum participants reached
+    if (flashPromo.currentParticipants >= flashPromo.maxParticipants) {
+      return res.status(400).json({ success: false, message: "This flash promo has reached maximum participants" });
+    }
+
+    // Add the user to the participants
+    flashPromo.participants.push({
+      userId,
+      joinedAt: new Date()
+    });
+    flashPromo.currentParticipants += 1;
+    await flashPromo.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully joined the flash promo",
+      flashPromo
+    });
+  } catch (error) {
+    console.error("Error joining flash promo:", error);
+    return res.status(500).json({ success: false, message: "Failed to join flash promo" });
   }
 });
 
