@@ -513,7 +513,7 @@ const PromoCodes: React.FC = () => {
       <div className="mb-8 text-center relative">
         <div className="absolute -top-14 -left-14 w-40 h-40 bg-xforge-teal/20 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-14 -right-14 w-40 h-40 bg-xforge-teal/10 rounded-full blur-3xl"></div>
-        <h1 className="text-4xl font-bold mb-2 text-gradient-teal relative z-10">Promo Codes & Rewards</h1>
+        <h1 className="text-4xl font-bold mb-2 text-gradient-teal relative z-10">Promo Codes</h1>
         <p className={`text-xl ${user?.dailyLimitReached ? 'text-red-400 font-medium' : 'text-muted-foreground'} max-w-2xl mx-auto`}>
           {user?.dailyLimitReached 
             ? "Daily redemption limit reached. Try again tomorrow!" 
