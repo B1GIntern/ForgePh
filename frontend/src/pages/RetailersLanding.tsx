@@ -54,7 +54,11 @@ const RetailersLanding: React.FC = () => {
   // Add orientation check effect
   useEffect(() => {
     const checkOrientation = () => {
-      if (window.innerWidth < 768 && window.innerHeight > window.innerWidth && showMilestones) {
+      if (
+        window.innerWidth < 768 &&
+        window.innerHeight > window.innerWidth &&
+        showMilestones
+      ) {
         toast({
           title: "Better View Available",
           description: "Turn your mobile phone landscape for better viewing",
@@ -72,7 +76,7 @@ const RetailersLanding: React.FC = () => {
       window.removeEventListener("orientationchange", checkOrientation);
     };
   }, [showMilestones, toast]);
-  
+
   const [news, setNews] = useState([
     {
       id: 1,
@@ -109,7 +113,7 @@ const RetailersLanding: React.FC = () => {
   // Fetch user data function
   const fetchUserData = async () => {
     try {
-      setLoading(true); 
+      setLoading(true);
       // Get auth token from storage
       const token =
         localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -197,9 +201,43 @@ const RetailersLanding: React.FC = () => {
     document.title = "Forge Philippines";
   }, []);
 
+  // Calculate user tier based on points
+  const calculateTier = (points: number) => {
+    if (points >= 300) return "Platinum";
+    if (points >= 201) return "Gold";
+    if (points >= 101) return "Silver";
+    return "Bronze";
+  };
+
+  // Calculate progress to next tier
+  const calculateProgress = (points: number) => {
+    if (points >= 300) return 100; // Max tier reached
+    if (points >= 201) {
+      // Gold tier: progress from 201 to 300
+      return ((points - 201) / 99) * 100;
+    }
+    if (points >= 101) {
+      // Silver tier: progress from 101 to 201
+      return ((points - 101) / 100) * 100;
+    }
+    // Bronze tier: progress from 0 to 101
+    return (points / 101) * 100;
+  };
+
+  // Calculate points needed for next tier
+  const calculatePointsToNextTier = (points: number) => {
+    if (points >= 300) return 0;
+    if (points >= 201) return 300 - points;
+    if (points >= 101) return 201 - points;
+    return 101 - points;
+  };
+
   // Fallback values for when user data is loading
   const userName = user ? user.name : "Retailer";
   const userPoints = user ? user.points : 0;
+  const userTier = calculateTier(userPoints);
+  const progressToNextTier = calculateProgress(userPoints);
+  const pointsToNextTier = calculatePointsToNextTier(userPoints);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-xforge-dark via-xforge-darkgray to-black relative">
@@ -209,7 +247,7 @@ const RetailersLanding: React.FC = () => {
       <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl"></div>
 
       <Header />
-      
+
       <main className="flex-grow pt-24 relative z-10">
         {/* Welcome Banner with Animated Elements */}
         <section className="py-16 relative overflow-hidden">
@@ -237,7 +275,7 @@ const RetailersLanding: React.FC = () => {
                     </Badge>
                   )}
                   <span className="text-xforge-lightgray bg-xforge-dark/50 px-4 py-1.5 rounded-full border border-xforge-gray/20">
-                    Silver Member
+                    {userTier} Member
                   </span>
                 </div>
                 <p className="text-xforge-lightgray max-w-xl mb-8 text-lg leading-relaxed">
@@ -246,7 +284,7 @@ const RetailersLanding: React.FC = () => {
                   retail partners.
                 </p>
               </div>
-              
+
               <div className="w-full md:w-2/5 max-w-md">
                 <div className="glass-card relative backdrop-blur-xl bg-xforge-dark/40 p-8 rounded-2xl border border-xforge-teal/20 shadow-xl animate-fade-in transition-transform duration-300 hover:translate-y-[-5px] hover:shadow-2xl">
                   <h3 className="text-2xl font-bold text-white mb-4">
@@ -256,7 +294,7 @@ const RetailersLanding: React.FC = () => {
                   <div className="mb-6 bg-xforge-dark/50 p-4 rounded-xl border border-white/5">
                     <div className="text-sm text-xforge-lightgray mb-1">
                       Your Points Balance
-                </div>
+                    </div>
                     <div className="flex items-end">
                       <span className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400">
                         {userPoints.toLocaleString()}
@@ -264,7 +302,7 @@ const RetailersLanding: React.FC = () => {
                       <span className="text-xforge-lightgray ml-2 mb-1">
                         points
                       </span>
-                </div>
+                    </div>
                   </div>
 
                   <div className="mb-6">
@@ -274,10 +312,10 @@ const RetailersLanding: React.FC = () => {
                         <div className="absolute inset-2 rounded-full bg-xforge-dark/80 flex items-center justify-center">
                           <div className="text-center">
                             <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400">
-                              Silver
+                              {userTier}
                             </div>
                             <div className="text-xforge-lightgray text-sm mt-1">
-                              Tier Ranking
+                              Your Current Tier
                             </div>
                           </div>
                         </div>
@@ -290,11 +328,33 @@ const RetailersLanding: React.FC = () => {
                           <span>Gold</span>
                           <span>Platinum</span>
                         </div>
-                        <div className="h-2 bg-xforge-dark/60 rounded-full overflow-hidden">
-                          <div className="h-full w-[45%] bg-gradient-to-r from-xforge-teal to-cyan-400 rounded-full"></div>
+                        <div className="h-2 bg-xforge-dark/60 rounded-full overflow-hidden relative">
+                          {/* Bronze tier section (0-101 points) */}
+                          <div 
+                            className={`absolute left-0 h-full ${userPoints < 101 ? "bg-gradient-to-r from-xforge-teal to-cyan-400" : "bg-gray-600"}`}
+                            style={{ width: `${userPoints < 101 ? (userPoints / 101) * 33.3 : 33.3}%` }}
+                          ></div>
+                          
+                          {/* Silver tier section (101-201 points) */}
+                          <div 
+                            className={`absolute left-[33.3%] h-full ${userPoints >= 101 && userPoints < 201 ? "bg-gradient-to-r from-xforge-teal to-cyan-400" : (userPoints >= 201 ? "bg-gray-600" : "bg-xforge-dark/60")}`}
+                            style={{ width: `${userPoints >= 101 && userPoints < 201 ? ((userPoints - 101) / 100) * 33.3 : (userPoints >= 201 ? 33.3 : 0)}%` }}
+                          ></div>
+                          
+                          {/* Gold tier section (201-300 points) */}
+                          <div 
+                            className={`absolute left-[66.6%] h-full ${userPoints >= 201 && userPoints < 300 ? "bg-gradient-to-r from-xforge-teal to-cyan-400" : (userPoints >= 300 ? "bg-gray-600" : "bg-xforge-dark/60")}`}
+                            style={{ width: `${userPoints >= 201 && userPoints < 300 ? ((userPoints - 201) / 99) * 33.4 : (userPoints >= 300 ? 33.4 : 0)}%` }}
+                          ></div>
+                          
+                          {/* Tier dividers */}
+                          <div className="absolute left-[33.3%] top-0 bottom-0 w-0.5 bg-xforge-dark"></div>
+                          <div className="absolute left-[66.6%] top-0 bottom-0 w-0.5 bg-xforge-dark"></div>
                         </div>
                         <div className="text-right text-xs text-xforge-teal mt-1">
-                          5,000 more points to Gold
+                          {pointsToNextTier > 0
+                            ? `${pointsToNextTier} more points to ${calculateTier(userPoints + pointsToNextTier)}`
+                            : "Maximum tier reached!"}
                         </div>
                       </div>
 
@@ -391,22 +451,24 @@ const RetailersLanding: React.FC = () => {
                   <div className="flex items-center justify-center bg-gradient-to-br from-xforge-teal/10 to-cyan-400/10 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl mb-3 sm:mb-4">
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-xforge-teal to-cyan-400 mb-0.5 sm:mb-1">
-                        Silver
+                        {userTier}
                       </div>
                       <div className="text-xs sm:text-sm text-xforge-lightgray">
-                        Tier Ranking
+                        Your Current Tier
                       </div>
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs sm:text-sm text-xforge-lightgray mb-1 sm:mb-2">
-                      Points Balance
+                      Your Points Balance
                     </div>
                     <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-                      10,000
+                      {userPoints.toLocaleString()}
                     </div>
                     <div className="text-xs text-xforge-teal mt-0.5 sm:mt-1">
-                      5,000 more points to reach Gold
+                      {pointsToNextTier > 0
+                         ? `${pointsToNextTier} more points to ${calculateTier(userPoints + pointsToNextTier)}`
+                         : "Maximum tier reached!"}
                     </div>
                   </div>
                 </div>
@@ -419,47 +481,73 @@ const RetailersLanding: React.FC = () => {
 
                   <div className="overflow-x-auto pb-2">
                     <div className="flex items-center justify-between mb-4 sm:mb-6 min-w-[450px] sm:min-w-[500px] md:min-w-0 px-2 sm:px-4">
+                      {/* Bronze Tier */}
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-r from-gray-600 to-gray-500 flex items-center justify-center mb-1 sm:mb-2 opacity-60">
-                          <span className="text-white font-bold text-xs md:text-base">
+                        <div
+                          className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full ${userTier === "Bronze" ? "bg-gradient-to-r from-xforge-teal to-cyan-400 animate-pulse-slow shadow-lg shadow-xforge-teal/20" : "bg-gradient-to-r from-gray-600 to-gray-500 opacity-60"} flex items-center justify-center mb-1 sm:mb-2`}
+                        >
+                          <span
+                            className={`font-bold text-xs md:text-base ${userTier === "Bronze" ? "text-black" : "text-white"}`}
+                          >
                             Bronze
                           </span>
                         </div>
-                        <span className="text-xs text-xforge-lightgray">
-                          0 pts
+                        <span className={`text-xs ${userTier === "Bronze" ? "text-xforge-teal font-semibold" : "text-xforge-lightgray"}`}>
+                          {userTier === "Bronze" ? userPoints.toLocaleString() : "0"} pts
                         </span>
                       </div>
+
                       <div className="h-1 flex-grow mx-1 sm:mx-2 md:mx-3 bg-gradient-to-r from-gray-600 to-xforge-teal/80"></div>
+
+                      {/* Silver Tier */}
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-r from-xforge-teal to-cyan-400 flex items-center justify-center mb-1 sm:mb-2 shadow-lg shadow-xforge-teal/20 animate-pulse-slow">
-                          <span className="text-black font-bold text-xs md:text-base">
+                        <div
+                          className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full ${userTier === "Silver" ? "bg-gradient-to-r from-xforge-teal to-cyan-400 animate-pulse-slow shadow-lg shadow-xforge-teal/20" : "bg-gradient-to-r from-silver-600 to-silver-400 opacity-60"} flex items-center justify-center mb-1 sm:mb-2`}
+                        >
+                          <span
+                            className={`font-bold text-xs md:text-base ${userTier === "Silver" ? "text-black" : "text-white"}`}
+                          >
                             Silver
                           </span>
                         </div>
-                        <span className="text-xs text-xforge-teal font-semibold">
-                          10,000
+                        <span className={`text-xs ${userTier === "Silver" ? "text-xforge-teal font-semibold" : "text-xforge-lightgray"}`}>
+                          {userTier === "Silver" ? userPoints.toLocaleString() : "101"} pts
                         </span>
                       </div>
+
                       <div className="h-1 flex-grow mx-1 sm:mx-2 md:mx-3 bg-xforge-dark/80"></div>
+
+                      {/* Gold Tier */}
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center mb-1 sm:mb-2 opacity-40">
-                          <span className="text-black font-bold text-xs md:text-base">
+                        <div
+                          className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full ${userTier === "Gold" ? "bg-gradient-to-r from-xforge-teal to-cyan-400 animate-pulse-slow shadow-lg shadow-xforge-teal/20" : "bg-gradient-to-r from-yellow-600 to-yellow-500 opacity-40"} flex items-center justify-center mb-1 sm:mb-2`}
+                        >
+                          <span
+                            className={`font-bold text-xs md:text-base ${userTier === "Gold" ? "text-black" : "text-white"}`}
+                          >
                             Gold
                           </span>
                         </div>
-                        <span className="text-xs text-xforge-lightgray">
-                          15,000
+                        <span className={`text-xs ${userTier === "Gold" ? "text-xforge-teal font-semibold" : "text-xforge-lightgray"}`}>
+                          {userTier === "Gold" ? userPoints.toLocaleString() : "201"} pts
                         </span>
                       </div>
+
                       <div className="h-1 flex-grow mx-1 sm:mx-2 md:mx-3 bg-xforge-dark/80"></div>
+
+                      {/* Platinum Tier */}
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-r from-gray-300 to-gray-100 flex items-center justify-center mb-1 sm:mb-2 opacity-40">
-                          <span className="text-black font-bold text-2xs sm:text-xs md:text-base">
+                        <div
+                          className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full ${userTier === "Platinum" ? "bg-gradient-to-r from-xforge-teal to-cyan-400 animate-pulse-slow shadow-lg shadow-xforge-teal/20" : "bg-gradient-to-r from-gray-300 to-gray-100 opacity-40"} flex items-center justify-center mb-1 sm:mb-2`}
+                        >
+                          <span
+                            className={`font-bold text-2xs sm:text-xs md:text-base ${userTier === "Platinum" ? "text-black" : "text-black"}`}
+                          >
                             Platinum
                           </span>
                         </div>
-                        <span className="text-xs text-xforge-lightgray">
-                          25,000
+                        <span className={`text-xs ${userTier === "Platinum" ? "text-xforge-teal font-semibold" : "text-xforge-lightgray"}`}>
+                          {userTier === "Platinum" ? userPoints.toLocaleString() : "300"} pts
                         </span>
                       </div>
                     </div>
@@ -476,8 +564,39 @@ const RetailersLanding: React.FC = () => {
                     <div className="text-2xs sm:text-xs md:text-sm text-xforge-lightgray">
                       Your current tier:{" "}
                       <span className="text-xforge-teal font-semibold">
-                        Silver
+                        {userTier}
                       </span>
+                    </div>
+                    <div className="text-2xs sm:text-xs md:text-sm text-xforge-lightgray">
+                      {pointsToNextTier > 0
+                        ? `${pointsToNextTier} more points to ${calculateTier(userPoints + pointsToNextTier)}`
+                        : "Maximum tier reached!"}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-2">
+                    <div className="h-1.5 bg-xforge-dark/60 rounded-full overflow-hidden relative">
+                      {/* Bronze tier section (0-101 points) */}
+                      <div 
+                        className={`absolute left-0 h-full ${userPoints < 101 ? "bg-gradient-to-r from-xforge-teal to-cyan-400" : "bg-gray-600"}`}
+                        style={{ width: `${userPoints < 101 ? (userPoints / 101) * 33.3 : 33.3}%` }}
+                      ></div>
+                      
+                      {/* Silver tier section (101-201 points) */}
+                      <div 
+                        className={`absolute left-[33.3%] h-full ${userPoints >= 101 && userPoints < 201 ? "bg-gradient-to-r from-xforge-teal to-cyan-400" : (userPoints >= 201 ? "bg-gray-600" : "bg-xforge-dark/60")}`}
+                        style={{ width: `${userPoints >= 101 && userPoints < 201 ? ((userPoints - 101) / 100) * 33.3 : (userPoints >= 201 ? 33.3 : 0)}%` }}
+                      ></div>
+                      
+                      {/* Gold tier section (201-300 points) */}
+                      <div 
+                        className={`absolute left-[66.6%] h-full ${userPoints >= 201 && userPoints < 300 ? "bg-gradient-to-r from-xforge-teal to-cyan-400" : (userPoints >= 300 ? "bg-gray-600" : "bg-xforge-dark/60")}`}
+                        style={{ width: `${userPoints >= 201 && userPoints < 300 ? ((userPoints - 201) / 99) * 33.4 : (userPoints >= 300 ? 33.4 : 0)}%` }}
+                      ></div>
+                      
+                      {/* Tier dividers */}
+                      <div className="absolute left-[33.3%] top-0 bottom-0 w-0.5 bg-xforge-dark"></div>
+                      <div className="absolute left-[66.6%] top-0 bottom-0 w-0.5 bg-xforge-dark"></div>
                     </div>
                   </div>
                 </div>
@@ -525,8 +644,6 @@ const RetailersLanding: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              
             </div>
           </DialogContent>
         </Dialog>
@@ -547,7 +664,7 @@ const RetailersLanding: React.FC = () => {
                 View All News <ChevronRight className="ml-1" />
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {news.map((item, index) => (
                 <Card
@@ -556,9 +673,9 @@ const RetailersLanding: React.FC = () => {
                   style={{ animationDelay: `${index * 150}ms` }}
                 >
                   <div className="h-52 overflow-hidden">
-                    <img 
-                      src={item.image} 
-                      alt={item.title} 
+                    <img
+                      src={item.image}
+                      alt={item.title}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
@@ -596,7 +713,7 @@ const RetailersLanding: React.FC = () => {
             </div>
           </div>
         </section>
-        
+
         {/* Terms & Conditions Section */}
         <section className="pb-16 relative z-10">
           <div className="container">

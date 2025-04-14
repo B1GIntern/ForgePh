@@ -239,15 +239,7 @@ const AdminDashboard: React.FC = () => {
     prizedAssignedToGame: false,
     gameId: ""
   });
-  const [newFlashPromo, setNewFlashPromo] = useState<NewFlashPromo>({
-    name: '',
-    startDate: '',
-    endDate: '',
-    maxParticipants: 1,
-    multiplier: 1,
-    prize: '',
-    isActive: true
-  });
+
   
   // Declare state for retailers
   const [retailers, setRetailers] = useState<any[]>([]); // <== Add this line to declare retailers state
