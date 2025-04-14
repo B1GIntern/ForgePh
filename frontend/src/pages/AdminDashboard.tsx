@@ -62,6 +62,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogClose
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
@@ -421,7 +423,156 @@ const AdminDashboard: React.FC = () => {
   const [redeemedPromoCodes, setRedeemedPromoCodes] = useState<PromoCode[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+ // For retailer redemptions modal
+ const [showRedemptionsModal, setShowRedemptionsModal] = useState(false);
+ const [retailerRedemptions, setRetailerRedemptions] = useState<any[]>([]);
+ const [redemptionSearchQuery, setRedemptionSearchQuery] = useState('');
+ const [isLoadingRedemptions, setIsLoadingRedemptions] = useState(false);
+ const [redemptionsPage, setRedemptionsPage] = useState(1);
+ const [redemptionsPerPage] = useState(10); // Show 10 per page
+ 
+ // For delete all promo codes confirmation
+ const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false);
+ const [isDeletingAllCodes, setIsDeletingAllCodes] = useState(false);
 
+ // Calculate filtered redemptions based on search query
+ const filteredRedemptions = retailerRedemptions.filter(redemption => {
+   const searchLower = redemptionSearchQuery.toLowerCase();
+   return (
+     redemption.code?.toLowerCase().includes(searchLower) ||
+     redemption.consumerName?.toLowerCase().includes(searchLower) ||
+     redemption.retailerName?.toLowerCase().includes(searchLower) ||
+     redemption.shopName?.toLowerCase().includes(searchLower)
+   );
+ });
+
+ // Reset page when filtering
+ useEffect(() => {
+   setRedemptionsPage(1);
+ }, [redemptionSearchQuery]);
+
+ // Get current page redemptions
+ const indexOfLastRedemption = redemptionsPage * redemptionsPerPage;
+ const indexOfFirstRedemption = indexOfLastRedemption - redemptionsPerPage;
+ const currentRedemptions = filteredRedemptions.slice(indexOfFirstRedemption, indexOfLastRedemption);
+ const totalRedemptionsPages = Math.ceil(filteredRedemptions.length / redemptionsPerPage);
+
+ // Change redemptions page
+ const nextRedemptionsPage = () => {
+   if (redemptionsPage < totalRedemptionsPages) {
+     setRedemptionsPage(redemptionsPage + 1);
+   }
+ };
+
+ const prevRedemptionsPage = () => {
+   if (redemptionsPage > 1) {
+     setRedemptionsPage(redemptionsPage - 1);
+   }
+ };
+
+ // Fetch retailer redemptions
+ const fetchRetailerRedemptions = async () => {
+   setIsLoadingRedemptions(true);
+   try {
+     console.log('Fetching consumer redemptions...');
+     
+     // Make API call to get all redemptions from consumers
+     const response = await axios.get('/api/users/retailer-redemptions');
+     
+     console.log('Redemptions API response:', response.data);
+     
+     if (response.data && response.data.success) {
+       const redemptions = response.data.redemptions || [];
+       console.log(`Retrieved ${redemptions.length} redemptions successfully`);
+       setRetailerRedemptions(redemptions);
+       
+       // Reset to page 1 when loading new data
+       setRedemptionsPage(1);
+     } else {
+       console.error('Failed to fetch redemptions:', response.data);
+       toast({
+         title: 'Error',
+         description: 'Failed to fetch consumer redemptions',
+         variant: 'destructive',
+       });
+       setRetailerRedemptions([]);
+     }
+   } catch (error) {
+     console.error('Error fetching consumer redemptions:', error);
+     toast({
+       title: 'Error',
+       description: 'Failed to fetch consumer redemptions',
+       variant: 'destructive',
+     });
+     setRetailerRedemptions([]);
+   } finally {
+     setIsLoadingRedemptions(false);
+   }
+ };
+
+ // Open redemptions modal and load data
+ const openRedemptionsModal = () => {
+   setShowRedemptionsModal(true);
+   fetchRetailerRedemptions();
+ };
+
+ // Download Excel file of retailer redemptions
+ const handleDownloadExcel = () => {
+   try {
+     console.log(`Preparing Excel export for ${retailerRedemptions.length} redemptions`);
+     
+     // Prepare data for Excel with consumer and retailer info
+     const excelData = retailerRedemptions.map((item, index) => {
+       // Log every 10th item for debugging
+       if (index % 10 === 0) {
+         console.log(`Sample redemption data (item ${index}):`, item);
+       }
+       
+       return {
+         'Promo Code': item.code || 'N/A',
+         'Consumer Name': item.consumerName || 'N/A',
+         'Consumer Email': item.consumerEmail || 'N/A',
+         'Consumer Phone': item.consumerPhone || 'N/A',
+         'Consumer Location': item.consumerLocation ? 
+           `${item.consumerLocation.province || ''}, ${item.consumerLocation.city || ''}` : 'N/A',
+         'Retailer Name': item.retailerName || 'N/A',
+         'Retailer Email': item.retailerEmail || 'N/A',
+         'Shop Name': item.shopName || 'N/A',
+         'Points': item.points || 0,
+         'Redeemed At': item.redeemedAt ? new Date(item.redeemedAt).toLocaleString() : 'N/A'
+       };
+     });
+     
+     console.log(`Processed ${excelData.length} records for Excel export`);
+     
+     // Create worksheet
+     const ws = XLSX.utils.json_to_sheet(excelData);
+     
+     // Create workbook and add the worksheet
+     const wb = XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(wb, ws, 'Consumer Redemptions');
+     
+     // Generate file name with current date
+     const fileName = `Consumer_Redemptions_${new Date().toISOString().split('T')[0]}.xlsx`;
+     
+     // Write and download the file
+     XLSX.writeFile(wb, fileName);
+     
+     console.log(`Excel file downloaded: ${fileName}`);
+     
+     toast({
+       title: 'Excel Downloaded',
+       description: `${fileName} has been downloaded with ${excelData.length} records.`
+     });
+   } catch (error) {
+     console.error('Error downloading Excel:', error);
+     toast({
+       title: 'Download Failed',
+       description: 'Failed to generate Excel file. Check console for details.',
+       variant: 'destructive'
+     });
+   }
+ };
   // Fetch promo codes on component mount
   useEffect(() => {
     fetchPromoCodes();
@@ -431,7 +582,7 @@ const AdminDashboard: React.FC = () => {
   // Fetch promo codes with defensive programming
   const fetchPromoCodes = async () => {
     try {
-      const response = await axios.get('/api/promocodes');
+      const response = await axios.get('/api/promo-codes');
 
       // Debug: Log the actual response structure
       console.log('API Response:', response.data);
@@ -567,7 +718,7 @@ const AdminDashboard: React.FC = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await axios.post('/api/promocodes/upload', formData, {
+      const response = await axios.post('/api/promo-codes/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -1235,7 +1386,41 @@ const AdminDashboard: React.FC = () => {
       </DialogContent>
     </Dialog>
   );
-
+  // Function to delete all promo codes
+  const deleteAllPromoCodes = async () => {
+    setIsDeletingAllCodes(true);
+    try {
+      const response = await axios.delete('/api/promo-codes/delete-all');
+      
+      console.log('Delete all promo codes response:', response.data);
+      
+      if (response.data && response.data.success) {
+        toast({
+          title: 'Success',
+          description: `Successfully deleted ${response.data.deleted} promo codes.`,
+        });
+        
+        // Refresh the promo codes list
+        await fetchPromoCodes();
+      } else {
+        toast({
+          title: 'Error',
+          description: response.data?.message || 'Failed to delete promo codes',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting all promo codes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete all promo codes',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingAllCodes(false);
+      setShowDeleteAllConfirmation(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-xforge-darkgray to-xforge-dark">
       <div className="fixed top-0 left-0 right-0 z-50 glass-dark backdrop-blur-md border-b border-xforge-teal/20 shadow-lg">
@@ -2052,19 +2237,81 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Refresh button */}
-                <div className="mt-4 flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchPromoCodes()}
-                    className="text-gray-400 border-[#333] hover:text-white hover:bg-[#333]"
-                  >
-                    <RefreshCw size={14} className="mr-2" />
-                    Refresh Promo Codes
-                  </Button>
+                <div className="mt-4 flex justify-between">
+                     <Button 
+                       variant="destructive" 
+                       size="sm"
+                       onClick={() => setShowDeleteAllConfirmation(true)}
+                       className="bg-red-600 hover:bg-red-700"
+                     >
+                       <Trash size={14} className="mr-2" />
+                       Delete All Promo Codes
+                     </Button>
+                     <Button 
+                       variant="outline" 
+                       size="sm"
+                       onClick={() => fetchPromoCodes()}
+                       className="text-gray-400 border-[#333] hover:text-white hover:bg-[#333]"
+                     >
+                       <RefreshCw size={14} className="mr-2" />
+                       Refresh Promo Codes
+                     </Button>
                 </div>
               </CardContent>
             </Card>
+            {/* Delete All Confirmation Dialog */}
+            <Dialog open={showDeleteAllConfirmation} onOpenChange={setShowDeleteAllConfirmation}>
+                 <DialogContent className="bg-[#1a1a1a] border border-[#333] text-white">
+                   <DialogHeader>
+                     <DialogTitle className="text-xl font-semibold text-white">Delete All Promo Codes</DialogTitle>
+                     <DialogDescription className="text-gray-400">
+                       This action cannot be undone. This will permanently delete all promo codes from the database.
+                     </DialogDescription>
+                   </DialogHeader>
+                   
+                   <div className="bg-red-500/10 border border-red-500/20 rounded-md p-4 mb-4">
+                     <div className="flex items-start">
+                       <AlertCircle className="text-red-500 mr-3 mt-0.5" />
+                       <div>
+                         <h4 className="text-red-500 font-medium">Warning</h4>
+                         <p className="text-gray-300 text-sm">
+                           Deleting all promo codes will affect tracking and may impact user experiences that rely on previously redeemed codes.
+                         </p>
+                       </div>
+                     </div>
+                   </div>
+                   
+                   <DialogFooter>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       className="text-gray-400 border-[#333]"
+                       onClick={() => setShowDeleteAllConfirmation(false)}
+                     >
+                       Cancel
+                     </Button>
+                     <Button
+                       variant="destructive"
+                       size="sm"
+                       onClick={deleteAllPromoCodes}
+                       disabled={isDeletingAllCodes}
+                       className="bg-red-600 hover:bg-red-700"
+                     >
+                       {isDeletingAllCodes ? (
+                         <>
+                           <RefreshCw size={14} className="mr-2 animate-spin" />
+                           Deleting...
+                         </>
+                       ) : (
+                         <>
+                           <Trash size={14} className="mr-2" />
+                           Delete All
+                         </>
+                       )}
+                     </Button>
+                   </DialogFooter>
+                 </DialogContent>
+               </Dialog>
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2082,6 +2329,10 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
+
+
+
+              
 
               {/* Active Promo Codes Card */}
               <Card className="bg-[#1a1a1a] border border-[#333] shadow-lg">
@@ -2243,16 +2494,10 @@ const AdminDashboard: React.FC = () => {
                             variant="outline"
                             size="sm"
                             className="text-gray-400 border-[#333] hover:text-white hover:bg-[#333]"
-                            onClick={() => {
-                              // You can implement a modal or separate page view for all redemptions
-                              toast({
-                                title: "Feature Coming Soon",
-                                description: "View all redemptions feature will be available soon.",
-                              });
-                            }}
+                            onClick={openRedemptionsModal}
                           >
-                            <Eye size={14} className="mr-2" />
-                            View All Redemptions
+                            <RefreshCw size={14} className="mr-2" />
+                            Refresh Data
                           </Button>
                         </div>
                       )}
@@ -2262,8 +2507,125 @@ const AdminDashboard: React.FC = () => {
                       No redemptions yet.
                     </div>
                   )}
+                  <Button 
+                         onClick={openRedemptionsModal}
+                         variant="outline" 
+                         className="w-full mt-4 text-[#00D6A4] border-[#00D6A4] hover:bg-[#00D6A4]/10"
+                       >
+                         <Eye size={16} className="mr-2" />
+                         View All Redemptions
+                       </Button>
                 </CardContent>
               </Card>
+              {/* Retailer Redemptions Modal */}
+              <Dialog open={showRedemptionsModal} onOpenChange={setShowRedemptionsModal}>
+                     <DialogContent className="bg-[#1a1a1a] border border-[#333] text-white max-w-5xl max-h-[85vh] overflow-hidden p-0">
+                       <div className="p-6 border-b border-[#333] flex items-center justify-between sticky top-0 bg-[#1a1a1a] z-10">
+                         <DialogTitle className="text-xl font-semibold flex items-center">
+                           <FileText size={20} className="text-[#00D6A4] mr-2" />
+                           Retailer Promo Code Redemptions
+                         </DialogTitle>
+                         <Button 
+                           onClick={handleDownloadExcel}
+                           variant="outline" 
+                           className="text-[#00D6A4] border-[#00D6A4] hover:bg-[#00D6A4]/10"
+                         >
+                           <Download size={16} className="mr-2" />
+                           Download Excel
+                         </Button>
+                       </div>
+                       
+                       <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 130px)' }}>
+                         <div className="flex items-center justify-between mb-4">
+                           <div className="flex items-center">
+                             <div className="relative">
+                               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                               <Input
+                                 placeholder="Search by code, retailer..."
+                                 className="pl-9 bg-[#222] border-[#333] focus:border-[#00D6A4] w-[300px]"
+                                 value={redemptionSearchQuery}
+                                 onChange={(e) => setRedemptionSearchQuery(e.target.value)}
+                               />
+                             </div>
+                           </div>
+                           
+                           <div className="text-sm text-gray-400">
+                             {retailerRedemptions.length} total redemption{retailerRedemptions.length !== 1 && 's'}
+                           </div>
+                         </div>
+                         
+                         {isLoadingRedemptions ? (
+                           <div className="flex justify-center items-center py-20">
+                             <RefreshCw size={24} className="animate-spin text-[#00D6A4]" />
+                           </div>
+                         ) : retailerRedemptions.length > 0 ? (
+                           <div className="overflow-x-auto">
+                             <Table>
+                               <TableHeader className="bg-[#222]">
+                                 <TableRow>
+                                   <TableHead className="text-[#00D6A4] font-medium">Promo Code</TableHead>
+                                   <TableHead className="text-[#00D6A4] font-medium">Consumer</TableHead>
+                                   <TableHead className="text-[#00D6A4] font-medium">Retailer</TableHead>
+                                   <TableHead className="text-[#00D6A4] font-medium">Shop Name</TableHead>
+                                   <TableHead className="text-[#00D6A4] font-medium">Points</TableHead>
+                                   <TableHead className="text-[#00D6A4] font-medium">Redeemed At</TableHead>
+                                 </TableRow>
+                               </TableHeader>
+                               <TableBody>
+                                 {currentRedemptions.map((redemption) => (
+                                   <TableRow key={redemption._id} className="hover:bg-[#222] border-b border-[#333]">
+                                     <TableCell className="font-mono">{redemption.code}</TableCell>
+                                     <TableCell>
+                                       <div className="font-medium">{redemption.consumerName}</div>
+                                       <div className="text-xs text-gray-400">{redemption.consumerEmail}</div>
+                                       {redemption.consumerPhone && (
+                                         <div className="text-xs text-gray-400">{redemption.consumerPhone}</div>
+                                       )}
+                                     </TableCell>
+                                     <TableCell>{redemption.retailerName}</TableCell>
+                                     <TableCell>{redemption.shopName}</TableCell>
+                                     <TableCell>{redemption.points}</TableCell>
+                                     <TableCell>{new Date(redemption.redeemedAt).toLocaleString()}</TableCell>
+                                   </TableRow>
+                                 ))}
+                               </TableBody>
+                             </Table>
+ 
+                             {/* Pagination Controls */}
+                             {filteredRedemptions.length > redemptionsPerPage && (
+                               <div className="flex justify-between items-center mt-4">
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={prevRedemptionsPage}
+                                   disabled={redemptionsPage === 1}
+                                   className="text-gray-400 hover:text-white hover:bg-[#333]"
+                                 >
+                                   <ChevronLeft size={16} className="mr-1" /> Prev
+                                 </Button>
+                                 <span className="text-sm text-gray-400">
+                                   Page {redemptionsPage} of {totalRedemptionsPages}
+                                 </span>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={nextRedemptionsPage}
+                                   disabled={redemptionsPage >= totalRedemptionsPages}
+                                   className="text-gray-400 hover:text-white hover:bg-[#333]"
+                                 >
+                                   Next <ChevronRight size={16} className="ml-1" />
+                                 </Button>
+                               </div>
+                             )}
+                           </div>
+                         ) : (
+                           <div className="text-center py-10 text-gray-400">
+                             No consumer redemptions found.
+                           </div>
+                         )}
+                       </div>
+                     </DialogContent>
+                   </Dialog>
             </div>
 
           </TabsContent>
