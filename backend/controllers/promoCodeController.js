@@ -338,10 +338,44 @@ const getVerifiedRetailers = async (req, res) => {
   }
 };
 
+// Delete all promo codes
+const deleteAllPromoCodes = async (req, res) => {
+  try {
+    // Check if there are any promo codes to delete
+    const count = await PromoCode.countDocuments({});
+    
+    if (count === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No promo codes found to delete",
+        deleted: 0
+      });
+    }
+    
+    // Delete all promo codes
+    const result = await PromoCode.deleteMany({});
+    
+    console.log(`Deleted ${result.deletedCount} promo codes`);
+    
+    return res.status(200).json({
+      success: true,
+      message: `Successfully deleted all promo codes`,
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    console.error("Error deleting all promo codes:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete promo codes",
+    });
+  }
+};
+
 module.exports = {
   uploadPromoCodes,
   getAllPromoCodes,
   redeemPromoCode,
   getVerifiedRetailers,
-  checkRemainingRedemptions
+  checkRemainingRedemptions,
+  deleteAllPromoCodes
 };

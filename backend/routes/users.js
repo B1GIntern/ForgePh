@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { User, validateUser } = require("../models/Users.js");
+const PromoCode = require("../models/PromoCode.js");
 const bcrypt = require("bcrypt");
 
 router.post("/register", async (req, res) => {
@@ -146,6 +147,81 @@ router.post("/prizes/claim", async (req, res) => {
   } catch (error) {
     console.error("Error claiming prize:", error);
     return res.status(500).json({ success: false, message: "Failed to claim prize" });
+  }
+});
+
+// Get all promo code redemptions by consumers
+router.get("/retailer-redemptions", async (req, res) => {
+  try {
+    // Find all users of type "Consumer" who have redeemed at least one promo code
+    const consumers = await User.find({
+      userType: "Consumer", 
+      "redeemedPromoCodes.0": { $exists: true }
+    });
+    
+    console.log(`Found ${consumers.length} consumers with redeemed promo codes`);
+    
+    // Array to hold all redemptions
+    let allRedemptions = [];
+    
+    // Process each consumer
+    for (const consumer of consumers) {
+      // Skip if no redemptions (should not happen due to our query, but just in case)
+      if (!consumer.redeemedPromoCodes || consumer.redeemedPromoCodes.length === 0) continue;
+      
+      console.log(`Processing consumer ${consumer.name} with ${consumer.redeemedPromoCodes.length} redemptions`);
+      
+      // Add each of the consumer's redemptions to our array
+      for (const redemption of consumer.redeemedPromoCodes) {
+        try {
+          // Find the retailer for this redemption by shop name
+          const retailer = await User.findOne({ 
+            userType: "Retailer", 
+            shopName: redemption.shopName 
+          }).select('name email');
+          
+          // Add formatted redemption to our array
+          allRedemptions.push({
+            _id: redemption._id || String(Math.random()),
+            code: redemption.code,
+            points: redemption.points,
+            redeemedAt: redemption.redeemedAt,
+            shopName: redemption.shopName,
+            // Consumer details
+            consumerId: consumer._id,
+            consumerName: consumer.name,
+            consumerEmail: consumer.email,
+            consumerPhone: consumer.phoneNumber,
+            consumerLocation: consumer.location,
+            // Retailer details if found
+            retailerId: retailer?._id || null,
+            retailerName: retailer?.name || "Unknown Retailer",
+            retailerEmail: retailer?.email || null
+          });
+        } catch (err) {
+          console.error(`Error processing redemption: ${err.message}`);
+        }
+      }
+    }
+    
+    // Sort by date (most recent first)
+    allRedemptions.sort((a, b) => new Date(b.redeemedAt) - new Date(a.redeemedAt));
+    
+    // Log the result
+    console.log(`Returning ${allRedemptions.length} total redemptions`);
+    
+    return res.status(200).json({
+      success: true,
+      totalRedemptions: allRedemptions.length,
+      redemptions: allRedemptions
+    });
+    
+  } catch (error) {
+    console.error("Error fetching redemptions:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching redemptions: " + error.message
+    });
   }
 });
 

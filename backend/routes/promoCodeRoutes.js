@@ -47,4 +47,7 @@ router.get("/retailers", promoCodeController.getVerifiedRetailers);
 // Check remaining redemptions for a user
 router.get("/check-redemptions/:userId", promoCodeController.checkRemainingRedemptions);
 
+// Delete all promo codes
+router.delete("/delete-all", promoCodeController.deleteAllPromoCodes);
+
 module.exports = router;
