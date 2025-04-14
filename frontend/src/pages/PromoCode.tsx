@@ -127,17 +127,30 @@ const PromoCodes: React.FC = () => {
     try {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       
-      const response = await fetch('/api/promocodes/retailers', {
+      console.log("Fetching retailers...");
+      const response = await fetch('/api/promo-codes/retailers', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setRetailers(data.data); // Access the data property of the response
+        const responseData = await response.json();
+        console.log("Retailers response:", responseData);
+        
+        // Handle different possible response formats
+        if (responseData.data && Array.isArray(responseData.data)) {
+          setRetailers(responseData.data);
+        } else if (Array.isArray(responseData)) {
+          setRetailers(responseData);
+        } else {
+          console.error("Unexpected retailers data format:", responseData);
+          setRetailers([]);
+        }
       } else {
-        console.error("Failed to fetch retailers:", response.statusText);
+        console.error("Failed to fetch retailers:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("Error details:", errorText);
       }
     } catch (error) {
       console.error("Error fetching retailers:", error);
@@ -164,7 +177,7 @@ const PromoCodes: React.FC = () => {
         return;
       }
       
-      const response = await fetch(`/api/promocodes/check-redemptions/${userId}`, {
+      const response = await fetch(`/api/promo-codes/check-redemptions/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -346,24 +359,18 @@ const PromoCodes: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      console.log("Sending redemption request:", {
-        code: promoCode.trim(),
-        userId,
-        shopName: selectedRetailer
-      });
-      
-      const response = await fetch('/api/promocodes/redeem', {
+      console.log("Attempting to redeem code:", promoCode, "at retailer:", selectedRetailer);
+      const response = await fetch('/api/promo-codes/redeem', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          code: promoCode.trim(),
-          userId: userId,
+          code: promoCode,
+          userId,
           shopName: selectedRetailer
-        }),
-        credentials: 'include'
+        })
       });
   
       console.log("Redemption response status:", response.status);
