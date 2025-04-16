@@ -118,7 +118,7 @@ const RetailerRegistration = () => {
       });
       
       // Redirect to home page after 3 seconds
-      setTimeout(() => navigate("/home"), 3000);
+      setTimeout(() => navigate("/retailers"), 3000);
     } catch (error: any) {
       setSubmitMessage({
         text: error.response?.data?.message || "Registration failed. Please try again.",
