@@ -34,7 +34,7 @@ const AdminLogin: React.FC = () => {
         
         toast({
           title: "Admin Login Successful",
-          description: "Welcome to the XForge Admin Dashboard",
+          description: "Welcome to the Forge Philippines Admin Dashboard",
         });
         
         navigate("/admin/dashboard");
@@ -67,7 +67,7 @@ const AdminLogin: React.FC = () => {
               <ShieldAlert className="text-xforge-teal" size={32} />
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight">
-              <span className="text-xforge-teal">X</span>Forge Admin
+              <span className="text-xforge-teal">Forge</span>Ph Admin
             </h2>
             <p className="text-xforge-lightgray text-sm">Secure administrative access portal</p>
           </CardHeader>

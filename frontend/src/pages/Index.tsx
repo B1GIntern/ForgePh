@@ -75,7 +75,7 @@ const Index: React.FC = () => {
       <Header />
       <Hero />
       <Features />
-      <Campaign />
+      {/* <Campaign /> */}
       {!user && <Register />} {/* Only show Register component if not logged in */}
     </div>
   );
