@@ -57,6 +57,7 @@ interface RedeemedPromoCode {
   shopName: string;
   points?: number;
   code?: string;
+  date?: string;
 }
 
 interface User {
@@ -283,6 +284,12 @@ const PromoCodes: React.FC = () => {
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
+          
+          // Make sure redeemedPromoCodes is initialized
+          if (!Array.isArray(parsedUser.redeemedPromoCodes)) {
+            parsedUser.redeemedPromoCodes = [];
+          }
+          
           setUser(parsedUser);
           setCurrentPoints(parsedUser.points || 0);
         } catch (error) {
@@ -295,6 +302,8 @@ const PromoCodes: React.FC = () => {
         "Fetching fresh user data with token:",
         token.substring(0, 15) + "..."
       );
+      
+      // Try with text() first to debug any API issues
       const response = await fetch("/api/auth/me", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -302,13 +311,33 @@ const PromoCodes: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error("Failed to fetch user data:", response.status, errorData);
+        // Try to get the error as text first
+        const errorText = await response.text();
+        console.error("Failed to fetch user data:", response.status, errorText);
         throw new Error(`Failed to fetch user data: ${response.statusText}`);
       }
 
-      const userData = await response.json();
-      console.log("Received user data:", userData);
+      // Convert text to JSON manually to catch parsing errors
+      const responseText = await response.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Error parsing JSON:", e, "Response was:", responseText);
+        throw new Error("Invalid JSON response from server");
+      }
+      
+      console.log("Received API response:", responseData);
+      
+      // Handle the nested user object structure
+      const userData = responseData.user || responseData;
+      
+      console.log("Extracted user data:", userData);
+
+      // Ensure redeemedPromoCodes is always an array
+      if (!Array.isArray(userData.redeemedPromoCodes)) {
+        userData.redeemedPromoCodes = [];
+      }
 
       // Check if we need to reset redemption count
       const currentDate = new Date();
@@ -460,6 +489,7 @@ const PromoCodes: React.FC = () => {
                 shopName: selectedRetailer,
                 points: data.points,
                 code: promoCode.trim(),
+                date: new Date().toISOString(),
               },
             ],
           };
@@ -520,15 +550,6 @@ const PromoCodes: React.FC = () => {
     setPromoCode("");
     setStatus("idle");
   };
-
-  const recentRedemptions =
-    user?.redeemedPromoCodes?.slice(0, 5).map((redemption, index) => ({
-      id: index,
-      code: redemption.code || "UNKNOWN",
-      points: redemption.points || 0,
-      date: new Date(redemption.redeemedAt).toISOString().split("T")[0],
-      shopName: redemption.shopName,
-    })) || [];
 
   const flashPromos = [
     {
@@ -963,7 +984,7 @@ const PromoCodes: React.FC = () => {
                                 {code.code || "XXXXXXXX"}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {code.shopName}
+                                {code.shopName || "Unknown"}
                               </div>
                             </div>
                             <div className="text-right">
@@ -971,7 +992,9 @@ const PromoCodes: React.FC = () => {
                                 +{code.points || 10} pts
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {new Date(code.redeemedAt).toLocaleDateString()}
+                                {typeof code.redeemedAt === 'string' 
+                                  ? code.redeemedAt.substring(0, 10) 
+                                  : 'No date'}
                               </div>
                             </div>
                           </div>

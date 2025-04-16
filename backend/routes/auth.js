@@ -72,7 +72,8 @@ router.post("/login", async (req, res) => {
         registrationDate: user.registrationDate || new Date(),
         userStatus: user.userStatus || "Not Verified",
         rank: user.rank || "Bronze",
-        verified: user.verified || false
+        verified: user.verified || false,
+        shopName: user.shopName || "" // Add shopName here
       },
       message: "Logged In Successfully",
     });
@@ -336,26 +337,28 @@ router.get("/me", auth, async (req, res) => {
       return res.status(404).send({ message: "User not found" });
     }
 
-    // Send the user details directly (not nested in a user object)
+    // Send the user details nested under a 'user' object to match login response structure
     res.status(200).send({
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      location: user.location || { province: "", city: "" },
-      phoneNumber: user.phoneNumber || "",
-      birthdate: user.birthdate || "",
-      userType: user.userType,
-      points: user.points || 0,
-      rewardsclaimed: user.rewardsclaimed || [],
-      registrationDate: user.registrationDate || new Date(),
-      userStatus: user.userStatus || "Not Verified",
-      rank: user.rank || "Bronze",
-      verified: user.verified || false,
-      shopName: user.shopName,
-      // Add the redemption-related fields
-      redeemedPromoCodes: user.redeemedPromoCodes || [],
-      redemptionCount: user.redemptionCount || 3,
-      lastRedemptionDate: user.lastRedemptionDate || null
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        location: user.location || { province: "", city: "" },
+        phoneNumber: user.phoneNumber || "",
+        birthdate: user.birthdate || "",
+        userType: user.userType,
+        points: user.points || 0,
+        rewardsclaimed: user.rewardsclaimed || [],
+        registrationDate: user.registrationDate || new Date(),
+        userStatus: user.userStatus || "Not Verified",
+        rank: user.rank || "Bronze",
+        verified: user.verified || false,
+        shopName: user.shopName || "",  // Ensure shopName is included with a default empty string
+        // Add the redemption-related fields
+        redeemedPromoCodes: user.redeemedPromoCodes || [],
+        redemptionCount: user.redemptionCount || 3,
+        lastRedemptionDate: user.lastRedemptionDate || null
+      }
     });
   } catch (error) {
     console.error("Error fetching user info:", error);

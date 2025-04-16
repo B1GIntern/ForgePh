@@ -36,6 +36,7 @@ interface User {
   points?: number;
   rewardsclaimed?: number;
   registrationDate?: string;
+  shopName?: string;  // Add shopName field for retailers
 }
 
 const AccountSettings: React.FC = () => {
@@ -57,6 +58,7 @@ const AccountSettings: React.FC = () => {
       city: "",
     },
     userStatus: "Not Verified", // Default value
+    shopName: "",
   });
 
   // Security settings state
@@ -91,7 +93,8 @@ const AccountSettings: React.FC = () => {
           birthdate: parsedUser.birthdate,
           points: parsedUser.points,
           rewardsclaimed: parsedUser.rewardsclaimed,
-          registrationDate: parsedUser.registrationDate
+          registrationDate: parsedUser.registrationDate,
+          shopName: parsedUser.shopName || ""  // Add shopName from parsedUser
         });
   
         const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
@@ -106,7 +109,7 @@ const AccountSettings: React.FC = () => {
           throw new Error("No token found");
         }
   
-        const response = await fetch(`http://localhost:5001/me`, {
+        const response = await fetch(`http://localhost:5001/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -117,6 +120,7 @@ const AccountSettings: React.FC = () => {
         }
   
         const userData = await response.json();
+        console.log("Raw user data from server:", userData); // Add this log to debug
         const user = userData.user;
   
         const updatedUser: User = {
@@ -130,8 +134,8 @@ const AccountSettings: React.FC = () => {
           points: user.points,
           rewardsclaimed: user.rewardsclaimed,
           registrationDate: user.registrationDate,
-          userStatus: parsedUser.userStatus || "Not Verified" // Include userStatus from parsedUser
-
+          userStatus: parsedUser.userStatus || "Not Verified", // Include userStatus from parsedUser
+          shopName: user.shopName || parsedUser.shopName || ""  // Add shopName from user or parsedUser
         };
   
         setProfile(updatedUser);
@@ -347,6 +351,17 @@ const AccountSettings: React.FC = () => {
                               className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
                             />
                           </div>
+                          {profile.userType === "Retailer" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="shopName" className="text-xforge-gray">Shop Name</Label>
+                              <Input
+                                id="shopName"
+                                value={profile.shopName || "No shop name provided"}
+                                disabled
+                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
+                              />
+                            </div>
+                          )}
                           <div className="space-y-2">
                             <Label htmlFor="province" className="text-xforge-gray">Province</Label>
                             <Input
