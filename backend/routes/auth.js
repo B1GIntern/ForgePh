@@ -6,6 +6,10 @@ const bcrypt = require("bcrypt");
 const passwordComplexity = require("joi-password-complexity");
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth");
+const { register } = require('../controllers/authController');
+
+// Registration route
+router.post('/register', register);
 
 // Global variable to store the io instance
 let io;

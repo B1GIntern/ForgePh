@@ -12,6 +12,7 @@ import ScrollToTop from "./components/ScrollToTop";
 
 // Pages
 import RetailersLanding from "./pages/RetailersLanding";
+import RetailerRegistration from "./pages/RetailerRegistration";
 import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailers
 import News from "./pages/News";
 import Products from "./pages/Products";
@@ -132,6 +133,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <RetailersLanding />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/retailer-registration"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RetailerRegistration />
                   </Layout>
                 </ProtectedRoute>
               }
