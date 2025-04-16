@@ -179,6 +179,52 @@ router.post("/create-reward", async (req, res) => {
   }
 });
 
+// Update user profile endpoint
+router.put("/update", auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { name, phoneNumber, shopName } = req.body;
+
+    // Find user and update
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { 
+        $set: { 
+          name, 
+          phoneNumber,
+          ...(shopName && { shopName })
+        } 
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prepare response data
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber || "",
+      userType: user.userType,
+      location: user.location || { province: "", city: "" },
+      userStatus: user.userStatus || "Not Verified",
+      birthdate: user.birthdate,
+      points: user.points,
+      rewardsclaimed: user.rewardsclaimed,
+      registrationDate: user.registrationDate,
+      shopName: user.shopName || ""
+    };
+
+    res.json(userData);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Deletion endpoint
 router.delete("/delete-reward/:rewardId", async (req, res) => {
   try {
@@ -465,6 +511,62 @@ router.post("/resend-verification", async (req, res) => {
 router.initializeSocketIO = (socketIO) => {
   io = socketIO;
 };
+
+// Password change endpoint
+router.put("/change-password", auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Find user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Validate new password complexity
+    const complexityOptions = {
+      min: 8,
+      max: 30,
+      lowerCase: 1,
+      upperCase: 1,
+      numeric: 1,
+      symbol: 1,
+    };
+    
+    const { error } = passwordComplexity(complexityOptions).validate(newPassword);
+    if (error) {
+      return res.status(400).json({ 
+        message: "New password must be at least 8 characters long and contain uppercase, lowercase, number and special character" 
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Send success response
+    res.status(200).json({ message: "Password updated successfully" });
+
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // Export the router directly
 module.exports = router;

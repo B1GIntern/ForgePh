@@ -187,22 +187,157 @@ const AccountSettings: React.FC = () => {
     }, 1000);
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  // Password form state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      
+
+    // Basic validation
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       addNotification({
-        title: "Password Changed",
+        title: "Error",
+        message: "All password fields are required.",
+        type: "system"
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      addNotification({
+        title: "Error",
+        message: "New password and confirmation do not match.",
+        type: "system"
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (!token) throw new Error("No token found");
+
+      const response = await fetch(`http://localhost:5001/api/auth/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        }),
+      });
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned non-JSON response");
+      }
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to change password");
+      }
+
+      // Reset form
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+
+      addNotification({
+        title: "Success",
         message: "Your password has been updated successfully.",
         type: "system"
       });
-    }, 1500);
+    } catch (error) {
+      console.error("Error changing password:", error);
+      addNotification({
+        title: "Error",
+        message: error instanceof Error ? error.message : "Failed to change password",
+        type: "system"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   // Handle email verification
+  // State for editable fields
+  const [editableProfile, setEditableProfile] = useState({
+    name: "",
+    phoneNumber: "",
+    shopName: ""
+  });
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Initialize editable fields when profile data is loaded
+  useEffect(() => {
+    setEditableProfile({
+      name: profile.name,
+      phoneNumber: profile.phoneNumber,
+      shopName: profile.shopName || ""
+    });
+  }, [profile]);
+
+  const handleUpdateProfile = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (!token) throw new Error("No token found");
+
+      const response = await fetch(`http://localhost:5001/api/auth/update`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: editableProfile.name,
+          phoneNumber: editableProfile.phoneNumber,
+          shopName: editableProfile.shopName
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update profile");
+      }
+
+      const updatedUser = await response.json();
+      setProfile(prev => ({ ...prev, ...editableProfile }));
+      setIsEditing(false);
+
+      // Update storage
+      const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
+      const storedUser = JSON.parse(storage.getItem("user") || "{}");
+      storage.setItem("user", JSON.stringify({ ...storedUser, ...editableProfile }));
+
+      addNotification({
+        title: "Profile Updated",
+        message: "Your profile has been updated successfully.",
+        type: "system"
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      addNotification({
+        title: "Update Failed",
+        message: error.message,
+        type: "system"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerifyEmail = async () => {
     setLoading(true);
     try {
@@ -318,8 +453,9 @@ const AccountSettings: React.FC = () => {
                             <Label htmlFor="name" className="text-xforge-gray">Full Name</Label>
                             <Input
                               id="name"
-                              value={profile.name}
-                              disabled
+                              value={isEditing ? editableProfile.name : profile.name}
+                              onChange={(e) => setEditableProfile(prev => ({ ...prev, name: e.target.value }))}
+                              disabled={!isEditing}
                               className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
                             />
                           </div>
@@ -337,8 +473,9 @@ const AccountSettings: React.FC = () => {
                             <Label htmlFor="phoneNumber" className="text-xforge-gray">Phone Number</Label>
                             <Input
                               id="phoneNumber"
-                              value={profile.phoneNumber || "No phone number provided"}
-                              disabled
+                              value={isEditing ? editableProfile.phoneNumber : (profile.phoneNumber || "No phone number provided")}
+                              onChange={(e) => setEditableProfile(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                              disabled={!isEditing}
                               className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
                               />
                           </div>
@@ -356,8 +493,9 @@ const AccountSettings: React.FC = () => {
                               <Label htmlFor="shopName" className="text-xforge-gray">Shop Name</Label>
                               <Input
                                 id="shopName"
-                                value={profile.shopName || "No shop name provided"}
-                                disabled
+                                value={isEditing ? editableProfile.shopName : (profile.shopName || "No shop name provided")}
+                                onChange={(e) => setEditableProfile(prev => ({ ...prev, shopName: e.target.value }))}
+                                disabled={!isEditing}
                                 className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
                               />
                             </div>
@@ -415,6 +553,40 @@ const AccountSettings: React.FC = () => {
                           )}
                         </div>
                       </CardContent>
+                      <CardFooter className="flex justify-end space-x-4 pt-6">
+                        {!isEditing ? (
+                          <Button
+                            onClick={() => setIsEditing(true)}
+                            className="bg-xforge-teal text-black hover:bg-xforge-teal/90"
+                          >
+                            Edit Profile
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              onClick={() => {
+                                setIsEditing(false);
+                                setEditableProfile({
+                                  name: profile.name,
+                                  phoneNumber: profile.phoneNumber,
+                                  shopName: profile.shopName || ""
+                                });
+                              }}
+                              variant="outline"
+                              className="border-xforge-teal text-xforge-teal hover:bg-xforge-teal/10"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleUpdateProfile}
+                              className="bg-xforge-teal text-black hover:bg-xforge-teal/90"
+                              disabled={loading}
+                            >
+                              {loading ? "Updating..." : "Save Changes"}
+                            </Button>
+                          </>
+                        )}
+                      </CardFooter>
                     </Card>
                   </TabsContent>
 
@@ -439,6 +611,8 @@ const AccountSettings: React.FC = () => {
                                   id="currentPassword" 
                                   type={showPassword ? "text" : "password"}
                                   placeholder="••••••••"
+                                  value={passwordForm.currentPassword}
+                                  onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                                   className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
                                 />
                                 <button 
@@ -452,21 +626,43 @@ const AccountSettings: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="newPassword" className="text-xforge-gray">New Password</Label>
-                              <Input 
-                                id="newPassword" 
-                                type={showPassword ? "text" : "password"}
-                                placeholder="••••••••"
-                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
+                              <div className="relative">
+                                <Input 
+                                  id="newPassword" 
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="••••••••"
+                                  value={passwordForm.newPassword}
+                                  onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                                  className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
+                                />
+                                <button 
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xforge-gray hover:text-xforge-teal"
+                                >
+                                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                              </div>
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="confirmPassword" className="text-xforge-gray">Confirm New Password</Label>
-                              <Input 
-                                id="confirmPassword" 
-                                type={showPassword ? "text" : "password"}
-                                placeholder="••••••••"
-                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
+                              <div className="relative">
+                                <Input 
+                                  id="confirmPassword" 
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="••••••••"
+                                  value={passwordForm.confirmPassword}
+                                  onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                  className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
+                                />
+                                <button 
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xforge-gray hover:text-xforge-teal"
+                                >
+                                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                              </div>
                             </div>
                           </div>
                           <div className="mt-6 flex justify-end">
@@ -480,6 +676,7 @@ const AccountSettings: React.FC = () => {
                           </div>
                         </form>
                       </CardContent>
+                      
                     </Card>
 
                     <Card className="bg-gradient-to-b from-xforge-dark/90 to-xforge-dark border border-xforge-teal/10 shadow-lg">
@@ -529,6 +726,7 @@ const AccountSettings: React.FC = () => {
                           </div>
                         </div>
                       </CardContent>
+                      
                     </Card>
                   </TabsContent>
                 </Tabs>
