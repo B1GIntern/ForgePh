@@ -33,6 +33,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
 // Define User interface similar to Header component
 interface User {
@@ -49,6 +50,7 @@ const RetailersLanding: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMilestones, setShowMilestones] = useState(false);
+  const [storeRanking, setStoreRanking] = useState<number | null>(null);
   const navigate = useNavigate();
 
   // Add orientation check effect
@@ -169,10 +171,36 @@ const RetailersLanding: React.FC = () => {
       }
 
       console.log("Updated user data from server:", fullUser);
+      
+      // After getting user data, fetch top retailers for ranking
+      fetchTopRetailers();
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch top retailers and determine current user's ranking
+  const fetchTopRetailers = async () => {
+    try {
+      if (!user || !user.id) return;
+      
+      const response = await axios.get("/api/users/top-retailers");
+      const retailers = response.data;
+      
+      // Simply find the user's position in the array of retailers
+      const userRank = retailers.findIndex(retailer => String(retailer._id) === String(user.id)) + 1;
+      
+      // If user is found in the top retailers (userRank > 0), set the ranking
+      if (userRank > 0) {
+        setStoreRanking(userRank);
+      } else {
+        setStoreRanking(null);
+      }
+    } catch (error) {
+      console.error("Error fetching top retailers:", error);
+      setStoreRanking(null);
     }
   };
 
@@ -195,6 +223,13 @@ const RetailersLanding: React.FC = () => {
       window.removeEventListener("storage", handleAuthChange);
     };
   }, []);
+
+  // Update store ranking when user changes
+  useEffect(() => {
+    if (user) {
+      fetchTopRetailers();
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     // Set page title
@@ -378,7 +413,7 @@ const RetailersLanding: React.FC = () => {
                           </div>
                           <div className="text-center">
                             <div className="text-white font-bold text-lg">
-                              #38
+                              {storeRanking ? `#${storeRanking}` : 'N/A'}
                             </div>
                             <div className="text-xs text-xforge-lightgray">
                               Store Ranking
