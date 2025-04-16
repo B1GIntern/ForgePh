@@ -393,7 +393,7 @@ const Register: React.FC = () => {
                     >
                       <option value="">Select User Type</option>
                       <option value="Consumer">Consumer</option>
-                      <option value="Retailer">Retailer</option>
+                      {/* <option value="Retailer">Retailer</option> */}
                     </select>
                     {errors.userType && (
                       <p className="mt-1 text-sm text-red-400">
