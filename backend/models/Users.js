@@ -52,6 +52,31 @@ const userSchema = new mongoose.Schema(
       default: 50, // Default points start at 50
       min: 0,
     },
+    // Daily game plays tracking - new field
+    dailyGamePlays: {
+      spinWheel: {
+        count: {
+          type: Number,
+          default: 0,
+          min: 0
+        },
+        lastPlayDate: {
+          type: Date,
+          default: null
+        }
+      },
+      slotMachine: {
+        count: {
+          type: Number,
+          default: 0,
+          min: 0
+        },
+        lastPlayDate: {
+          type: Date, 
+          default: null
+        }
+      }
+    },
     redeemedPromoCodes: [
       {
         promoCodeId: {
@@ -167,6 +192,27 @@ userSchema.methods.resetRedemptionCount = function () {
   }
 
   this.lastRedemptionDate = currentDate;
+};
+
+// Reset daily game plays at midnight
+userSchema.methods.resetDailyGamePlays = function() {
+  const currentDate = new Date();
+  
+  // Check if spin wheel should be reset
+  if (
+    this.dailyGamePlays?.spinWheel?.lastPlayDate && 
+    currentDate.getDate() !== this.dailyGamePlays.spinWheel.lastPlayDate.getDate()
+  ) {
+    this.dailyGamePlays.spinWheel.count = 0;
+  }
+  
+  // Check if slot machine should be reset
+  if (
+    this.dailyGamePlays?.slotMachine?.lastPlayDate && 
+    currentDate.getDate() !== this.dailyGamePlays.slotMachine.lastPlayDate.getDate()
+  ) {
+    this.dailyGamePlays.slotMachine.count = 0;
+  }
 };
 
 const validateUser = (data) => {

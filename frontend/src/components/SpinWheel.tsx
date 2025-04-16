@@ -55,11 +55,14 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
   const [hasFreeSpinAvailable, setHasFreeSpinAvailable] = useState(false);
   const [isResetingWheel, setIsResetingWheel] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
+  const [playsRemaining, setPlaysRemaining] = useState(3);
+  const [playsUsed, setPlaysUsed] = useState(0);
 
   useEffect(() => {
     fetchGameConfig();
     fetchPrizes();
     fetchActiveFlashPromos();
+    fetchRemainingPlays();
   }, []);
 
   useEffect(() => {
@@ -244,8 +247,43 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
     );
   };
 
+  const fetchRemainingPlays = async () => {
+    try {
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (!storedUser) {
+        addNotification({
+          title: "Error",
+          message: "User data not found. Please try logging in again.",
+          type: "system"
+        });
+        return;
+      }
+
+      const userData = JSON.parse(storedUser);
+      const userId = userData._id || userData.id;
+      
+      if (!userId) {
+        addNotification({
+          title: "Error",
+          message: "Invalid user data. Please try logging in again.",
+          type: "system"
+        });
+        return;
+      }
+      
+      const response = await axios.get(`/api/users/game-plays/spinWheel/${userId}`);
+      
+      if (response.data.success) {
+        setPlaysRemaining(response.data.playsRemaining);
+        setPlaysUsed(response.data.playsUsed);
+      }
+    } catch (error) {
+      console.error('Error fetching remaining plays:', error);
+    }
+  };
+
   const spinWheel = async () => {
-    if (!canSpin || isSpinning || !gameConfig || isResetingWheel) return;
+    if (isSpinning) return;
     
     try {
       const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -259,10 +297,8 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
       }
 
       const userData = JSON.parse(storedUser);
-      console.log("User data from storage:", userData);
-
-      // Check for _id first, then id
       const userId = userData._id || userData.id;
+      
       if (!userId) {
         addNotification({
           title: "Error",
@@ -271,52 +307,67 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
         });
         return;
       }
-
-      const pointsToDeduct = gameConfig.points || 0;
       
-      // Check if user has a free spin available
-      if (!hasFreeSpinAvailable) {
-        // Only proceed if user has enough points
-        if (userPoints < pointsToDeduct) {
-          addNotification({
-            title: "Error",
-            message: `You need ${pointsToDeduct} points to play`,
-            type: "system"
-          });
-          return;
-        }
-
-        // Deduct points for spinning (only if not using a free spin)
-        const deductResponse = await axios.post('/api/users/points/deduct', {
-          points: pointsToDeduct,
-          userId: userId
-        }, {
-          headers: { 
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!deductResponse.data.success) {
-          addNotification({
-            title: "Error",
-            message: "Failed to deduct points. Please try again.",
-            type: "system"
-          });
-          return;
-        }
-        
-        // Update points in UI
-        onPointsUpdate(userPoints - pointsToDeduct);
-      } else {
-        // Using a free spin, no points deduction needed
+      // Check if user has spins remaining
+      if (playsRemaining <= 0) {
         addNotification({
-          title: "Free Spin Used",
-          message: "Using your free spin - no points deducted!",
-          type: "points"
+          title: "Daily Limit Reached",
+          message: "You have reached your daily limit of 3 spins. Please try again tomorrow.",
+          type: "system"
         });
+        return;
       }
       
-      // Start the spinning animation
+      if (!gameConfig) {
+        addNotification({
+          title: "Error",
+          message: "Game configuration not found. Please refresh the page.",
+          type: "system"
+        });
+        return;
+      }
+      
+      const pointsToDeduct = gameConfig.points || 5;
+      
+      if (userPoints < pointsToDeduct) {
+        addNotification({
+          title: "Error",
+          message: `You need ${pointsToDeduct} points to spin the wheel`,
+          type: "system"
+        });
+        return;
+      }
+      
+      // Deduct points for spinning
+      const deductResponse = await axios.post('/api/users/points/deduct', {
+        points: pointsToDeduct,
+        userId
+      });
+      
+      if (!deductResponse.data.success) {
+        addNotification({
+          title: "Error",
+          message: "Failed to deduct points. Please try again.",
+          type: "system"
+        });
+        return;
+      }
+      
+      // Update points in UI
+      onPointsUpdate(userPoints - pointsToDeduct);
+      
+      // Increment play count (non-free spin)
+      const incrementResponse = await axios.post(`/api/users/game-plays/spinWheel/increment`, {
+        userId,
+        isFreeSpin: false
+      });
+      
+      if (incrementResponse.data.success) {
+        setPlaysRemaining(incrementResponse.data.playsRemaining);
+        setPlaysUsed(incrementResponse.data.playsUsed);
+      }
+      
+      // Start spinning
       setIsSpinning(true);
       
       // Enhanced precision slice determination based on the wheel position
@@ -440,21 +491,21 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
         
         setShowResult(true);
         
-        // Reset free spin after using it
-        if (hasFreeSpinAvailable) {
-          setHasFreeSpinAvailable(false);
-        }
-        
+        // Process what the user won
         try {
-          // Handle different prize types
-          if (prize.value === 'Free Spin') {
-            // Set free spin flag for next spin
-            setHasFreeSpinAvailable(true);
-            setCanSpin(true);
+          // Calculate points won based on the prize
+          if (prize.id === 'free-spin') {
+            // For free spin, we don't need to increment the counter
             addNotification({
               title: "Free Spin!",
-              message: "You've won a free spin! Your next spin won't cost any points.",
+              message: "You won a free spin! It won't count toward your daily limit.",
               type: "points"
+            });
+            
+            // Register the play but mark it as a free spin
+            await axios.post(`/api/users/game-plays/spinWheel/increment`, {
+              userId,
+              isFreeSpin: true  // Mark as free spin
             });
           } else if (prize.value === 'Try Again') {
             addNotification({
@@ -504,12 +555,8 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
             }
           } else if (prize.type === 'major') {
             // Handle major prize (assigned from admin)
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-            const userData = JSON.parse(storedUser || '{}');
-            
             await axios.post('/api/users/prizes/claim', {
-              userId: userData._id || userData.id,
+              userId: userId,
               prizeId: prize.id,
               prizeName: prize.name,
               gameId: gameConfig._id
@@ -592,18 +639,16 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
 
   // Add this method to be used in the UI
   const getSpinButtonText = () => {
-    if (isSpinning) return "Spinning...";
-    if (hasFreeSpinAvailable) return "Use Free Spin!";
-    if (gameConfig && userPoints >= gameConfig.points) return `Spin (${gameConfig.points} points)`;
-    if (gameConfig) return `Need ${gameConfig.points - userPoints} more points`;
-    return "Spin";
+    if (isSpinning) return 'SPINNING...';
+    if (playsRemaining <= 0) return 'TRY AGAIN TOMORROW';
+    return 'SPIN';
   };
 
   const getSpinButtonClass = () => {
-    if (isSpinning) return "opacity-50 cursor-not-allowed";
-    if (hasFreeSpinAvailable) return "bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-600 hover:to-fuchsia-600 animate-pulse-slow";
-    if (!canSpin) return "opacity-50 cursor-not-allowed";
-    return "bg-gradient-to-r from-xforge-teal to-cyan-500 hover:from-xforge-teal/90 hover:to-cyan-500/90";
+    if (isSpinning || !canSpin || playsRemaining <= 0) {
+      return 'bg-xforge-darkgray text-xforge-gray cursor-not-allowed';
+    }
+    return 'bg-gradient-to-r from-xforge-teal to-cyan-500 hover:brightness-110 text-white transform transition-all duration-200 hover:scale-105 active:scale-95';
   };
 
   if (!gameConfig || prizes.length === 0) {
@@ -622,24 +667,23 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
   }
 
   return (
-    <div className="flex flex-col items-center max-w-4xl mx-auto my-16 px-4 relative">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-4 inline-block border-b-2 border-xforge-teal pb-2">
-          Spin to <span className="text-xforge-teal">Win</span>
-        </h2>
-        <p className="text-xforge-gray max-w-lg mx-auto mb-6">
-          Try your luck with our prize wheel! {gameConfig.points} points required per spin.
-          You have {userPoints} points available.
+    <div className="flex flex-col items-center gap-8 max-w-4xl mx-auto mb-16 px-4">
+      {/* Add daily spins counter above the title */}
+      <div className="text-center mt-2 mb-1">
+        <p className="text-xforge-gray">
+          <span className="font-semibold text-white">Daily Spins:</span> {playsRemaining} remaining
+          {playsRemaining <= 0 && <span className="text-red-500 block mt-1">Daily limit reached. Resets at midnight.</span>}
         </p>
-        
-        {activeFlashPromos.length > 0 && <FlashPromoIndicator />}
-        
-        {hasFreeSpinAvailable && (
-          <div className="mb-4 bg-gradient-to-r from-purple-700 to-fuchsia-600 text-white px-4 py-2 rounded-md text-base font-bold inline-flex items-center animate-pulse">
-            <span className="mr-2 text-xl">✨</span> 
-            Free Spin Available!
-          </div>
-        )}
+      </div>
+      
+      <div className="text-center mb-4">
+        <h3 className="text-2xl font-bold text-white mb-2 inline-block border-b-2 border-xforge-teal pb-2">
+          Spin <span className="text-xforge-teal">To Win</span>
+        </h3>
+        <p className="text-xforge-gray max-w-lg mx-auto">
+          Spin the wheel for a chance to win prizes and points!
+          {gameConfig && <span> Each spin costs {gameConfig.points} points.</span>}
+        </p>
       </div>
       
       <div className="relative w-80 h-80 mx-auto">
@@ -865,14 +909,32 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ userPoints, onPointsUpdate }) => 
             </svg>
           </div>
           
-          <Button
-            onClick={spinWheel} 
-            disabled={!canSpin || isSpinning}
-            size="lg"
-            className={`mt-8 px-8 py-6 text-lg font-bold text-xforge-dark ${getSpinButtonClass()}`}
-          >
-            {getSpinButtonText()}
-          </Button>
+          {/* Move button to absolute position at bottom center of wheel */}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 mb-4 z-10">
+            <Button
+              size="lg"
+              onClick={spinWheel}
+              disabled={isSpinning || !canSpin || playsRemaining <= 0}
+              className={`px-8 shadow-lg relative overflow-hidden ${getSpinButtonClass()}`}
+            >
+              <div className="flex items-center">
+                {isSpinning ? (
+                  <span className="animate-spin mr-2 h-4 w-4 border-2 border-dotted rounded-full border-current"></span>
+                ) : (
+                  <span className="mr-2">🎯</span>
+                )}
+                {getSpinButtonText()}
+              </div>
+              
+              {!canSpin && gameConfig && playsRemaining > 0 && (
+                <div className="text-xs font-normal mt-1">Need {gameConfig.points} points</div>
+              )}
+              
+              {playsRemaining <= 0 && (
+                <div className="text-xs font-normal mt-1">Daily limit reached</div>
+              )}
+            </Button>
+          </div>
         </div>
         
         {/* Result Dialog */}

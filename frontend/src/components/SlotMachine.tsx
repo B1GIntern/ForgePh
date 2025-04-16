@@ -113,9 +113,15 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
   const [jackpotSound] = useState(() => typeof Audio !== 'undefined' && typeof window !== 'undefined' ? new Audio('/sounds/jackpot.mp3') : null);
   const { addNotification } = useNotifications();
   
+  // Add state for tracking daily spins
+  const [playsRemaining, setPlaysRemaining] = useState(3);
+  const [playsUsed, setPlaysUsed] = useState(0);
+  
   // Fetch game configuration on mount
   useEffect(() => {
     fetchGameConfig();
+    // Also fetch remaining plays
+    fetchRemainingPlays();
   }, []);
   
   // Update canPlay based on points
@@ -192,6 +198,42 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
     }
   };
 
+  // Function to fetch remaining plays
+  const fetchRemainingPlays = async () => {
+    try {
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (!storedUser) {
+        addNotification({
+          title: "Error",
+          message: "User data not found. Please try logging in again.",
+          type: "system"
+        });
+        return;
+      }
+
+      const userData = JSON.parse(storedUser);
+      const userId = userData._id || userData.id;
+      
+      if (!userId) {
+        addNotification({
+          title: "Error",
+          message: "Invalid user data. Please try logging in again.",
+          type: "system"
+        });
+        return;
+      }
+      
+      const response = await axios.get(`/api/users/game-plays/slotMachine/${userId}`);
+      
+      if (response.data.success) {
+        setPlaysRemaining(response.data.playsRemaining);
+        setPlaysUsed(response.data.playsUsed);
+      }
+    } catch (error) {
+      console.error('Error fetching remaining plays:', error);
+    }
+  };
+
   // Generate a blurred reel effect with multiple symbols
   const generateReelSymbols = (reel: number, currentTime: number, startTime: number, duration: number) => {
     // Delay each reel slightly for a cascading effect - longer delays for sequential stopping
@@ -256,6 +298,16 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
         });
         return;
       }
+      
+      // Check if user has spins remaining
+      if (playsRemaining <= 0) {
+        addNotification({
+          title: "Daily Limit Reached",
+          message: "You have reached your daily limit of 3 spins. Please try again tomorrow.",
+          type: "system"
+        });
+        return;
+      }
 
       const pointsToDeduct = gameConfig.points || 0;
       
@@ -286,6 +338,18 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
           type: "system"
         });
         return;
+      }
+      
+      // Increment play count (for a normal spin, not free)
+      const isFreeSpin = false; // Default to regular spin
+      const incrementResponse = await axios.post(`/api/users/game-plays/slotMachine/increment`, {
+        userId,
+        isFreeSpin
+      });
+      
+      if (incrementResponse.data.success) {
+        setPlaysRemaining(incrementResponse.data.playsRemaining);
+        setPlaysUsed(incrementResponse.data.playsUsed);
       }
       
       // Update points in UI
@@ -449,13 +513,21 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
     return result;
   };
   
-  const checkForWins = async (finalSymbols: Symbol[], userId: string) => {
-    // Check if all symbols are the same (jackpot)
-    if (finalSymbols[0].id === finalSymbols[1].id && finalSymbols[1].id === finalSymbols[2].id) {
-      // Check if it's the special prize symbol
-      if (finalSymbols[0].isSpecialPrize && specialPrize) {
+  const checkForWins = async (finalSymbols, userId) => {
+    try {
+      // Check if all symbols are the same (three of a kind)
+      const allSame = finalSymbols[0].id === finalSymbols[1].id && finalSymbols[1].id === finalSymbols[2].id;
+      
+      // Check for special prize match
+      const isSpecialPrize = allSame && finalSymbols[0].isSpecialPrize;
+      
+      // Check for free spin symbol
+      const hasFreeSpinSymbol = finalSymbols.some(s => s.name === "Free Spin");
+      
+      if (isSpecialPrize) {
+        // Special prize win!
         setResult("JACKPOT!");
-        setWin(0); // No points for the special prize
+        setWin(0); // No immediate points, but they won a physical prize
         
         // Play jackpot sound
         if (jackpotSound) {
@@ -463,12 +535,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
           jackpotSound.play().catch(e => console.error("Error playing sound:", e));
         }
         
-        toast.success(`JACKPOT! You've won the ${specialPrize.name}!`, {
-          position: "top-center"
-        });
-        
-        // Claim the special prize
-        try {
+        // Save the prize claim
+        if (specialPrize) {
           await axios.post('/api/users/prizes/claim', {
             userId: userId,
             prizeId: specialPrize.id,
@@ -479,28 +547,18 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
               'Content-Type': 'application/json'
             }
           });
-          
-          addNotification({
-            title: "Major Prize Won!",
-            message: `Congratulations! You've won ${specialPrize.name}!`,
-            type: "points"
-          });
-          
-          // Trigger user data refresh
-          window.dispatchEvent(new Event('userUpdated'));
-        } catch (error) {
-          console.error('Error claiming prize:', error);
-          addNotification({
-            title: "Error",
-            message: "Failed to claim your prize. Please contact support.",
-            type: "system"
-          });
         }
-      } else {
-        // Regular three of a kind - award the exact value of the symbol (no multiplier)
-        const prize = finalSymbols[0].value;
-        setWin(prize);
-        setResult("BIG WIN!");
+        
+        addNotification({
+          title: "Special Prize Won!",
+          message: `Congratulations! You've won a ${specialPrize?.name || 'special prize'}!`,
+          type: "points"
+        });
+      } else if (allSame) {
+        // Three of a kind, regular symbols
+        const pointsWon = finalSymbols[0].value * 3;
+        setResult(`WIN ${pointsWon} points!`);
+        setWin(pointsWon);
         
         // Play win sound
         if (winSound) {
@@ -508,106 +566,67 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
           winSound.play().catch(e => console.error("Error playing sound:", e));
         }
         
-        // Add points to user's account
-        try {
-          const addResponse = await axios.post('/api/users/points/add', {
-            points: prize,
-            userId: userId
-          }, {
-            headers: { 
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (addResponse.data.success) {
-            // Update points through parent component
-            onPointsUpdate(userPoints - (gameConfig?.points || 0) + prize);
-            
-            toast.success(`Big Win! You've won ${prize} points!`, {
-              position: "top-center"
-            });
-            
-            addNotification({
-              title: "Slot Machine Win!",
-              message: `You've won ${prize} points from the slot machine!`,
-              type: "points"
-            });
-          }
-        } catch (error) {
-          console.error('Error adding points:', error);
-        }
-      }
-    } 
-    // Check if two symbols are the same
-    else if (
-      finalSymbols[0].id === finalSymbols[1].id || 
-      finalSymbols[1].id === finalSymbols[2].id || 
-      finalSymbols[0].id === finalSymbols[2].id
-    ) {
-      let matchingSymbol;
-      if (finalSymbols[0].id === finalSymbols[1].id) {
-        matchingSymbol = finalSymbols[0];
-      } else if (finalSymbols[1].id === finalSymbols[2].id) {
-        matchingSymbol = finalSymbols[1];
-      } else {
-        matchingSymbol = finalSymbols[0];
-      }
-      
-      // Award half the value for 2 of a kind
-      const prize = Math.floor(matchingSymbol.value / 2);
-      setWin(prize);
-      setResult("WIN!");
-      
-      // Play win sound (smaller win)
-      if (winSound) {
-        winSound.currentTime = 0;
-        winSound.volume = 0.5; // Lower volume for smaller win
-        winSound.play().catch(e => console.error("Error playing sound:", e));
-      }
-      
-      // Add points to user's account
-      try {
-        const addResponse = await axios.post('/api/users/points/add', {
-          points: prize,
+        // Add points to user
+        const addPointsResponse = await axios.post('/api/users/points/add', {
+          points: pointsWon,
           userId: userId
         }, {
           headers: { 
             'Content-Type': 'application/json'
           }
         });
-
-        if (addResponse.data.success) {
-          // Update points through parent component
-          onPointsUpdate(userPoints - (gameConfig?.points || 0) + prize);
-          
-          toast(`You won! +${prize} points!`, {
-            position: "top-center"
-          });
+        
+        if (addPointsResponse.data.success) {
+          onPointsUpdate(addPointsResponse.data.newPoints);
           
           addNotification({
-            title: "Slot Machine Win!",
-            message: `You've won ${prize} points from the slot machine!`,
+            title: "You Won!",
+            message: `Congratulations! You've won ${pointsWon} points!`,
             type: "points"
           });
         }
-      } catch (error) {
-        console.error('Error adding points:', error);
+      } else if (hasFreeSpinSymbol) {
+        // Free spin won
+        setResult("FREE SPIN!");
+        setWin(0);
+        
+        // Register this as a free spin for the next play
+        await axios.post(`/api/users/game-plays/slotMachine/increment`, {
+          userId,
+          isFreeSpin: true // This will mark it as a free spin
+        });
+        
+        addNotification({
+          title: "Free Spin!",
+          message: "You won a free spin! It won't count toward your daily limit.",
+          type: "points"
+        });
+        
+        // Play win sound
+        if (winSound) {
+          winSound.currentTime = 0;
+          winSound.play().catch(e => console.error("Error playing sound:", e));
+        }
+      } else {
+        // No match
+        setResult("TRY AGAIN");
+        setWin(0);
+        
+        // No notification needed for losing
       }
-    } 
-    // No match
-    else {
-      setResult("Try again!");
       
-      toast("Try again", {
-        description: "Better luck next time!",
-        position: "top-center"
+      setShowResult(true);
+      
+      // Trigger global user data refresh
+      window.dispatchEvent(new Event('userUpdated'));
+    } catch (error) {
+      console.error('Error processing win:', error);
+      addNotification({
+        title: "Error",
+        message: "An error occurred while processing your win. Please try again.",
+        type: "system"
       });
     }
-    
-    setShowResult(true);
-    
-    // Trigger global user data refresh
-    window.dispatchEvent(new Event('userUpdated'));
   };
 
   // Clean up animation if component unmounts
@@ -619,6 +638,21 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
     };
   }, []);
 
+  // Get button text based on state
+  const getSpinButtonText = () => {
+    if (isSpinning) return 'SPINNING...';
+    if (playsRemaining <= 0) return 'TRY AGAIN TOMORROW';
+    return 'SPIN';
+  };
+
+  // Get button class based on state
+  const getSpinButtonClass = () => {
+    if (!canPlay || isSpinning || playsRemaining <= 0) {
+      return 'bg-xforge-darkgray text-xforge-gray cursor-not-allowed';
+    }
+    return 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white hover:brightness-110 transition-all duration-200 transform hover:scale-105 active:scale-95';
+  };
+
   return (
     <div className="flex flex-col items-center gap-8 max-w-4xl mx-auto mb-16 px-4">
       {/* Slot machine styles */}
@@ -626,6 +660,14 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
       
       {/* Main Slot Machine */}
       <div className="flex flex-col items-center w-full max-w-md mx-auto">
+        {/* Daily spins counter above the title */}
+        <div className="text-center mt-2 mb-1">
+          <p className="text-xforge-gray">
+            <span className="font-semibold text-white">Daily Spins:</span> {playsRemaining} remaining
+            {playsRemaining <= 0 && <span className="text-red-500 block mt-1">Daily limit reached. Resets at midnight.</span>}
+          </p>
+        </div>
+        
         <div className="text-center mb-8">
           <h3 className="text-2xl font-bold text-white mb-2 inline-block border-b-2 border-xforge-teal pb-2">
             Slot <span className="text-xforge-teal">Machine</span>
@@ -740,19 +782,19 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
             {/* Slot controls */}
             <Button
               onClick={spinReels}
-              disabled={!canPlay || isSpinning}
+              disabled={!canPlay || isSpinning || playsRemaining <= 0}
               size="lg"
-              className={`relative px-8 py-6 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
-                !canPlay ? 'bg-xforge-darkgray text-xforge-gray cursor-not-allowed' : 
-                'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white hover:brightness-110 transition-all duration-200 transform hover:scale-105 active:scale-95'
-              }`}
+              className={`relative px-8 py-6 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${getSpinButtonClass()}`}
             >
               <div className="flex items-center">
                 <Play className={`h-5 w-5 mr-2 ${isSpinning ? 'animate-spin' : ''}`} />
-                <span className="font-bold">{isSpinning ? 'SPINNING...' : 'SPIN'}</span>
+                <span className="font-bold">{getSpinButtonText()}</span>
               </div>
-              {!canPlay && gameConfig && (
+              {!canPlay && gameConfig && playsRemaining > 0 && (
                 <span className="block text-xs mt-1">Need {gameConfig.points} points</span>
+              )}
+              {playsRemaining <= 0 && (
+                <span className="block text-xs mt-1">Daily limit reached</span>
               )}
             </Button>
             

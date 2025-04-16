@@ -283,4 +283,119 @@ router.get("/retailer-redemptions", async (req, res) => {
   }
 });
 
+// Check daily game plays remaining
+router.get("/game-plays/:gameType/:userId", async (req, res) => {
+  try {
+    const { gameType, userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+    
+    if (!['spinWheel', 'slotMachine'].includes(gameType)) {
+      return res.status(400).json({ success: false, message: "Invalid game type" });
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
+    // Initialize game plays object if it doesn't exist
+    if (!user.dailyGamePlays) {
+      user.dailyGamePlays = {
+        spinWheel: { count: 0, lastPlayDate: null },
+        slotMachine: { count: 0, lastPlayDate: null }
+      };
+    }
+    
+    // Reset plays if it's a new day
+    user.resetDailyGamePlays();
+    
+    // Get remaining plays
+    const maxPlays = 3;
+    const playsUsed = user.dailyGamePlays[gameType]?.count || 0;
+    const playsRemaining = Math.max(0, maxPlays - playsUsed);
+    
+    return res.status(200).json({
+      success: true,
+      gameType,
+      playsUsed,
+      playsRemaining,
+      maxPlays
+    });
+  } catch (error) {
+    console.error(`Error checking game plays for ${req.params.gameType}:`, error);
+    return res.status(500).json({ success: false, message: "Failed to check game plays" });
+  }
+});
+
+// Increment game plays counter
+router.post("/game-plays/:gameType/increment", async (req, res) => {
+  try {
+    const { gameType } = req.params;
+    const { userId, isFreeSpin = false } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+    
+    if (!['spinWheel', 'slotMachine'].includes(gameType)) {
+      return res.status(400).json({ success: false, message: "Invalid game type" });
+    }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
+    // Initialize game plays object if it doesn't exist
+    if (!user.dailyGamePlays) {
+      user.dailyGamePlays = {
+        spinWheel: { count: 0, lastPlayDate: null },
+        slotMachine: { count: 0, lastPlayDate: null }
+      };
+    }
+    
+    // Reset plays if it's a new day
+    user.resetDailyGamePlays();
+    
+    // Free spins don't count against daily limit
+    if (!isFreeSpin) {
+      // Check if user has plays remaining
+      const maxPlays = 3;
+      if (user.dailyGamePlays[gameType].count >= maxPlays) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Daily limit of ${maxPlays} plays for ${gameType} reached` 
+        });
+      }
+      
+      // Increment play count
+      user.dailyGamePlays[gameType].count += 1;
+    }
+    
+    // Update last play date
+    user.dailyGamePlays[gameType].lastPlayDate = new Date();
+    await user.save();
+    
+    // Get remaining plays
+    const maxPlays = 3;
+    const playsUsed = user.dailyGamePlays[gameType].count;
+    const playsRemaining = Math.max(0, maxPlays - playsUsed);
+    
+    return res.status(200).json({
+      success: true,
+      gameType,
+      playsUsed,
+      playsRemaining,
+      maxPlays,
+      isFreeSpin
+    });
+  } catch (error) {
+    console.error(`Error incrementing game plays for ${req.params.gameType}:`, error);
+    return res.status(500).json({ success: false, message: "Failed to increment game plays" });
+  }
+});
+
 module.exports = router;

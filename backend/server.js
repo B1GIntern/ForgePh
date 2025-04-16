@@ -75,6 +75,35 @@ io.use(async (socket, next) => {
 app.use(express.json());
 app.use(cors());
 
+// Middleware to check and reset daily redemption count if needed
+app.use(async (req, res, next) => {
+  // Check if the request involves a user that needs redemption count check
+  const userId = req.body.userId || (req.params.userId) || (req.user && req.user._id);
+  
+  if (userId) {
+    try {
+      const user = await User.findById(userId);
+      
+      if (user) {
+        // Reset redemption counts if it's a new day
+        user.resetRedemptionCount();
+        
+        // Reset daily game plays if it's a new day
+        if (typeof user.resetDailyGamePlays === 'function') {
+          user.resetDailyGamePlays();
+        }
+        
+        await user.save();
+      }
+    } catch (err) {
+      console.error("Error in middleware checking redemption counts:", err);
+      // Don't block the request even if there's an error here
+    }
+  }
+  
+  next();
+});
+
 // Define API routes first
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
