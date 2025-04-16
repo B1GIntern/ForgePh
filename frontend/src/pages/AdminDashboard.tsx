@@ -1147,6 +1147,7 @@ const AdminDashboard: React.FC = () => {
   const [games, setGames] = useState<Game[]>([]);
   const [showPrizeDialog, setShowPrizeDialog] = useState(false);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [isConfiguring, setIsConfiguring] = useState(false);
   const [gameConfig, setGameConfig] = useState({
     points: 3,
     prizes: [] as Array<{
@@ -1194,20 +1195,23 @@ const AdminDashboard: React.FC = () => {
     if (!selectedGame) return;
 
     try {
-      // Map the prizes to include both prizeId and prizeName
-      const mappedPrizes = gameConfig.prizes.map(prize => {
-        const selectedPrize = prizes.find(p => p._id === prize.prizeId);
-        return {
-          prizeId: prize.prizeId,
-          prizeName: selectedPrize?.name || '', // Include the prize name
-          multiplier: prize.multiplier
-        };
-      });
+      // Get the single prize (we only allow one per game now)
+      let mappedPrize = [];
+      if (gameConfig.prizes.length > 0) {
+        const selectedPrize = prizes.find(p => p._id === gameConfig.prizes[0].prizeId);
+        if (selectedPrize) {
+          mappedPrize = [{
+            prizeId: gameConfig.prizes[0].prizeId,
+            prizeName: selectedPrize.name,
+            multiplier: gameConfig.prizes[0].multiplier
+          }];
+        }
+      }
 
       const payload = {
         featured: true,
         points: gameConfig.points,
-        prizedAssigned: mappedPrizes,
+        prizedAssigned: mappedPrize,
         config: {
           spinConfig: gameConfig.spinConfig
         }
@@ -1273,119 +1277,144 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   // Game configuration dialog JSX
-  const GameConfigDialog = () => (
-    <Dialog open={showPrizeDialog} onOpenChange={setShowPrizeDialog}>
-      <DialogContent className="bg-[#1a1a1a] border border-[#333] text-white">
-        <DialogHeader>
-          <DialogTitle>Configure Game</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Set up points and prizes for this game
-          </DialogDescription>
-        </DialogHeader>
+  const GameConfigDialog: React.FC = () => {
+    // Custom handler for dialog open state changes
+    const handleOpenChange = (open: boolean) => {
+      if (!open) {
+        // Only allow closing via the cancel/save buttons, not by clicking outside
+        // This prevents the dialog from closing when interacting with checkboxes
+        if (!isConfiguring) {
+          setShowPrizeDialog(false);
+        }
+      }
+    };
 
-        <div className="space-y-4">
-          {/* Points Configuration */}
-          <div>
-            <Label htmlFor="points">Points Required to Play</Label>
-            <Input
-              id="points"
-              type="number"
-              min="0"
-              value={gameConfig.points}
-              onChange={(e) => setGameConfig({
-                ...gameConfig,
-                points: parseInt(e.target.value)
-              })}
-              className="bg-[#222] border-[#333] text-white"
-            />
-          </div>
-
-          {/* Prize Configuration */}
-          <div>
-            <Label>Select Prizes</Label>
-            {prizes.map((prize) => (
-              <div key={prize._id} className="flex items-center space-x-2 mt-2">
-                <Checkbox
-                  id={`prize-${prize._id}`}
-                  checked={gameConfig.prizes.some(p => p.prizeId === prize._id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setGameConfig({
-                        ...gameConfig,
-                        prizes: [...gameConfig.prizes, { prizeId: prize._id }]
-                      });
-                    } else {
-                      setGameConfig({
-                        ...gameConfig,
-                        prizes: gameConfig.prizes.filter(p => p.prizeId !== prize._id)
-                      });
-                    }
-                  }}
-                />
-                <label htmlFor={`prize-${prize._id}`} className="text-sm text-gray-300">
-                  {prize.name}
-                </label>
-              </div>
-            ))}
-          </div>
-
-          {/* Spin The Wheel Specific Configuration */}
-          {games.find(g => g._id === selectedGame)?.gameType === 'SpinTheWheel' && (
-            <div className="space-y-2">
-              <Label>Wheel Configuration</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="free-spin"
-                  checked={gameConfig.spinConfig.includeFreeSpin}
-                  onCheckedChange={(checked) => setGameConfig({
-                    ...gameConfig,
-                    spinConfig: {
-                      ...gameConfig.spinConfig,
-                      includeFreeSpin: checked === true
-                    }
-                  })}
-                />
-                <label htmlFor="free-spin" className="text-sm text-gray-300">
-                  Include Free Spin Slice
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="try-again"
-                  checked={gameConfig.spinConfig.includeTryAgain}
-                  onCheckedChange={(checked) => setGameConfig({
-                    ...gameConfig,
-                    spinConfig: {
-                      ...gameConfig.spinConfig,
-                      includeTryAgain: checked === true
-                    }
-                  })}
-                />
-                <label htmlFor="try-again" className="text-sm text-gray-300">
-                  Include Try Again Slice
-                </label>
-              </div>
+    return (
+      <Dialog open={showPrizeDialog} onOpenChange={handleOpenChange}>
+        <DialogContent className="bg-[#1a1a1a] border border-[#333] text-white">
+          <DialogHeader>
+            <DialogTitle>Configure Game</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Set up points and assign a single prize to this game. Only one prize can be assigned per game.
+            </DialogDescription>
+          </DialogHeader>
+  
+          <div className="space-y-4">
+            {/* Points Configuration */}
+            <div>
+              <Label htmlFor="points">Points Required to Play</Label>
+              <Input
+                id="points"
+                type="number"
+                min="0"
+                value={gameConfig.points}
+                onChange={(e) => setGameConfig({
+                  ...gameConfig,
+                  points: parseInt(e.target.value)
+                })}
+                className="bg-[#222] border-[#333] text-white"
+              />
             </div>
-          )}
-        </div>
-
-        <div className="flex justify-end space-x-2 mt-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowPrizeDialog(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={updateGameConfig}
-            className="bg-xforge-teal hover:bg-xforge-teal/90"
-          >
-            Save Configuration
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  
+            {/* Prize Configuration */}
+            <div>
+              <Label>Select Prize (One per game)</Label>
+              {prizes.map((prize) => (
+                <div key={prize._id} className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="radio"
+                    id={`prize-${prize._id}`}
+                    name="gameprize"
+                    checked={gameConfig.prizes.some(p => p.prizeId === prize._id)}
+                    onChange={() => {
+                      setIsConfiguring(true);
+                      // Replace any existing prizes with just this one
+                      setGameConfig({
+                        ...gameConfig,
+                        prizes: [{ prizeId: prize._id }]
+                      });
+                      setTimeout(() => setIsConfiguring(false), 0);
+                    }}
+                    className="text-xforge-teal focus:ring-xforge-teal"
+                  />
+                  <label htmlFor={`prize-${prize._id}`} className="text-sm text-gray-300">
+                    {prize.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+  
+            {/* Spin The Wheel Specific Configuration */}
+            {games.find(g => g._id === selectedGame)?.gameType === 'SpinTheWheel' && (
+              <div className="space-y-2">
+                <Label>Wheel Configuration</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="free-spin"
+                    checked={gameConfig.spinConfig.includeFreeSpin}
+                    onCheckedChange={(checked) => {
+                      setIsConfiguring(true);
+                      setGameConfig({
+                        ...gameConfig,
+                        spinConfig: {
+                          ...gameConfig.spinConfig,
+                          includeFreeSpin: checked === true
+                        }
+                      });
+                      setTimeout(() => setIsConfiguring(false), 0);
+                    }}
+                  />
+                  <label htmlFor="free-spin" className="text-sm text-gray-300">
+                    Include Free Spin Slice
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="try-again"
+                    checked={gameConfig.spinConfig.includeTryAgain}
+                    onCheckedChange={(checked) => {
+                      setIsConfiguring(true);
+                      setGameConfig({
+                        ...gameConfig,
+                        spinConfig: {
+                          ...gameConfig.spinConfig,
+                          includeTryAgain: checked === true
+                        }
+                      });
+                      setTimeout(() => setIsConfiguring(false), 0);
+                    }}
+                  />
+                  <label htmlFor="try-again" className="text-sm text-gray-300">
+                    Include Try Again Slice
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+  
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsConfiguring(false);
+                setShowPrizeDialog(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                updateGameConfig();
+              }}
+              className="bg-xforge-teal hover:bg-xforge-teal/90"
+            >
+              Save Configuration
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
   // Function to delete all promo codes
   const deleteAllPromoCodes = async () => {
     setIsDeletingAllCodes(true);
@@ -2694,9 +2723,14 @@ const AdminDashboard: React.FC = () => {
                                 size="sm"
                                 onClick={() => {
                                   setSelectedGame(game._id);
+                                  
+                                  // For existing games, take only the first prize if multiple exist
+                                  const existingPrizes = game.prizedAssigned || [];
+                                  const singlePrize = existingPrizes.length > 0 ? [existingPrizes[0]] : [];
+                                  
                                   setGameConfig({
                                     points: game.points,
-                                    prizes: game.prizedAssigned || [],
+                                    prizes: singlePrize,
                                     spinConfig: game.config?.spinConfig || {
                                       includeFreeSpin: false,
                                       includeTryAgain: false

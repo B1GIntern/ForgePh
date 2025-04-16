@@ -738,7 +738,25 @@ const Rewards: React.FC = () => {
                     }`}
                   >
                     {games.find(game => game.gameType === "SlotMachine" && game.featured) ? (
-                      <SlotMachine />
+                      <SlotMachine 
+                        userPoints={currentPoints} 
+                        onPointsUpdate={(newPoints) => {
+                          setCurrentPoints(newPoints);
+                          // Update user in storage
+                          const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                          if (storedUser) {
+                            const userData = JSON.parse(storedUser);
+                            userData.points = newPoints;
+                            if (localStorage.getItem('user')) {
+                              localStorage.setItem('user', JSON.stringify(userData));
+                            } else {
+                              sessionStorage.setItem('user', JSON.stringify(userData));
+                            }
+                          }
+                          // Trigger update event
+                          window.dispatchEvent(new Event('userUpdated'));
+                        }}
+                      />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-[400px]">
                         <div className="bg-xforge-teal/20 p-6 rounded-full mb-6">
