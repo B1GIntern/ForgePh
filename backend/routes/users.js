@@ -398,4 +398,61 @@ router.post("/game-plays/:gameType/increment", async (req, res) => {
   }
 });
 
+// Get customer referral count for a retailer
+router.get("/retailer-referrals/:retailerId", async (req, res) => {
+  try {
+    const { retailerId } = req.params;
+    
+    if (!retailerId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Retailer ID is required" 
+      });
+    }
+    
+    // Find the retailer to get their shop name
+    const retailer = await User.findById(retailerId);
+    if (!retailer || retailer.userType !== "Retailer") {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Retailer not found" 
+      });
+    }
+    
+    const shopName = retailer.shopName;
+    
+    // Find all unique consumers who have redeemed codes with this shop name
+    const consumersWithReferrals = await User.aggregate([
+      // Filter to only include Consumer type users
+      { $match: { userType: "Consumer" } },
+      // Unwind the redeemedPromoCodes array to work with individual redemptions
+      { $unwind: "$redeemedPromoCodes" },
+      // Filter to only include redemptions for this retailer's shop
+      { $match: { "redeemedPromoCodes.shopName": shopName } },
+      // Group by consumer ID to count unique consumers
+      { $group: { _id: "$_id", count: { $sum: 1 } } },
+      // Count the total number of unique consumers
+      { $count: "totalUniqueConsumers" }
+    ]);
+    
+    const referralCount = consumersWithReferrals.length > 0 
+      ? consumersWithReferrals[0].totalUniqueConsumers 
+      : 0;
+    
+    return res.status(200).json({
+      success: true,
+      retailerId,
+      shopName,
+      referralCount
+    });
+    
+  } catch (error) {
+    console.error("Error getting retailer referrals:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to get retailer referrals" 
+    });
+  }
+});
+
 module.exports = router;

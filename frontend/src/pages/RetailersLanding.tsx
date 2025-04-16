@@ -51,6 +51,7 @@ const RetailersLanding: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showMilestones, setShowMilestones] = useState(false);
   const [storeRanking, setStoreRanking] = useState<number | null>(null);
+  const [customerReferrals, setCustomerReferrals] = useState<number>(0);
   const navigate = useNavigate();
 
   // Add orientation check effect
@@ -174,6 +175,11 @@ const RetailersLanding: React.FC = () => {
       
       // After getting user data, fetch top retailers for ranking
       fetchTopRetailers();
+      
+      // Fetch customer referrals
+      if (userData.userType === "Retailer" && userData._id) {
+        fetchCustomerReferrals(userData._id);
+      }
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
@@ -204,6 +210,23 @@ const RetailersLanding: React.FC = () => {
     }
   };
 
+  // Fetch customer referrals for this retailer
+  const fetchCustomerReferrals = async (retailerId: string) => {
+    try {
+      const response = await axios.get(`/api/users/retailer-referrals/${retailerId}`);
+      
+      if (response.data && response.data.success) {
+        setCustomerReferrals(response.data.referralCount);
+      } else {
+        console.error("Failed to fetch customer referrals:", response.data);
+        setCustomerReferrals(0);
+      }
+    } catch (error) {
+      console.error("Error fetching customer referrals:", error);
+      setCustomerReferrals(0);
+    }
+  };
+
   useEffect(() => {
     // Fetch user data when the component mounts
     fetchUserData();
@@ -228,6 +251,13 @@ const RetailersLanding: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchTopRetailers();
+    }
+  }, [user?.id]);
+
+  // Update customer referrals when user changes
+  useEffect(() => {
+    if (user && user.id && user.userType === "Retailer") {
+      fetchCustomerReferrals(user.id);
     }
   }, [user?.id]);
 
@@ -400,7 +430,7 @@ const RetailersLanding: React.FC = () => {
                           </div>
                           <div className="text-center">
                             <div className="text-white font-bold text-lg">
-                              12
+                              {customerReferrals}
                             </div>
                             <div className="text-xs text-xforge-lightgray">
                               Customer Referrals
