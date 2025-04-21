@@ -35,6 +35,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
     userType: {
       type: String,
       enum: ["Consumer", "Retailer"],

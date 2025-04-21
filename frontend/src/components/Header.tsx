@@ -298,7 +298,7 @@ const Header: React.FC = () => {
           { path: "/retailers", label: "Home" },
           { path: "/products", label: "Products" },
           { path: "/ExclusiveNews", label: "News" },
-          { path: "/shops-leaderboard", label: "Shops Leaderboard" },
+          // { path: "/shops-leaderboard", label: "Shops Leaderboard" },
         ];
       }
 
@@ -325,7 +325,7 @@ const Header: React.FC = () => {
       }
 
       // Add the shop leaderboard link that's available to all consumers
-      consumerLinks.push({ path: "/shops-leaderboard", label: "Shops Leaderboard" });
+      // consumerLinks.push({ path: "/shops-leaderboard", label: "Shops Leaderboard" });
 
       return consumerLinks;
     };

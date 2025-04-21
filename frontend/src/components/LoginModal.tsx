@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false); // Added state for password visibility
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -220,7 +222,17 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               />
               <label htmlFor="remember" className="text-xforge-gray">Remember me</label>
             </div>
-            <a href="#" className="text-xforge-teal hover:underline">Forgot password?</a>
+            <a 
+              href="#" 
+              className="text-xforge-teal hover:underline" 
+              onClick={(e) => {
+                e.preventDefault();
+                onClose();
+                navigate("/forgot-password");
+              }}
+            >
+              Forgot password?
+            </a>
           </div>
           
           <Button 
