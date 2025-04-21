@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Lock, Shield, Settings, Eye, EyeOff, LogOut } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { User, Lock, Shield, Settings, Eye, EyeOff, LogOut, BadgeCheck } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -523,7 +529,21 @@ const AccountSettings: React.FC = () => {
                           {profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : ''}
                         </span>
                       </div>
-                      <CardTitle className="text-white text-xl">{profile.name}</CardTitle>
+                      <CardTitle className="text-white text-xl flex items-center gap-2">
+                        {profile.name}
+                        {profile.userStatus === "Verified" && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <BadgeCheck className="h-5 w-5 text-xforge-teal" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Verified Account</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </CardTitle>
                       <CardDescription className="text-xforge-gray">{profile.userType}</CardDescription>
                     </div>
                   </CardHeader>
@@ -574,7 +594,21 @@ const AccountSettings: React.FC = () => {
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <Label htmlFor="name" className="text-xforge-gray">Full Name</Label>
+                            <Label htmlFor="name" className="text-xforge-gray flex items-center gap-2">
+                              Full Name
+                              {profile.userStatus === "Verified" && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <BadgeCheck className="h-4 w-4 text-xforge-teal" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Verified Account</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </Label>
                             <Input
                               id="name"
                               value={isEditing ? editableProfile.name : profile.name}
@@ -863,37 +897,40 @@ const AccountSettings: React.FC = () => {
         </main>
       </div>
 
-      {/* ID Upload Section: Always Show */}
-      <div className="id-upload-section mt-8 p-4 bg-xforge-darkgray border border-xforge-teal/20 rounded-lg max-w-md mx-auto">
-        <h3 className="text-lg font-semibold mb-4 text-xforge-teal">Upload Government ID</h3>
-        <div className="mb-3">
-          <label htmlFor="front-id" className="block mb-1 text-xforge-gray">Front of ID (PNG only):</label>
-          <input
-            type="file"
-            id="front-id"
-            accept="image/png"
-            onChange={(e) => handleFileChange(e, setFrontID)}
-            className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
-          />
+      {/* ID Upload Section: Only show for non-verified users */}
+      {/* ID Upload Section: Only show for non-verified users */}
+      {profile.userStatus !== "Verified" && (
+        <div className="id-upload-section mt-8 p-4 bg-xforge-darkgray border border-xforge-teal/20 rounded-lg max-w-md mx-auto">
+          <h3 className="text-lg font-semibold mb-4 text-xforge-teal">Upload Government ID</h3>
+          <div className="mb-3">
+            <label htmlFor="front-id" className="block mb-1 text-xforge-gray">Front of ID (PNG only):</label>
+            <input
+              type="file"
+              id="front-id"
+              accept="image/png"
+              onChange={(e) => handleFileChange(e, setFrontID)}
+              className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="back-id" className="block mb-1 text-xforge-gray">Back of ID (PNG only):</label>
+            <input
+              type="file"
+              id="back-id"
+              accept="image/png"
+              onChange={(e) => handleFileChange(e, setBackID)}
+              className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
+            />
+          </div>
+          <Button
+            onClick={handleIDUpload}
+            className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110 w-full"
+            disabled={loading}
+          >
+            {loading ? "Encrypting & Uploading..." : "Submit"}
+          </Button>
         </div>
-        <div className="mb-3">
-          <label htmlFor="back-id" className="block mb-1 text-xforge-gray">Back of ID (PNG only):</label>
-          <input
-            type="file"
-            id="back-id"
-            accept="image/png"
-            onChange={(e) => handleFileChange(e, setBackID)}
-            className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
-          />
-        </div>
-        <Button
-          onClick={handleIDUpload}
-          className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110 w-full"
-          disabled={loading}
-        >
-          {loading ? "Encrypting & Uploading..." : "Submit"}
-        </Button>
-      </div>
+      )}
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog
