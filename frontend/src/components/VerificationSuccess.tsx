@@ -75,7 +75,7 @@ const VerificationSuccess: React.FC = () => {
                 >
                   <Button
                     className="w-full bg-xforge-teal hover:bg-xforge-teal/80 text-black font-semibold"
-                    onClick={() => navigate("/")}
+                    onClick={() => navigate("/home")}
                   >
                     Go to Dashboard
                     <ArrowRight size={16} className="ml-2" />

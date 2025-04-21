@@ -28,6 +28,8 @@ import AccountSettings from "./pages/AccountSettings";
 import VerificationSuccess from "./pages/VerificationSucess";
 import VerificationFailed from "./pages/VerificationFailed";
 import ShopsLeaderboard from "./pages/ShopsLeaderboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import { NotificationsProvider } from "./context/NotificationsContext";
 import { AuthProvider } from "./context/AuthContext";
@@ -53,6 +55,8 @@ const App = () => (
             <Route path="/age-restricted" element={<AgeRestricted />} />
             <Route path="/verification-failed" element={<VerificationFailed />} />
             <Route path="/verification-success" element={<VerificationSuccess />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected Routes */}
             <Route
@@ -106,16 +110,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/shops-leaderboard"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ShopsLeaderboard />  
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            
              <Route
               path="/profile"
               element={

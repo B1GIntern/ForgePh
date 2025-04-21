@@ -1142,7 +1142,7 @@ const Rewards: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
+
     </div>
   );
 };

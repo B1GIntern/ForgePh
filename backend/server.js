@@ -11,6 +11,7 @@ const userRoutes = require("./routes/users.js");
 const authRoutes = require("./routes/auth");
 const { User } = require("./models/Users.js");
 const emailVerificationRoutes = require("./routes/emailverification"); // Update the path if necessary
+const passwordResetRoutes = require("./routes/passwordReset");
 const promoCodeRoutes = require("./routes/promoCodeRoutes");
 const prizeRoutes = require("./routes/prizeRoutes");
 const flashPromoRoutes = require("./routes/flashPromoRoutes");
@@ -108,6 +109,7 @@ app.use(async (req, res, next) => {
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/emailverification", emailVerificationRoutes);
+app.use("/api/auth", passwordResetRoutes); // Password reset routes under auth namespace
 app.use("/api/promo-codes", promoCodeRoutes);
 app.use("/api/prizes", prizeRoutes);
 app.use("/api/flash-promos", flashPromoRoutes);
