@@ -15,6 +15,7 @@ const promoCodeRoutes = require("./routes/promoCodeRoutes");
 const prizeRoutes = require("./routes/prizeRoutes");
 const flashPromoRoutes = require("./routes/flashPromoRoutes");
 const gameRoutes = require("./routes/gameRoutes");
+const idRoutes = require("./routes/idRoutes");
 
 console.log(crypto.randomBytes(64).toString("hex"));
 
@@ -72,7 +73,7 @@ io.use(async (socket, next) => {
 });
 
 // Middleware to parse JSON
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
 // Middleware to check and reset daily redemption count if needed
@@ -112,6 +113,7 @@ app.use("/api/promo-codes", promoCodeRoutes);
 app.use("/api/prizes", prizeRoutes);
 app.use("/api/flash-promos", flashPromoRoutes);
 app.use("/api/games", gameRoutes);
+app.use("/api/government-id", idRoutes);
 
 // Initialize Socket.IO in auth routes
 authRoutes.initializeSocketIO(io);

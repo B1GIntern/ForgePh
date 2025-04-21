@@ -27,7 +27,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Shield,
+  XCircle,
+  CheckCircle2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -67,6 +70,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from "xlsx";
+import { decryptImage } from "@/utils/cryptoUtils";
 
 // Define types for our data
 interface Prize {
@@ -101,6 +105,7 @@ interface Game {
     multiplier?: number;
   }>;
 }
+
 // Define types for our data
 interface PromoCode {
   _id: string;
@@ -161,6 +166,41 @@ interface GameConfig {
     includeFreeSpin: boolean;
     includeTryAgain: boolean;
   };
+}
+
+// Government ID verification interfaces
+interface GovernmentIDSubmission {
+  id: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+    userType: string;
+  };
+  uploadedAt: string;
+  hasFrontID: boolean;
+  hasBackID: boolean;
+}
+
+interface GovernmentIDDetail {
+  _id: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+    userType: string;
+  };
+  front: {
+    encryptedData: string;
+    iv: string;
+  };
+  back: {
+    encryptedData: string;
+    iv: string;
+  };
+  uploadedAt: string;
 }
 
 // Mock data for redemptions (since it's not part of your backend yet)
@@ -1160,6 +1200,16 @@ const AdminDashboard: React.FC = () => {
     }
   });
 
+  // Government ID verification state
+  const [idSubmissions, setIdSubmissions] = useState<GovernmentIDSubmission[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<GovernmentIDDetail | null>(null);
+  const [verificationNotes, setVerificationNotes] = useState("");
+  const [showIdDetailDialog, setShowIdDetailDialog] = useState(false);
+  const [idLoading, setIdLoading] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showDecryptDialog, setShowDecryptDialog] = useState(false);
+  const [decryptedImages, setDecryptedImages] = useState<{front: string | null, back: string | null}>({front: null, back: null});
+
   // Fetch games from the backend
   const fetchGames = async () => {
     try {
@@ -1450,6 +1500,153 @@ const AdminDashboard: React.FC = () => {
       setShowDeleteAllConfirmation(false);
     }
   };
+  // Fetch Government ID submissions
+  const fetchIdSubmissions = async () => {
+    try {
+      setIdLoading(true);
+      const response = await axios.get("/api/government-id/submissions");
+      if (response.data.success) {
+        setIdSubmissions(response.data.submissions);
+      }
+    } catch (error) {
+      console.error("Error fetching ID submissions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load ID submissions",
+        variant: "destructive"
+      });
+    } finally {
+      setIdLoading(false);
+    }
+  };
+
+  // Get single ID submission details
+  const fetchIdSubmissionDetail = async (id: string) => {
+    try {
+      setIdLoading(true);
+      const response = await axios.get(`/api/government-id/submissions/${id}`);
+      if (response.data.success) {
+        setSelectedSubmission(response.data.submission);
+        setShowIdDetailDialog(true);
+      }
+    } catch (error) {
+      console.error("Error fetching ID submission details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load ID submission details",
+        variant: "destructive"
+      });
+    } finally {
+      setIdLoading(false);
+    }
+  };
+
+  // Decrypt and view ID images
+  const decryptAndViewId = async () => {
+    if (!selectedSubmission) return;
+    
+    try {
+      setIdLoading(true);
+      
+      // Use a hardcoded password for testing
+      const testPassword = "admin123";
+      console.log("Using hardcoded password for testing:", testPassword);
+      
+      // Client-side decryption using our utility function
+      const frontDecrypted = await decryptImage(
+        selectedSubmission.front.encryptedData,
+        selectedSubmission.front.iv,
+        testPassword // Use the hardcoded password
+      );
+      
+      const backDecrypted = await decryptImage(
+        selectedSubmission.back.encryptedData,
+        selectedSubmission.back.iv,
+        testPassword // Use the hardcoded password
+      );
+      
+      setDecryptedImages({
+        front: frontDecrypted,
+        back: backDecrypted
+      });
+      
+      setShowDecryptDialog(false);
+      
+      toast({
+        title: "Success",
+        description: "ID images decrypted successfully",
+      });
+    } catch (error) {
+      console.error("Error decrypting images:", error);
+      toast({
+        title: "Decryption Failed",
+        description: "Unable to decrypt images. Check your password and try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIdLoading(false);
+    }
+  };
+  
+  // Approve or reject ID submission
+  const handleVerifyId = async (status: 'Approved' | 'Rejected') => {
+    if (!selectedSubmission) return;
+    
+    try {
+      setIdLoading(true);
+      const response = await axios.put(`/api/government-id/submissions/${selectedSubmission._id}/verify`, {
+        status,
+        notes: verificationNotes,
+        adminId: localStorage.getItem('userId') // Should be the admin's user ID
+      });
+      
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: `Government ID ${status.toLowerCase()} successfully`,
+          variant: "default"
+        });
+        
+        // If approved, delete the submission after verification
+        if (status === 'Approved') {
+          await handleDeleteSubmission(selectedSubmission._id);
+        }
+        
+        // Close dialog and refresh data
+        setShowIdDetailDialog(false);
+        setSelectedSubmission(null);
+        setVerificationNotes("");
+        setDecryptedImages({front: null, back: null});
+        fetchIdSubmissions();
+      }
+    } catch (error) {
+      console.error(`Error ${status.toLowerCase()} ID:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to ${status.toLowerCase()} ID`,
+        variant: "destructive"
+      });
+    } finally {
+      setIdLoading(false);
+    }
+  };
+
+  // Delete a government ID submission
+  const handleDeleteSubmission = async (submissionId: string) => {
+    try {
+      const response = await axios.delete(`/api/government-id/submissions/${submissionId}`);
+      
+      if (response.data.success) {
+        console.log("Government ID submission deleted successfully");
+        // No need for a toast here since we're already showing a success message for the verification
+      }
+    } catch (error) {
+      console.error("Error deleting ID submission:", error);
+      // Don't show an error toast here since the verification was successful
+      // We'll just log the error
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-xforge-darkgray to-xforge-dark">
       <div className="fixed top-0 left-0 right-0 z-50 glass-dark backdrop-blur-md border-b border-xforge-teal/20 shadow-lg">
@@ -1492,7 +1689,7 @@ const AdminDashboard: React.FC = () => {
       <div className="container mx-auto pt-24 pb-10 px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {dashboardStats.map((stat, index) => (
-            <Card key={index} className="bg-xforge-darkgray/60 border-xforge-teal/10 shadow-md hover:shadow-xl transition-all duration-300 hover:border-xforge-teal/30">
+            <Card key={index} className="glass-dark border border-xforge-teal/10 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-xforge-teal/30">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xforge-gray text-sm mb-1">{stat.label}</p>
@@ -1535,6 +1732,10 @@ const AdminDashboard: React.FC = () => {
             <TabsTrigger value="games" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
               <Gamepad size={16} className="mr-2" />
               Featured Games
+            </TabsTrigger>
+            <TabsTrigger value="verification" className="data-[state=active]:bg-[#00D6A4] data-[state=active]:text-[#121212]">
+              <Shield size={16} className="mr-2" />
+              ID Verification
             </TabsTrigger>
           </TabsList>
 
@@ -1671,8 +1872,12 @@ const AdminDashboard: React.FC = () => {
             </Card>
 
             <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="text-white text-xl">Manage Rewards</CardTitle>
+                <div className="bg-xforge-darkgray/60 px-3 py-1 rounded-full flex items-center text-xforge-gray text-sm">
+                  <Trophy size={14} className="mr-2 text-amber-400" />
+                  {rewards.reduce((total, reward) => total + reward.stock, 0)} Total Rewards
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -2754,6 +2959,267 @@ const AdminDashboard: React.FC = () => {
 
             {/* Render the game configuration dialog */}
             <GameConfigDialog />
+          </TabsContent>
+          <TabsContent value="verification" className="space-y-6 animate-fade-in">
+            <Card className="glass-dark border border-xforge-teal/10 shadow-lg">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-white text-xl">Government ID Verification</CardTitle>
+                  <CardDescription className="text-xforge-gray">
+                    Review and verify user identity documents
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={fetchIdSubmissions}
+                  className="text-xforge-teal border-xforge-teal hover:bg-xforge-teal/10"
+                >
+                  <RefreshCw size={16} className="mr-2" />
+                  Refresh
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {idLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-xforge-teal"></div>
+                  </div>
+                ) : idSubmissions.length === 0 ? (
+                  <div className="text-center py-8 text-xforge-gray">
+                    No government ID submissions found
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-xforge-darkgray/30">
+                        <TableRow>
+                          <TableHead className="text-xforge-teal font-bold">User</TableHead>
+                          <TableHead className="text-xforge-teal font-bold">Email</TableHead>
+                          <TableHead className="text-xforge-teal font-bold">User Type</TableHead>
+                          <TableHead className="text-xforge-teal font-bold">Submitted</TableHead>
+                          <TableHead className="text-xforge-teal font-bold">Status</TableHead>
+                          <TableHead className="text-xforge-teal font-bold">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {idSubmissions.map((submission) => (
+                          <TableRow key={submission.id} className="hover:bg-xforge-teal/5 border-b border-xforge-darkgray/50">
+                            <TableCell>
+                              <div className="font-medium text-white">{submission.userId.name}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-xforge-gray">{submission.userId.email}</div>
+                            </TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                submission.userId.userType === "Retailer" 
+                                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' 
+                                  : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              }`}>
+                                {submission.userId.userType}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(submission.uploadedAt).toLocaleDateString()}
+                              <div className="text-xs text-xforge-gray">
+                                {new Date(submission.uploadedAt).toLocaleTimeString()}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                Pending Review
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fetchIdSubmissionDetail(submission.id)}
+                                className="text-xforge-teal border-xforge-teal hover:bg-xforge-teal/10"
+                              >
+                                <Eye size={16} className="mr-2" />
+                                Review
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Government ID Detail Dialog */}
+            {selectedSubmission && (
+              <Dialog open={showIdDetailDialog} onOpenChange={setShowIdDetailDialog}>
+                <DialogContent className="bg-xforge-dark border border-xforge-teal/20 text-white max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl text-white">Government ID Verification</DialogTitle>
+                    <DialogDescription className="text-xforge-gray">
+                      Review the user's government ID submission
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xforge-gray">User</Label>
+                        <div className="font-medium">{selectedSubmission.userId.name}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xforge-gray">Email</Label>
+                        <div className="font-medium">{selectedSubmission.userId.email}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xforge-gray">Phone</Label>
+                        <div className="font-medium">{selectedSubmission.userId.phoneNumber}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xforge-gray">User Type</Label>
+                        <div className="font-medium">{selectedSubmission.userId.userType}</div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xforge-gray">Submitted</Label>
+                        <div className="font-medium">
+                          {new Date(selectedSubmission.uploadedAt).toLocaleDateString()} at {new Date(selectedSubmission.uploadedAt).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-xforge-teal/10 pt-4">
+                      <Label className="text-xforge-gray mb-2 block">Government ID Images</Label>
+                      
+                      {!decryptedImages.front && !decryptedImages.back ? (
+                        <div className="flex justify-center">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setShowDecryptDialog(true)}
+                            className="border-xforge-teal text-xforge-teal hover:bg-xforge-teal/20"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Decrypt and View ID
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xforge-gray">Front of ID</Label>
+                            <div className="border border-xforge-teal/20 rounded-md overflow-hidden">
+                              {decryptedImages.front && (
+                                <img 
+                                  src={decryptedImages.front} 
+                                  alt="Front of ID" 
+                                  className="w-full h-auto"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xforge-gray">Back of ID</Label>
+                            <div className="border border-xforge-teal/20 rounded-md overflow-hidden">
+                              {decryptedImages.back && (
+                                <img 
+                                  src={decryptedImages.back} 
+                                  alt="Back of ID" 
+                                  className="w-full h-auto"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="border-t border-xforge-teal/10 pt-4">
+                      <Label htmlFor="verificationNotes" className="text-xforge-gray mb-2 block">Verification Notes</Label>
+                      <Input
+                        id="verificationNotes"
+                        value={verificationNotes}
+                        onChange={(e) => setVerificationNotes(e.target.value)}
+                        placeholder="Add notes about this verification (optional)"
+                        className="bg-xforge-darkgray/30 border-xforge-teal/20 text-white"
+                      />
+                    </div>
+                    
+                    <DialogFooter className="flex justify-between">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleVerifyId('Rejected')}
+                          disabled={idLoading || (!decryptedImages.front && !decryptedImages.back)}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Reject ID
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDeleteSubmission(selectedSubmission._id)}
+                          disabled={idLoading}
+                          className="text-red-500 border-red-500 hover:bg-red-500/10"
+                        >
+                          <Trash className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={() => handleVerifyId('Approved')}
+                        disabled={idLoading || (!decryptedImages.front && !decryptedImages.back)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Approve ID
+                      </Button>
+                    </DialogFooter>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            {/* Decrypt Dialog */}
+            <Dialog open={showDecryptDialog} onOpenChange={setShowDecryptDialog}>
+              <DialogContent className="bg-xforge-dark border border-xforge-teal/20 text-white max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-xl text-white">Enter Admin Password</DialogTitle>
+                  <DialogDescription className="text-xforge-gray">
+                    Your password is needed to decrypt the government ID images
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminPassword" className="text-xforge-gray">Admin Password</Label>
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="bg-xforge-darkgray/30 border-xforge-teal/20 text-white"
+                    />
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button
+                      onClick={decryptAndViewId}
+                      disabled={!adminPassword || idLoading}
+                      className="bg-xforge-teal hover:bg-xforge-teal/90 text-black w-full"
+                    >
+                      {idLoading ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                          Decrypting...
+                        </div>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Decrypt and View
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>

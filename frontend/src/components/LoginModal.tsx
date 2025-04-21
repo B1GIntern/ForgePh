@@ -34,6 +34,15 @@ interface User {
     redeemedAt: string;
     shopName: string;
   }>;
+  governmentID?: {
+    encryptedData?: string;
+    iv?: string;
+    verificationStatus?: string;
+    verificationNotes?: string;
+    submittedAt?: string;
+    verifiedAt?: string;
+    verifiedBy?: string;
+  };
 }
 
 
@@ -107,7 +116,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         verified: data.user.verified || false,
         redemptionCount: data.user.redemptionCount || 3,
         lastRedemptionDate: data.user.lastRedemptionDate || "",
-        redeemedPromoCodes: data.user.redeemedPromoCodes || []
+        redeemedPromoCodes: data.user.redeemedPromoCodes || [],
+        governmentID: data.user.governmentID || {},
       };
       
       const token = data.token;

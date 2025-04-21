@@ -168,6 +168,46 @@ const userSchema = new mongoose.Schema(
       ref: 'FlashPromo',
       required: false
     }],
+    // Government ID verification fields
+    governmentID: {
+      // Store the encrypted ID data
+      encryptedData: {
+        type: String,
+        default: null
+      },
+      // Store initialization vector for decryption
+      iv: {
+        type: String,
+        default: null
+      },
+      // Track verification status
+      verificationStatus: {
+        type: String,
+        enum: ["Not Submitted", "Pending", "Approved", "Rejected"],
+        default: "Not Submitted"
+      },
+      // For admin comments on verification
+      verificationNotes: {
+        type: String,
+        default: ""
+      },
+      // When the ID was submitted
+      submittedAt: {
+        type: Date,
+        default: null
+      },
+      // When the ID was verified by admin
+      verifiedAt: {
+        type: Date,
+        default: null
+      },
+      // Who verified the ID (admin ID)
+      verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+      }
+    },
   },
   { timestamps: true }
 );
@@ -183,14 +223,12 @@ userSchema.methods.generateAuthToken = function () {
 userSchema.methods.resetRedemptionCount = function () {
   const currentDate = new Date();
   const lastRedemptionDate = this.lastRedemptionDate;
-
   if (
     lastRedemptionDate &&
     currentDate.getDate() !== lastRedemptionDate.getDate()
   ) {
     this.redemptionCount = 3; // Reset to 3 after midnight
   }
-
   this.lastRedemptionDate = currentDate;
 };
 
@@ -212,6 +250,25 @@ userSchema.methods.resetDailyGamePlays = function() {
     currentDate.getDate() !== this.dailyGamePlays.slotMachine.lastPlayDate.getDate()
   ) {
     this.dailyGamePlays.slotMachine.count = 0;
+  }
+};
+
+// Helper method to update verification status and user status together
+userSchema.methods.updateVerificationStatus = function(status, adminId, notes) {
+  this.governmentID.verificationStatus = status;
+  
+  if (status === "Approved") {
+    this.userStatus = "Verified";
+    this.verified = true;
+    this.governmentID.verifiedAt = new Date();
+    this.governmentID.verifiedBy = adminId;
+  } else if (status === "Rejected") {
+    this.governmentID.verifiedAt = new Date();
+    this.governmentID.verifiedBy = adminId;
+  }
+  
+  if (notes) {
+    this.governmentID.verificationNotes = notes;
   }
 };
 
@@ -254,12 +311,29 @@ const validateUser = (data) => {
         rewardId: Joi.string().required(),
         rewardName: Joi.string().required()
       })
-    ).default([])
+    ).default([]),
+    governmentID: Joi.object({
+      encryptedData: Joi.string().allow(null),
+      iv: Joi.string().allow(null),
+      verificationStatus: Joi.string()
+        .valid("Not Submitted", "Pending", "Approved", "Rejected")
+        .default("Not Submitted"),
+      verificationNotes: Joi.string().allow(""),
+      submittedAt: Joi.date().allow(null),
+      verifiedAt: Joi.date().allow(null),
+      verifiedBy: Joi.string().allow(null)
+    }).default({
+      encryptedData: null,
+      iv: null,
+      verificationStatus: "Not Submitted",
+      verificationNotes: "",
+      submittedAt: null,
+      verifiedAt: null,
+      verifiedBy: null
+    })
   });
-
   return schema.validate(data);
 };
 
 const User = mongoose.model("User", userSchema);
-
 module.exports = { User, validateUser };

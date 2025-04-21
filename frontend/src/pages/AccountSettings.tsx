@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { encryptFile } from "@/utils/cryptoUtils"; // Import the encryptFile function
 
 // Define User interface
 interface User {
@@ -67,6 +68,27 @@ const AccountSettings: React.FC = () => {
     rememberDevice: true,
     passwordExpiry: "90days"
   });
+
+  // Add state for file uploads
+  const [frontID, setFrontID] = useState<File | null>(null);
+  const [backID, setBackID] = useState<File | null>(null);
+
+  // Function to handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: React.Dispatch<React.SetStateAction<File | null>>) => {
+    console.log("File input changed", e.target.files);
+    const file = e.target.files?.[0];
+    if (file && file.type === "image/png") {
+      console.log("Setting file", file.name, file.size);
+      setFile(file);
+    } else {
+      console.log("Invalid file type", file?.type);
+      addNotification({
+        title: "Invalid File Type",
+        message: "Please upload a PNG file.",
+        type: "system"
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -153,7 +175,108 @@ const AccountSettings: React.FC = () => {
   
     fetchUserData();
   }, [addNotification, errorNotificationShown]);
-  
+
+  // Helper functions for client-side encryption
+  async function getKeyFromPassword(password: string, salt: Uint8Array) {
+    const enc = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+      "raw",
+      enc.encode(password),
+      { name: "PBKDF2" },
+      false,
+      ["deriveKey"]
+    );
+    return window.crypto.subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: 100000,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  }
+
+  // ID Upload Handler
+  const handleIDUpload = async () => {
+    console.log("handleIDUpload called", { frontID, backID });
+    
+    if (!frontID || !backID) {
+      addNotification({
+        title: "Missing Files",
+        message: "Please select both front and back PNG files.",
+        type: "system"
+      });
+      return;
+    }
+    
+    // For testing, use a fixed password that matches the admin password
+    const password = "admin123"; // Fixed password for testing
+    
+    try {
+      setLoading(true);
+      console.log("Starting encryption of files with test password");
+      
+      // Use our utility function for encryption - pass the File objects directly
+      const [frontEncrypted, backEncrypted] = await Promise.all([
+        encryptFile(frontID, password),
+        encryptFile(backID, password)
+      ]);
+      
+      console.log("Encryption successful", { frontEncrypted, backEncrypted });
+      const userId = profile.id;
+      console.log("Uploading encrypted ID to backend", { userId });
+      // Use the new dedicated government ID API endpoint
+      const response = await fetch("/api/government-id/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          front: frontEncrypted,
+          back: backEncrypted
+        })
+      });
+      
+      console.log("Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Upload failed with status:", response.status, errorText);
+        throw new Error(`Server responded with ${response.status}: ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log("Backend upload result", result);
+      if (result.success) {
+        addNotification({
+          title: "Success",
+          message: "Government ID uploaded and encrypted successfully.",
+          type: "system"
+        });
+        setFrontID(null);
+        setBackID(null);
+      } else {
+        addNotification({
+          title: "Upload Failed",
+          message: result.message || "Failed to upload ID.",
+          type: "system"
+        });
+      }
+    } catch (err) {
+      console.error("Encryption or upload failed", err);
+      addNotification({
+        title: "Error",
+        message: "Encryption or upload failed. See console for details.",
+        type: "system"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     // Clear tokens and user data from storage
     localStorage.removeItem("token");
@@ -241,12 +364,13 @@ const AccountSettings: React.FC = () => {
         throw new Error("Server returned non-JSON response");
       }
 
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.message || "Failed to change password");
+        const errorData = await response.json(); // Capture any error response from the backend
+        throw new Error(errorData.message || "Failed to change password");
       }
 
+      const data = await response.json();
+      
       // Reset form
       setPasswordForm({
         currentPassword: "",
@@ -613,6 +737,7 @@ const AccountSettings: React.FC = () => {
                                   placeholder="••••••••"
                                   value={passwordForm.currentPassword}
                                   onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                                  disabled={!isEditing}
                                   className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
                                 />
                                 <button 
@@ -633,6 +758,7 @@ const AccountSettings: React.FC = () => {
                                   placeholder="••••••••"
                                   value={passwordForm.newPassword}
                                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                                  disabled={!isEditing}
                                   className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
                                 />
                                 <button 
@@ -653,6 +779,7 @@ const AccountSettings: React.FC = () => {
                                   placeholder="••••••••"
                                   value={passwordForm.confirmPassword}
                                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                  disabled={!isEditing}
                                   className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
                                 />
                                 <button 
@@ -736,6 +863,38 @@ const AccountSettings: React.FC = () => {
         </main>
       </div>
 
+      {/* ID Upload Section: Always Show */}
+      <div className="id-upload-section mt-8 p-4 bg-xforge-darkgray border border-xforge-teal/20 rounded-lg max-w-md mx-auto">
+        <h3 className="text-lg font-semibold mb-4 text-xforge-teal">Upload Government ID</h3>
+        <div className="mb-3">
+          <label htmlFor="front-id" className="block mb-1 text-xforge-gray">Front of ID (PNG only):</label>
+          <input
+            type="file"
+            id="front-id"
+            accept="image/png"
+            onChange={(e) => handleFileChange(e, setFrontID)}
+            className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
+          />
+        </div>
+        <div className="mb-3">
+          <label htmlFor="back-id" className="block mb-1 text-xforge-gray">Back of ID (PNG only):</label>
+          <input
+            type="file"
+            id="back-id"
+            accept="image/png"
+            onChange={(e) => handleFileChange(e, setBackID)}
+            className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
+          />
+        </div>
+        <Button
+          onClick={handleIDUpload}
+          className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110 w-full"
+          disabled={loading}
+        >
+          {loading ? "Encrypting & Uploading..." : "Submit"}
+        </Button>
+      </div>
+
       {/* Logout Confirmation Dialog */}
       <AlertDialog
         open={isLogoutDialogOpen}
@@ -761,6 +920,7 @@ const AccountSettings: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </>
   );
 };
