@@ -513,13 +513,15 @@ const AccountSettings: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen flex flex-col bg-xforge-dark bg-[radial-gradient(circle_at_top_right,rgba(2,236,207,0.05),transparent_70%)]">
+      <div className="min-h-screen flex flex-col bg-[#0A0D14] bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.15),transparent_70%),radial-gradient(ellipse_at_bottom_left,rgba(14,165,233,0.15),transparent_70%)]">
         <Header />
-        <main className="flex-grow container mx-auto px-4 pt-32 pb-16">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center p-2 bg-xforge-teal bg-opacity-20 rounded-full mb-4">
-                <Settings className="h-6 w-6 text-xforge-teal" />
+        
+        <main className="flex-grow container mx-auto px-4 pt-28 pb-16">
+          <div className="max-w-7xl mx-auto">
+            {/* Animated Header */}
+            <div className="text-center mb-12 relative">
+              <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 blur-3xl"></div>
               </div>
               <h1 className="text-5xl font-extrabold relative z-10">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
@@ -916,101 +918,189 @@ const AccountSettings: React.FC = () => {
                             </button>
                           </div>
                         </form>
-                      </CardContent>
+                      </div>
+                    </div>
+                    
+                    {/* Security Settings Card */}
+                    <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/5">
+                        <h2 className="text-xl font-semibold text-white flex items-center">
+                          <Shield className="w-5 h-5 mr-2 text-emerald-400" />
+                          Security Settings
+                        </h2>
+                        <p className="text-gray-400 text-sm mt-1">Manage additional security options</p>
+                      </div>
                       
-                    </Card>
-
-                    <Card className="bg-gradient-to-b from-xforge-dark/90 to-xforge-dark border border-xforge-teal/10 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-white text-2xl flex items-center">
-                          <Shield className="mr-2 h-6 w-6 text-xforge-teal" /> Security Settings
-                        </CardTitle>
-                        <CardDescription>
-                          Manage your account security preferences
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label className="text-white">Two-Factor Authentication</Label>
-                              <p className="text-sm text-xforge-gray">Add an extra layer of security to your account</p>
-                            </div>
-                            <Switch
-                              checked={security.twoFactorAuth}
-                              onCheckedChange={(checked) => setSecurity({ ...security, twoFactorAuth: checked })}
-                              className="data-[state=checked]:bg-xforge-teal"
-                            />
+                      <div className="p-6 space-y-5">
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div>
+                            <h3 className="text-white font-medium">Two-Factor Authentication</h3>
+                            <p className="text-gray-400 text-sm mt-0.5">Add an extra layer of security</p>
                           </div>
-
-                          {/* Show this button only if the user is "Not Verified" */}
-                          {profile.userStatus === "Not Verified" && (
-                            <div className="pt-4 border-t border-xforge-teal/10">
-                              <Button
-                                onClick={handleVerifyEmail}
-                                disabled={loading}
-                                className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"
-                              >
-                                {loading ? "Sending Verification..." : "Verify Email"}
-                              </Button>
-                            </div>
-                          )}
-
-                          <div className="pt-4 border-t border-xforge-teal/10">
-                            <Button
-                              onClick={handleSecurityUpdate}
-                              disabled={loading}
-                              className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"
-                            >
-                              {loading ? "Saving..." : "Save Security Settings"}
-                            </Button>
-                          </div>
+                          <Switch
+                            checked={security.twoFactorAuth}
+                            onCheckedChange={(checked) => setSecurity({ ...security, twoFactorAuth: checked })}
+                            className="data-[state=checked]:bg-emerald-500"
+                          />
                         </div>
-                      </CardContent>
+                        
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div>
+                            <h3 className="text-white font-medium">Remember Devices</h3>
+                            <p className="text-gray-400 text-sm mt-0.5">Stay logged in on your trusted devices</p>
+                          </div>
+                          <Switch
+                            checked={security.rememberDevice}
+                            onCheckedChange={(checked) => setSecurity({ ...security, rememberDevice: checked })}
+                            className="data-[state=checked]:bg-emerald-500"
+                          />
+                        </div>
+                        
+                        {profile.userStatus === "Not Verified" && (
+                          <div className="mt-4 p-5 bg-gradient-to-r from-amber-600/20 to-orange-600/20 rounded-lg border border-amber-600/30">
+                            <div className="flex items-start">
+                              <Mail className="w-5 h-5 text-amber-400 mt-1 mr-3" />
+                              <div>
+                                <h3 className="text-white font-medium">Verify Your Email</h3>
+                                <p className="text-gray-300 text-sm mt-1 mb-3">Verifying your email enhances account security and enables additional features</p>
+                                <button
+                                  onClick={handleVerifyEmail}
+                                  disabled={loading}
+                                  className="py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-black text-sm font-medium hover:opacity-90 transition-opacity"
+                                >
+                                  {loading ? "Sending..." : "Send Verification Email"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="pt-3">
+                          <button
+                            onClick={handleSecurityUpdate}
+                            disabled={loading}
+                            className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90 transition-opacity"
+                          >
+                            {loading ? "Saving..." : "Save Security Settings"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Verification Tab */}
+                {activeTab === "verification" && (
+                  <div className="space-y-6">
+                    <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/5">
+                        <h2 className="text-xl font-semibold text-white flex items-center">
+                          <BadgeCheck className="w-5 h-5 mr-2 text-emerald-400" />
+                          Account Verification
+                        </h2>
+                        <p className="text-gray-400 text-sm mt-1">Verify your identity to unlock full platform features</p>
+                      </div>
                       
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+                      <div className="p-6">
+                        {profile.userStatus === "Verified" ? (
+                          <div className="p-6 bg-emerald-500/10 rounded-lg border border-emerald-500/30 text-center">
+                            <div className="w-16 h-16 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
+                              <BadgeCheck className="w-8 h-8 text-emerald-400" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-white mb-2">Your Account is Verified</h3>
+                            <p className="text-gray-300">Your identity has been confirmed. You have full access to all platform features.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            <div className="p-5 bg-gradient-to-r from-amber-600/20 to-orange-600/20 rounded-lg border border-amber-600/30 mb-6">
+                              <h3 className="text-white font-medium flex items-center">
+                                <BadgeCheck className="w-5 h-5 text-amber-400 mr-2" />
+                                Verification Required
+                              </h3>
+                              <p className="text-gray-300 text-sm mt-2">
+                                To access all features and ensure platform security, please verify your identity by uploading a valid government ID.
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-5">
+                              <div>
+                                <label className="block text-gray-400 text-sm mb-2">Front of Government ID (PNG only)</label>
+                                <div className="relative">
+                                  <div className="bg-black/30 border border-dashed border-white/20 rounded-lg p-4 flex flex-col items-center justify-center">
+                                    {frontID ? (
+                                      <div className="flex items-center space-x-2 text-emerald-400">
+                                        <Badge className="w-5 h-5" />
+                                        <span>{frontID.name}</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-6 h-6 text-gray-500 mb-2" />
+                                        <p className="text-gray-400 text-sm">Click to select or drag and drop</p>
+                                      </>
+                                    )}
+                                    <input
+                                      type="file"
+                                      id="front-id"
+                                      accept="image/png"
+                                      onChange={(e) => handleFileChange(e, setFrontID)}
+                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-gray-400 text-sm mb-2">Back of Government ID (PNG only)</label>
+                                <div className="relative">
+                                  <div className="bg-black/30 border border-dashed border-white/20 rounded-lg p-4 flex flex-col items-center justify-center">
+                                    {backID ? (
+                                      <div className="flex items-center space-x-2 text-emerald-400">
+                                        <Badge className="w-5 h-5" />
+                                        <span>{backID.name}</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-6 h-6 text-gray-500 mb-2" />
+                                        <p className="text-gray-400 text-sm">Click to select or drag and drop</p>
+                                      </>
+                                    )}
+                                    <input
+                                      type="file"
+                                      id="back-id"
+                                      accept="image/png"
+                                      onChange={(e) => handleFileChange(e, setBackID)}
+                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="pt-2">
+                                <button
+                                  onClick={handleIDUpload}
+                                  disabled={loading || !frontID || !backID}
+                                  className={`w-full py-3 px-4 rounded-lg ${
+                                    !frontID || !backID
+                                      ? "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                                      : "bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90"
+                                  } transition-all`}
+                                >
+                                  {loading ? "Encrypting & Uploading..." : "Submit ID for Verification"}
+                                </button>
+                                <p className="text-xs text-gray-500 mt-2 text-center">Your ID will be encrypted and securely stored</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </main>
       </div>
-
-      {/* ID Upload Section: Only show for non-verified users */}
-      {/* ID Upload Section: Only show for non-verified users */}
-      {profile.userStatus !== "Verified" && (
-        <div className="id-upload-section mt-8 p-4 bg-xforge-darkgray border border-xforge-teal/20 rounded-lg max-w-md mx-auto">
-          <h3 className="text-lg font-semibold mb-4 text-xforge-teal">Upload Government ID</h3>
-          <div className="mb-3">
-            <label htmlFor="front-id" className="block mb-1 text-xforge-gray">Front of ID (PNG only):</label>
-            <input
-              type="file"
-              id="front-id"
-              accept="image/png"
-              onChange={(e) => handleFileChange(e, setFrontID)}
-              className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="back-id" className="block mb-1 text-xforge-gray">Back of ID (PNG only):</label>
-            <input
-              type="file"
-              id="back-id"
-              accept="image/png"
-              onChange={(e) => handleFileChange(e, setBackID)}
-              className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
-            />
-          </div>
-          <Button
-            onClick={handleIDUpload}
-            className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110 w-full"
-            disabled={loading}
-          >
-            {loading ? "Encrypting & Uploading..." : "Submit"}
-          </Button>
-        </div>
-      )}
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog
