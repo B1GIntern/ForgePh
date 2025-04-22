@@ -502,9 +502,9 @@ const AccountSettings: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen flex flex-col bg-xforge-dark bg-[radial-gradient(circle_at_top_right,rgba(2,236,207,0.05),transparent_70%)]">
+      <div className="min-h-screen flex flex-col bg-gray-900 text-white">
         <Header />
-        <main className="flex-grow container mx-auto px-4 pt-32 pb-16">
+        <main className="flex-grow container mx-auto p-6 bg-gray-800 rounded-lg shadow-xl">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <div className="inline-flex items-center justify-center p-2 bg-xforge-teal bg-opacity-20 rounded-full mb-4">
@@ -896,11 +896,10 @@ const AccountSettings: React.FC = () => {
           </div>
         </main>
       </div>
-
-      {/* ID Upload Section: Only show for non-verified users */}
+      
       {/* ID Upload Section: Only show for non-verified users */}
       {profile.userStatus !== "Verified" && (
-        <div className="id-upload-section mt-8 p-4 bg-xforge-darkgray border border-xforge-teal/20 rounded-lg max-w-md mx-auto">
+        <div className="id-upload-section mt-8 p-6 bg-gray-800 border border-gray-700 rounded-lg max-w-xl mx-auto">
           <h3 className="text-lg font-semibold mb-4 text-xforge-teal">Upload Government ID</h3>
           <div className="mb-3">
             <label htmlFor="front-id" className="block mb-1 text-xforge-gray">Front of ID (PNG only):</label>
