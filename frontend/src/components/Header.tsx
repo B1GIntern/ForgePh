@@ -12,6 +12,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  User, 
+  LogOut, 
+  Menu, 
+  X, 
+  ChevronDown, 
+  Award, 
+  Settings,
+  AlertTriangle,
+  UserCircle
+} from "lucide-react";
+
 // Define a type for navigation links
 interface NavLink {
   path: string;
@@ -281,54 +300,54 @@ const Header: React.FC = () => {
     return location.pathname === path;
   };
 
-      // Determine navigation links based on user type
-    const getNavLinks = (): NavLink[] => {
-      if (!user) {
-        // Default links for non-logged in users
-        return [
-          { path: "/home", label: "Home" },
-          { path: "/products", label: "Products" },
-          { path: "/news", label: "News" },
-        ];
-      }
-
-      if (user.userType === "Retailer") {
-        // Links for Retailer users
-        return [
-          { path: "/retailers", label: "Home" },
-          { path: "/products", label: "Products" },
-          { path: "/ExclusiveNews", label: "News" },
-          // { path: "/shops-leaderboard", label: "Shops Leaderboard" },
-        ];
-      }
-
-      // Links for Consumer users (default)
-      const consumerLinks: NavLink[] = [
+  // Determine navigation links based on user type
+  const getNavLinks = (): NavLink[] => {
+    if (!user) {
+      // Default links for non-logged in users
+      return [
         { path: "/home", label: "Home" },
         { path: "/products", label: "Products" },
         { path: "/news", label: "News" },
       ];
+    }
 
-      // Add rewards and promo code links with appropriate behavior based on verification status
-      if (user.userStatus === "Verified") {
-        // Fully functional links for verified users
-        consumerLinks.push(
-          { path: "/rewards", label: "Rewards" },
-          { path: "/promo-code", label: "Promo Code" }
-        );
-      } else {
-        // Read-only links for unverified users
-        consumerLinks.push(
-          { path: "#", label: "Rewards", readonly: true },
-          { path: "#", label: "Promo Code", readonly: true }
-        );
-      }
+    if (user.userType === "Retailer") {
+      // Links for Retailer users
+      return [
+        { path: "/retailers", label: "Home" },
+        { path: "/products", label: "Products" },
+        { path: "/ExclusiveNews", label: "News" },
+        // { path: "/shops-leaderboard", label: "Shops Leaderboard" },
+      ];
+    }
 
-      // Add the shop leaderboard link that's available to all consumers
-      // consumerLinks.push({ path: "/shops-leaderboard", label: "Shops Leaderboard" });
+    // Links for Consumer users (default)
+    const consumerLinks: NavLink[] = [
+      { path: "/home", label: "Home" },
+      { path: "/products", label: "Products" },
+      { path: "/news", label: "News" },
+    ];
 
-      return consumerLinks;
-    };
+    // Add rewards and promo code links with appropriate behavior based on verification status
+    if (user.userStatus === "Verified") {
+      // Fully functional links for verified users
+      consumerLinks.push(
+        { path: "/rewards", label: "Rewards" },
+        { path: "/promo-code", label: "Promo Code" }
+      );
+    } else {
+      // Read-only links for unverified users
+      consumerLinks.push(
+        { path: "#", label: "Rewards", readonly: true },
+        { path: "#", label: "Promo Code", readonly: true }
+      );
+    }
+
+    // Add the shop leaderboard link that's available to all consumers
+    // consumerLinks.push({ path: "/shops-leaderboard", label: "Shops Leaderboard" });
+
+    return consumerLinks;
+  };
 
   const navLinks = getNavLinks();
 
@@ -337,13 +356,14 @@ const Header: React.FC = () => {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? "py-3 bg-xforge-dark bg-opacity-80 backdrop-blur shadow-md"
+            ? "py-3 bg-[#0A0D14]/90 backdrop-blur-md border-b border-white/5 shadow-lg shadow-black/20"
             : "py-5 bg-transparent"
         }`}
       >
         {/* Government Warning Section */}
-        <div className="flex items-center bg-[#E5E5E5] text-[#333] rounded-full px-3 py-1 text-[10px] sm:text-xs w-fit mx-auto mb-4">
-          <div className="bg-[#D6D6D6] text-[#333] font-bold text-[10px] sm:text-xs px-2 py-0.5 rounded-full">
+        <div className="flex items-center bg-white/5 text-white/80 rounded-full px-3 py-1 text-[10px] sm:text-xs w-fit mx-auto mb-4 backdrop-blur-sm border border-white/10">
+          <div className="bg-amber-500/80 text-black font-bold text-[10px] sm:text-xs px-2 py-0.5 rounded-full flex items-center">
+            <AlertTriangle className="w-3 h-3 mr-1" />
             18+
           </div>
           <p className="ml-2 leading-tight">
@@ -353,104 +373,94 @@ const Header: React.FC = () => {
             NON-SMOKERS.
           </p>
         </div>
-        <div className="container flex items-center justify-between">
+        
+        <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center">
-            <Link to="/home" className="text-2xl font-bold text-white">
-              <span className="text-teal-400">FORGE</span> PHILIPPINES
+            <Link to="/home" className="text-2xl font-bold">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">FORGE</span>
+              <span className="text-white"> PHILIPPINES</span>
             </Link>
           </div>
+          
           {/* Desktop Navigation */}
-            <nav className="hidden space-x-8 md:flex">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""} ${
-                    link.readonly ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  onClick={(e) => {
-                    if (link.readonly) {
-                      e.preventDefault();
-                      alert("Your account needs to be verified to access this feature");
-                    }
-                  }}
-                >
-                  {link.label}
-                  {link.readonly && (
-                    <span className="ml-1 text-xs text-yellow-400">
-                      (Verify)
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </nav>
+          <nav className="hidden space-x-8 md:flex">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`relative px-1 py-2 text-sm font-medium transition-colors duration-200 ${
+                  isLinkActive(link.path) 
+                    ? "text-emerald-400" 
+                    : "text-white/80 hover:text-white"
+                } ${
+                  link.readonly ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+                onClick={(e) => {
+                  if (link.readonly) {
+                    e.preventDefault();
+                    alert("Your account needs to be verified to access this feature");
+                  }
+                }}
+              >
+                {link.label}
+                {link.readonly && (
+                  <span className="ml-1 text-xs text-amber-400">
+                    (Verify)
+                  </span>
+                )}
+                {isLinkActive(link.path) && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full"></span>
+                )}
+              </Link>
+            ))}
+          </nav>
 
           {/* Login/Sign Up Buttons or User Profile */}
           {user ? (
             <div className="hidden md:flex items-center space-x-4">
-              {/* <div className="text-white">
-                Welcome,{" "}
-                <span className="text-xforge-teal font-medium">
-                  {user.name}
-                </span>
-              </div> */}
-              <div className="bg-xforge-teal bg-opacity-20 text-xforge-teal px-3 py-1 rounded-full text-sm flex items-center">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                </svg>
+              <div className="bg-black/30 backdrop-blur-sm text-emerald-400 px-3 py-1.5 rounded-full text-sm flex items-center border border-emerald-500/20">
+                <Award className="w-4 h-4 mr-1.5" />
                 <span>{user.points.toLocaleString()} Points</span>
               </div>
-              <div className="relative group">
-                <button className="btn btn-outline flex items-center">
-                  My Account
-                  <svg
-                    className="w-4 h-4 ml-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                <div className="absolute right-0 w-48 mt-2 bg-xforge-dark border border-xforge-lightgray rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
-                  <div className="py-1">
-                    <Link
-                      to="/profile"
-                      className="block px-4 py-2 text-white hover:bg-xforge-lightgray hover:text-xforge-teal"
-                    >
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center space-x-2 px-4 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors duration-200">
+                    <span>My Account</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-[#121520] border border-white/10 text-white w-48 rounded-lg shadow-xl shadow-black/50">
+                  <DropdownMenuItem className="focus:bg-white/5 focus:text-emerald-400 cursor-pointer">
+                    <Link to="/profile" className="flex w-full items-center">
+                      <UserCircle className="w-4 h-4 mr-2 text-emerald-400" />
                       Profile
                     </Link>
-                    <div className="border-t border-xforge-lightgray my-1"></div>
-                    <button
-                      onClick={openLogoutDialog}
-                      className="block w-full text-left px-4 py-2 text-white hover:bg-xforge-lightgray hover:text-xforge-teal"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem 
+                    className="focus:bg-white/5 focus:text-red-400 cursor-pointer"
+                    onClick={openLogoutDialog}
+                  >
+                    <LogOut className="w-4 h-4 mr-2 text-red-400" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : (
             <div className="hidden space-x-4 md:flex">
               <a
                 href="#login"
-                className="btn btn-outline"
+                className="px-4 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors duration-200"
                 onClick={openLoginModal}
               >
                 Login
               </a>
-              <a href="/home#register" className="btn btn-primary">
+              <a 
+                href="/home#register" 
+                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90 transition-opacity"
+              >
                 Sign Up
               </a>
             </div>
@@ -458,64 +468,48 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="p-2 md:hidden"
+            className="p-2 md:hidden flex items-center justify-center"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
           >
-            <div className="space-y-2">
-              <span
-                className={`block w-8 h-0.5 bg-xforge-teal transition-all duration-300 ${isMobileMenuOpen ? "translate-y-2.5 rotate-45" : ""}`}
-              ></span>
-              <span
-                className={`block w-8 h-0.5 bg-xforge-teal transition-all duration-300 ${isMobileMenuOpen ? "opacity-0" : ""}`}
-              ></span>
-              <span
-                className={`block w-8 h-0.5 bg-xforge-teal transition-all duration-300 ${isMobileMenuOpen ? "-translate-y-2.5 -rotate-45" : ""}`}
-              ></span>
-            </div>
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6 text-emerald-400" />
+            ) : (
+              <Menu className="w-6 h-6 text-emerald-400" />
+            )}
           </button>
         </div>
 
         {/* Mobile Menu */}
         <div
-          className={`fixed inset-0 z-40 flex flex-col pt-24 pb-8 md:hidden bg-xforge-dark bg-opacity-95 backdrop-blur transition-transform duration-300 ease-in-out ${
-            isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          className={`fixed inset-0 z-40 flex flex-col pt-24 pb-8 md:hidden bg-[#0A0D14]/95 backdrop-blur-md transition-all duration-300 ease-in-out ${
+            isMobileMenuOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full pointer-events-none"
           }`}
         >
-          {/* Close Button */}
-          <button
-            className="absolute top-6 right-6 text-white text-3xl focus:outline-none"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            &times;
-          </button>
-
           {user && (
-            <div className="text-center text-white mb-6">
-              {/* <p>Welcome,</p>
-              <p className="text-xforge-teal font-medium text-lg">
-                {user.name}
-              </p> */}
-              <div className="bg-xforge-teal bg-opacity-20 text-xforge-teal px-3 py-1 rounded-full text-sm flex items-center justify-center mx-auto mt-2 w-fit">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                </svg>
-                <span>{currentPoints} Points</span>
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-black text-xl font-bold mb-3">
+                {user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : ''}
+              </div>
+              <p className="text-white text-lg font-medium">{user.name}</p>
+              <div className="bg-black/30 backdrop-blur-sm text-emerald-400 px-3 py-1.5 rounded-full text-sm flex items-center justify-center w-fit mx-auto mt-2 border border-emerald-500/20">
+                <Award className="w-4 h-4 mr-1.5" />
+                <span>{currentPoints.toLocaleString()} Points</span>
               </div>
             </div>
           )}
 
-          <nav className="flex flex-col items-center space-y-6 text-lg">
+          <nav className="flex flex-col items-center space-y-5 text-base">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`nav-link ${isLinkActive(link.path) ? "text-xforge-teal" : ""} ${
-                  link.readonly ? "opacity-50 cursor-not-allowed" : ""
+                className={`relative px-3 py-2 font-medium transition-colors duration-200 ${
+                  isLinkActive(link.path) 
+                    ? "text-emerald-400" 
+                    : "text-white/80 hover:text-white"
+                } ${
+                  link.readonly ? "opacity-70 cursor-not-allowed" : ""
                 }`}
                 onClick={(e) => {
                   if (link.readonly) {
@@ -528,45 +522,45 @@ const Header: React.FC = () => {
               >
                 {link.label}
                 {link.readonly && (
-                  <span className="ml-1 text-xs text-yellow-400">
+                  <span className="ml-1 text-xs text-amber-400">
                     (Verify)
                   </span>
                 )}
               </Link>
             ))}
             {user && (
-              <>
-                <Link
-                  to="/profile"
-                  className="nav-link"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  My Profile
-                </Link>
-              </>
+              <Link
+                to="/profile"
+                className="flex items-center text-white/80 hover:text-white transition-colors duration-200"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Account Settings
+              </Link>
             )}
           </nav>
 
-          <div className="flex flex-col items-center mt-10 space-y-4">
+          <div className="flex flex-col items-center mt-10 space-y-4 px-4">
             {user ? (
               <button
                 onClick={openLogoutDialog}
-                className="btn btn-outline w-44 text-center"
+                className="w-full py-2.5 px-4 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center"
               >
-                Logout
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
               </button>
             ) : (
               <>
                 <a
                   href="#login"
-                  className="btn btn-outline w-44 text-center"
+                  className="w-full py-2.5 px-4 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors duration-200 text-center"
                   onClick={openLoginModal}
                 >
                   Login
                 </a>
                 <a
                   href="#register"
-                  className="btn btn-primary w-44 text-center"
+                  className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90 transition-opacity text-center"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Sign Up
@@ -588,22 +582,22 @@ const Header: React.FC = () => {
         open={isLogoutDialogOpen}
         onOpenChange={setIsLogoutDialogOpen}
       >
-        <AlertDialogContent className="bg-xforge-dark border border-xforge-teal/20 text-white">
+        <AlertDialogContent className="bg-[#121520] border border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-            <AlertDialogDescription className="text-xforge-gray">
-              Are you sure you want to logout?
+            <AlertDialogTitle>Sign Out of Your Account?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              You'll need to sign in again to access your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-xforge-darkgray text-white border-xforge-gray hover:bg-xforge-darkgray/80 hover:text-white">
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="bg-white/5 text-white border-white/10 hover:bg-white/10">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLogout}
-              className="bg-xforge-teal text-xforge-dark hover:bg-xforge-teal/90"
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-black hover:opacity-90"
             >
-              Continue
+              Sign Out
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
