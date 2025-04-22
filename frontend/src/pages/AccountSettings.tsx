@@ -14,7 +14,27 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { User, Lock, Shield, Settings, Eye, EyeOff, LogOut, BadgeCheck } from "lucide-react";
+import { 
+  User, 
+  Lock, 
+  Shield, 
+  Settings, 
+  Eye, 
+  EyeOff, 
+  LogOut, 
+  BadgeCheck, 
+  LayoutDashboard, 
+  Mail, 
+  Calendar, 
+  Smartphone, 
+  Map, 
+  Store, 
+  Clock, 
+  Award, 
+  CreditCard, 
+  Upload, 
+  Badge 
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,12 +58,12 @@ interface User {
     province: string;
     city: string;
   };
-  userStatus: string;  // Add userStatus field to track the user's verification status
+  userStatus: string;
   birthdate?: string;
   points?: number;
   rewardsclaimed?: number;
   registrationDate?: string;
-  shopName?: string;  // Add shopName field for retailers
+  shopName?: string;
 }
 
 const AccountSettings: React.FC = () => {
@@ -64,7 +84,7 @@ const AccountSettings: React.FC = () => {
       province: "",
       city: "",
     },
-    userStatus: "Not Verified", // Default value
+    userStatus: "Not Verified",
     shopName: "",
   });
 
@@ -117,12 +137,12 @@ const AccountSettings: React.FC = () => {
           phoneNumber: parsedUser.phoneNumber || "",
           userType: parsedUser.userType,
           location: parsedUser.location || { province: "", city: "" },
-          userStatus: parsedUser.userStatus || "Not Verified",  // Include userStatus from parsedUser
+          userStatus: parsedUser.userStatus || "Not Verified",
           birthdate: parsedUser.birthdate,
           points: parsedUser.points,
           rewardsclaimed: parsedUser.rewardsclaimed,
           registrationDate: parsedUser.registrationDate,
-          shopName: parsedUser.shopName || ""  // Add shopName from parsedUser
+          shopName: parsedUser.shopName || ""
         });
   
         const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
@@ -148,7 +168,7 @@ const AccountSettings: React.FC = () => {
         }
   
         const userData = await response.json();
-        console.log("Raw user data from server:", userData); // Add this log to debug
+        console.log("Raw user data from server:", userData);
         const user = userData.user;
   
         const updatedUser: User = {
@@ -162,8 +182,8 @@ const AccountSettings: React.FC = () => {
           points: user.points,
           rewardsclaimed: user.rewardsclaimed,
           registrationDate: user.registrationDate,
-          userStatus: parsedUser.userStatus || "Not Verified", // Include userStatus from parsedUser
-          shopName: user.shopName || parsedUser.shopName || ""  // Add shopName from user or parsedUser
+          userStatus: parsedUser.userStatus || "Not Verified",
+          shopName: user.shopName || parsedUser.shopName || ""
         };
   
         setProfile(updatedUser);
@@ -219,14 +239,12 @@ const AccountSettings: React.FC = () => {
       return;
     }
     
-    // For testing, use a fixed password that matches the admin password
-    const password = "admin123"; // Fixed password for testing
+    const password = "admin123";
     
     try {
       setLoading(true);
       console.log("Starting encryption of files with test password");
       
-      // Use our utility function for encryption - pass the File objects directly
       const [frontEncrypted, backEncrypted] = await Promise.all([
         encryptFile(frontID, password),
         encryptFile(backID, password)
@@ -235,7 +253,7 @@ const AccountSettings: React.FC = () => {
       console.log("Encryption successful", { frontEncrypted, backEncrypted });
       const userId = profile.id;
       console.log("Uploading encrypted ID to backend", { userId });
-      // Use the new dedicated government ID API endpoint
+      
       const response = await fetch("/api/government-id/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -284,27 +302,23 @@ const AccountSettings: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // Clear tokens and user data from storage
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
     
-    // Show notification
     addNotification({
       title: "Logged Out",
       message: "You have been successfully logged out.",
       type: "system"
     });
     
-    // Redirect to login page
     window.location.href = "/home";
   };
 
   const handleSecurityUpdate = () => {
     setLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       setLoading(false);
       
@@ -327,7 +341,6 @@ const AccountSettings: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Basic validation
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       addNotification({
         title: "Error",
@@ -364,20 +377,18 @@ const AccountSettings: React.FC = () => {
         }),
       });
 
-      // Check if response is JSON
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Server returned non-JSON response");
       }
 
       if (!response.ok) {
-        const errorData = await response.json(); // Capture any error response from the backend
+        const errorData = await response.json();
         throw new Error(errorData.message || "Failed to change password");
       }
 
       const data = await response.json();
       
-      // Reset form
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -400,7 +411,7 @@ const AccountSettings: React.FC = () => {
       setLoading(false);
     }
   };
-  // Handle email verification
+
   // State for editable fields
   const [editableProfile, setEditableProfile] = useState({
     name: "",
@@ -476,11 +487,11 @@ const AccountSettings: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email: profile.email }),  // Use the profile's email
+        body: JSON.stringify({ email: profile.email }),
       });
   
       if (!response.ok) {
-        const errorData = await response.json(); // Capture any error response from the backend
+        const errorData = await response.json();
         throw new Error(errorData.message || "Failed to send verification email");
       }
   
@@ -502,226 +513,158 @@ const AccountSettings: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen flex flex-col bg-xforge-dark bg-[radial-gradient(circle_at_top_right,rgba(2,236,207,0.05),transparent_70%)]">
+      <div className="min-h-screen flex flex-col bg-[#0A0D14] bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.15),transparent_70%),radial-gradient(ellipse_at_bottom_left,rgba(14,165,233,0.15),transparent_70%)]">
         <Header />
-        <main className="flex-grow container mx-auto px-4 pt-32 pb-16">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center p-2 bg-xforge-teal bg-opacity-20 rounded-full mb-4">
-                <Settings className="h-6 w-6 text-xforge-teal" />
+        
+        <main className="flex-grow container mx-auto px-4 pt-28 pb-16">
+          <div className="max-w-7xl mx-auto">
+            {/* Animated Header */}
+            <div className="text-center mb-12 relative">
+              <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 blur-3xl"></div>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 bg-gradient-to-r from-white to-xforge-teal bg-clip-text text-transparent">
-                Account Settings
+              <h1 className="text-5xl font-extrabold relative z-10">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                  Account Settings
+                </span>
               </h1>
-              <p className="text-xforge-gray max-w-2xl mx-auto">
-                Manage your profile and security settings to customize your XForge experience.
+              <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
+                Personalize your experience and manage your account security
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              {/* Sidebar */}
-              <div className="md:col-span-3">
-                <Card className="bg-gradient-to-b from-xforge-dark/90 to-xforge-dark border border-xforge-teal/10 shadow-lg sticky top-32">
-                  <CardHeader className="pb-4">
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Left Sidebar */}
+              <div className="lg:col-span-1">
+                <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden sticky top-28">
+                  {/* User Profile Card */}
+                  <div className="p-6 border-b border-white/5">
                     <div className="flex flex-col items-center">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-xforge-teal/20 to-xforge-teal/10 flex items-center justify-center border border-xforge-teal/30 mb-4">
-                        <span className="text-2xl font-bold text-xforge-teal">
+                      <div className="relative">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-black text-2xl font-bold">
                           {profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : ''}
-                        </span>
-                      </div>
-                      <CardTitle className="text-white text-xl flex items-center gap-2">
-                        {profile.name}
+                        </div>
                         {profile.userStatus === "Verified" && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <BadgeCheck className="h-5 w-5 text-xforge-teal" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Verified Account</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-1 rounded-full border-2 border-[#0A0D14]">
+                            <BadgeCheck className="h-4 w-4 text-black" />
+                          </div>
                         )}
-                      </CardTitle>
-                      <CardDescription className="text-xforge-gray">{profile.userType}</CardDescription>
+                      </div>
+                      <h3 className="mt-4 text-xl font-semibold text-white">{profile.name}</h3>
+                      <div className="mt-1 px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-emerald-400">
+                        {profile.userType}
+                      </div>
+                      {profile.userStatus !== "Verified" && (
+                        <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-amber-900/30 text-amber-400 flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Verification Pending
+                        </div>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent className="px-2">
-                    <div className="space-y-1">
-                      <Button 
-                        variant="ghost" 
-                        className={`w-full justify-start ${activeTab === "profile" ? "bg-xforge-teal/10 text-xforge-teal" : "text-xforge-gray hover:text-white"}`}
+                  </div>
+                  
+                  {/* Navigation */}
+                  <div className="p-4">
+                    <nav className="space-y-1">
+                      <button 
+                        className={`w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
+                          activeTab === "profile" 
+                            ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-white" 
+                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                        }`}
                         onClick={() => setActiveTab("profile")}
                       >
-                        <User className="mr-2 h-5 w-5" /> Profile
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className={`w-full justify-start ${activeTab === "security" ? "bg-xforge-teal/10 text-xforge-teal" : "text-xforge-gray hover:text-white"}`}
+                        <User className={`w-5 h-5 mr-3 ${activeTab === "profile" ? "text-emerald-400" : ""}`} />
+                        Profile
+                      </button>
+                      <button 
+                        className={`w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
+                          activeTab === "security" 
+                            ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-white" 
+                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                        }`}
                         onClick={() => setActiveTab("security")}
                       >
-                        <Shield className="mr-2 h-5 w-5" /> Security
-                      </Button>
+                        <Shield className={`w-5 h-5 mr-3 ${activeTab === "security" ? "text-emerald-400" : ""}`} />
+                        Security
+                      </button>
+                      <button 
+                        className={`w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
+                          activeTab === "verification" 
+                            ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-white" 
+                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                        }`}
+                        onClick={() => setActiveTab("verification")}
+                      >
+                        <BadgeCheck className={`w-5 h-5 mr-3 ${activeTab === "verification" ? "text-emerald-400" : ""}`} />
+                        Verification
+                      </button>
+                    </nav>
+                  </div>
+                  
+                  {/* Quick Stats */}
+                  {profile.points !== undefined && (
+                    <div className="p-6 border-t border-white/5">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 rounded-lg p-3">
+                          <p className="text-gray-500 text-xs mb-1">Points</p>
+                          <div className="flex items-center">
+                            <Award className="w-4 h-4 text-emerald-400 mr-2" />
+                            <span className="text-white font-medium">{profile.points}</span>
+                          </div>
+                        </div>
+                        {profile.rewardsclaimed !== undefined && (
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <p className="text-gray-500 text-xs mb-1">Rewards</p>
+                            <div className="flex items-center">
+                              <CreditCard className="w-4 h-4 text-cyan-400 mr-2" />
+                              <span className="text-white font-medium">{profile.rewardsclaimed}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="border-t border-xforge-teal/10 mt-4 flex justify-center">
-                    <Button 
-                      variant="ghost" 
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                  )}
+                  
+                  {/* Logout */}
+                  <div className="p-6 border-t border-white/5">
+                    <button 
+                      className="w-full py-2.5 px-4 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center"
                       onClick={() => setIsLogoutDialogOpen(true)}
                     >
-                      <LogOut className="mr-2 h-5 w-5" /> Sign Out
-                    </Button>
-                  </CardFooter>
-                </Card>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              {/* Main Content */}
-              <div className="md:col-span-9">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  {/* Profile Tab */}
-                  <TabsContent value="profile" className="mt-0">
-                    <Card className="bg-gradient-to-b from-xforge-dark/90 to-xforge-dark border border-xforge-teal/10 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-white text-2xl flex items-center">
-                          <User className="mr-2 h-6 w-6 text-xforge-teal" /> Profile Information
-                        </CardTitle>
-                        <CardDescription>
-                          View and update your personal information and public profile
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="name" className="text-xforge-gray flex items-center gap-2">
-                              Full Name
-                              {profile.userStatus === "Verified" && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <BadgeCheck className="h-4 w-4 text-xforge-teal" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Verified Account</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </Label>
-                            <Input
-                              id="name"
-                              value={isEditing ? editableProfile.name : profile.name}
-                              onChange={(e) => setEditableProfile(prev => ({ ...prev, name: e.target.value }))}
-                              disabled={!isEditing}
-                              className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email" className="text-xforge-gray">Email Address</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={profile.email}
-                              disabled
-                              className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="phoneNumber" className="text-xforge-gray">Phone Number</Label>
-                            <Input
-                              id="phoneNumber"
-                              value={isEditing ? editableProfile.phoneNumber : (profile.phoneNumber || "No phone number provided")}
-                              onChange={(e) => setEditableProfile(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                              disabled={!isEditing}
-                              className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="userType" className="text-xforge-gray">User Type</Label>
-                            <Input
-                              id="userType"
-                              value={profile.userType}
-                              disabled
-                              className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                            />
-                          </div>
-                          {profile.userType === "Retailer" && (
-                            <div className="space-y-2">
-                              <Label htmlFor="shopName" className="text-xforge-gray">Shop Name</Label>
-                              <Input
-                                id="shopName"
-                                value={isEditing ? editableProfile.shopName : (profile.shopName || "No shop name provided")}
-                                onChange={(e) => setEditableProfile(prev => ({ ...prev, shopName: e.target.value }))}
-                                disabled={!isEditing}
-                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
-                            </div>
-                          )}
-                          <div className="space-y-2">
-                            <Label htmlFor="province" className="text-xforge-gray">Province</Label>
-                            <Input
-                              id="province"
-                              value={(profile.location?.province) || ""}
-                              disabled
-                              className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="city" className="text-xforge-gray">City</Label>
-                            <Input
-                              id="city"
-                              value={profile.location?.city || ""}
-                              disabled
-                              className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                            />
-                          </div>
-                          {profile.birthdate && (
-                            <div className="space-y-2">
-                              <Label htmlFor="birthdate" className="text-xforge-gray">Birthdate</Label>
-                              <Input
-                                id="birthdate"
-                                value={new Date(profile.birthdate).toLocaleDateString()}
-                                disabled
-                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
-                            </div>
-                          )}
-                          {profile.registrationDate && (
-                            <div className="space-y-2">
-                              <Label htmlFor="registrationDate" className="text-xforge-gray">Member Since</Label>
-                              <Input
-                                id="registrationDate"
-                                value={new Date(profile.registrationDate).toLocaleDateString()}
-                                disabled
-                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
-                            </div>
-                          )}
-                          {profile.points !== undefined && (
-                            <div className="space-y-2">
-                              <Label htmlFor="points" className="text-xforge-gray">Points</Label>
-                              <Input
-                                id="points"
-                                value={profile.points}
-                                disabled
-                                className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal"
-                              />
-                            </div>
-                          )}
+              
+              {/* Right Content Area */}
+              <div className="lg:col-span-3">
+                {/* Profile Tab */}
+                {activeTab === "profile" && (
+                  <div className="space-y-6">
+                    {/* Basic Info Card */}
+                    <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                        <div>
+                          <h2 className="text-xl font-semibold text-white flex items-center">
+                            <LayoutDashboard className="w-5 h-5 mr-2 text-emerald-400" />
+                            Basic Information
+                          </h2>
+                          <p className="text-gray-400 text-sm mt-1">Manage your personal details</p>
                         </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-end space-x-4 pt-6">
                         {!isEditing ? (
-                          <Button
+                          <button
                             onClick={() => setIsEditing(true)}
-                            className="bg-xforge-teal text-black hover:bg-xforge-teal/90"
+                            className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm"
                           >
                             Edit Profile
-                          </Button>
+                          </button>
                         ) : (
-                          <>
-                            <Button
+                          <div className="flex gap-2">
+                            <button
                               onClick={() => {
                                 setIsEditing(false);
                                 setEditableProfile({
@@ -730,234 +673,460 @@ const AccountSettings: React.FC = () => {
                                   shopName: profile.shopName || ""
                                 });
                               }}
-                              variant="outline"
-                              className="border-xforge-teal text-xforge-teal hover:bg-xforge-teal/10"
+                              className="px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm"
                             >
                               Cancel
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                               onClick={handleUpdateProfile}
-                              className="bg-xforge-teal text-black hover:bg-xforge-teal/90"
+                              className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90 transition-opacity text-sm"
                               disabled={loading}
                             >
-                              {loading ? "Updating..." : "Save Changes"}
-                            </Button>
-                          </>
+                              {loading ? "Saving..." : "Save Changes"}
+                            </button>
+                          </div>
                         )}
-                      </CardFooter>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Security Tab */}
-                  <TabsContent value="security" className="mt-0 space-y-6">
-                    <Card className="bg-gradient-to-b from-xforge-dark/90 to-xforge-dark border border-xforge-teal/10 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-white text-2xl flex items-center">
-                          <Lock className="mr-2 h-6 w-6 text-xforge-teal" /> Password
-                        </CardTitle>
-                        <CardDescription>
-                          Change your password to keep your account secure
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <form onSubmit={handlePasswordChange}>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="currentPassword" className="text-xforge-gray">Current Password</Label>
-                              <div className="relative">
-                                <Input 
-                                  id="currentPassword" 
-                                  type={showPassword ? "text" : "password"}
-                                  placeholder="••••••••"
-                                  value={passwordForm.currentPassword}
-                                  onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                                  disabled={!isEditing}
-                                  className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
-                                />
-                                <button 
-                                  type="button"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xforge-gray hover:text-xforge-teal"
-                                >
-                                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                </button>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="newPassword" className="text-xforge-gray">New Password</Label>
-                              <div className="relative">
-                                <Input 
-                                  id="newPassword" 
-                                  type={showPassword ? "text" : "password"}
-                                  placeholder="••••••••"
-                                  value={passwordForm.newPassword}
-                                  onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                                  disabled={!isEditing}
-                                  className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
-                                />
-                                <button 
-                                  type="button"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xforge-gray hover:text-xforge-teal"
-                                >
-                                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                </button>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="confirmPassword" className="text-xforge-gray">Confirm New Password</Label>
-                              <div className="relative">
-                                <Input 
-                                  id="confirmPassword" 
-                                  type={showPassword ? "text" : "password"}
-                                  placeholder="••••••••"
-                                  value={passwordForm.confirmPassword}
-                                  onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                                  disabled={!isEditing}
-                                  className="bg-xforge-dark/50 border-xforge-lightgray/30 focus:border-xforge-teal pr-10"
-                                />
-                                <button 
-                                  type="button"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xforge-gray hover:text-xforge-teal"
-                                >
-                                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-6 flex justify-end">
-                            <Button 
-                              type="submit" 
-                              disabled={loading}
-                              className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"
-                            >
-                              {loading ? "Updating..." : "Update Password"}
-                            </Button>
-                          </div>
-                        </form>
-                      </CardContent>
+                      </div>
                       
-                    </Card>
-
-                    <Card className="bg-gradient-to-b from-xforge-dark/90 to-xforge-dark border border-xforge-teal/10 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-white text-2xl flex items-center">
-                          <Shield className="mr-2 h-6 w-6 text-xforge-teal" /> Security Settings
-                        </CardTitle>
-                        <CardDescription>
-                          Manage your account security preferences
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label className="text-white">Two-Factor Authentication</Label>
-                              <p className="text-sm text-xforge-gray">Add an extra layer of security to your account</p>
+                      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Form Fields */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Full Name</label>
+                            <div className="relative">
+                              <div className="absolute left-3.5 top-3.5">
+                                <User className="h-5 w-5 text-gray-500" />
+                              </div>
+                              <input
+                                type="text"
+                                value={isEditing ? editableProfile.name : profile.name}
+                                onChange={(e) => setEditableProfile(prev => ({ ...prev, name: e.target.value }))}
+                                disabled={!isEditing}
+                                className={`w-full bg-black/30 border ${isEditing ? 'border-emerald-500/30' : 'border-white/10'} rounded-lg py-3 px-11 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all ${isEditing ? 'opacity-100' : 'opacity-80'}`}
+                              />
+                              {profile.userStatus === "Verified" && (
+                                <div className="absolute right-3.5 top-3.5">
+                                  <BadgeCheck className="h-5 w-5 text-emerald-400" />
+                                </div>
+                              )}
                             </div>
-                            <Switch
-                              checked={security.twoFactorAuth}
-                              onCheckedChange={(checked) => setSecurity({ ...security, twoFactorAuth: checked })}
-                              className="data-[state=checked]:bg-xforge-teal"
-                            />
                           </div>
-
-                          {/* Show this button only if the user is "Not Verified" */}
-                          {profile.userStatus === "Not Verified" && (
-                            <div className="pt-4 border-t border-xforge-teal/10">
-                              <Button
-                                onClick={handleVerifyEmail}
-                                disabled={loading}
-                                className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"
-                              >
-                                {loading ? "Sending Verification..." : "Verify Email"}
-                              </Button>
+                          
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Email Address</label>
+                            <div className="relative">
+                              <div className="absolute left-3.5 top-3.5">
+                                <Mail className="h-5 w-5 text-gray-500" />
+                              </div>
+                              <input
+                                type="email"
+                                value={profile.email}
+                                disabled
+                                className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-11 text-white opacity-80"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Phone Number</label>
+                            <div className="relative">
+                              <div className="absolute left-3.5 top-3.5">
+                                <Smartphone className="h-5 w-5 text-gray-500" />
+                              </div>
+                              <input
+                                type="text"
+                                value={isEditing ? editableProfile.phoneNumber : (profile.phoneNumber || "No phone number provided")}
+                                onChange={(e) => setEditableProfile(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                                disabled={!isEditing}
+                                className={`w-full bg-black/30 border ${isEditing ? 'border-emerald-500/30' : 'border-white/10'} rounded-lg py-3 px-11 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all ${isEditing ? 'opacity-100' : 'opacity-80'}`}
+                              />
+                            </div>
+                          </div>
+                          
+                          {profile.birthdate && (
+                            <div>
+                              <label className="block text-gray-400 text-sm mb-1.5">Birth Date</label>
+                              <div className="relative">
+                                <div className="absolute left-3.5 top-3.5">
+                                  <Calendar className="h-5 w-5 text-gray-500" />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={new Date(profile.birthdate).toLocaleDateString()}
+                                  disabled
+                                  className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-11 text-white opacity-80"
+                                />
+                              </div>
                             </div>
                           )}
-
-                          <div className="pt-4 border-t border-xforge-teal/10">
-                            <Button
-                              onClick={handleSecurityUpdate}
-                              disabled={loading}
-                              className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110"
-                            >
-                              {loading ? "Saving..." : "Save Security Settings"}
-                            </Button>
-                          </div>
                         </div>
-                      </CardContent>
+                        
+                        <div className="space-y-4">
+                          {profile.userType === "Retailer" && (
+                            <div>
+                              <label className="block text-gray-400 text-sm mb-1.5">Shop Name</label>
+                              <div className="relative">
+                                <div className="absolute left-3.5 top-3.5">
+                                  <Store className="h-5 w-5 text-gray-500" />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={isEditing ? editableProfile.shopName : (profile.shopName || "No shop name provided")}
+                                  onChange={(e) => setEditableProfile(prev => ({ ...prev, shopName: e.target.value }))}
+                                  disabled={!isEditing}
+                                  className={`w-full bg-black/30 border ${isEditing ? 'border-emerald-500/30' : 'border-white/10'} rounded-lg py-3 px-11 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all ${isEditing ? 'opacity-100' : 'opacity-80'}`}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Location</label>
+                            <div className="relative">
+                              <div className="absolute left-3.5 top-3.5">
+                                <Map className="h-5 w-5 text-gray-500" />
+                              </div>
+                              <input
+                                type="text"
+                                value={`${profile.location?.province || ""}, ${profile.location?.city || ""}`}
+                                disabled
+                                className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-11 text-white opacity-80"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Account Type</label>
+                            <div className="relative">
+                              <div className="absolute left-3.5 top-3.5">
+                                <LayoutDashboard className="h-5 w-5 text-gray-500" />
+                              </div>
+                              <input
+                                type="text"
+                                value={profile.userType}
+                                disabled
+                                className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-11 text-white opacity-80"
+                              />
+                            </div>
+                          </div>
+                          
+                          {profile.registrationDate && (
+                            <div>
+                              <label className="block text-gray-400 text-sm mb-1.5">Member Since</label>
+                              <div className="relative">
+                                <div className="absolute left-3.5 top-3.5">
+                                  <Clock className="h-5 w-5 text-gray-500" />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={new Date(profile.registrationDate).toLocaleDateString()}
+                                  disabled
+                                  className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-11 text-white opacity-80"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Security Tab */}
+                {activeTab === "security" && (
+                  <div className="space-y-6">
+                    {/* Password Change Card */}
+                    <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/5">
+                        <h2 className="text-xl font-semibold text-white flex items-center">
+                          <Lock className="w-5 h-5 mr-2 text-emerald-400" />
+                          Change Password
+                        </h2>
+                        <p className="text-gray-400 text-sm mt-1">Update your password to maintain security</p>
+                      </div>
                       
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+                      <div className="p-6">
+                        <form onSubmit={handlePasswordChange} className="space-y-5">
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Current Password</label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={passwordForm.currentPassword}
+                                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                                className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                placeholder="••••••••"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white"
+                              >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">New Password</label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={passwordForm.newPassword}
+                                onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                                className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                placeholder="••••••••"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white"
+                              >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-gray-400 text-sm mb-1.5">Confirm New Password</label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={passwordForm.confirmPassword}
+                                onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                className="w-full bg-black/30 border border-white/10 rounded-lg py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                placeholder="••••••••"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white"
+                              >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">Password must be at least 8 characters long</p>
+                          </div>
+                          
+                          <div className="pt-3">
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90 transition-opacity"
+                            >
+                              {loading ? "Updating Password..." : "Update Password"}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                    
+                    {/* Security Settings Card */}
+                    <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/5">
+                        <h2 className="text-xl font-semibold text-white flex items-center">
+                          <Shield className="w-5 h-5 mr-2 text-emerald-400" />
+                          Security Settings
+                        </h2>
+                        <p className="text-gray-400 text-sm mt-1">Manage additional security options</p>
+                      </div>
+                      
+                      <div className="p-6 space-y-5">
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div>
+                            <h3 className="text-white font-medium">Two-Factor Authentication</h3>
+                            <p className="text-gray-400 text-sm mt-0.5">Add an extra layer of security</p>
+                          </div>
+                          <Switch
+                            checked={security.twoFactorAuth}
+                            onCheckedChange={(checked) => setSecurity({ ...security, twoFactorAuth: checked })}
+                            className="data-[state=checked]:bg-emerald-500"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div>
+                            <h3 className="text-white font-medium">Remember Devices</h3>
+                            <p className="text-gray-400 text-sm mt-0.5">Stay logged in on your trusted devices</p>
+                          </div>
+                          <Switch
+                            checked={security.rememberDevice}
+                            onCheckedChange={(checked) => setSecurity({ ...security, rememberDevice: checked })}
+                            className="data-[state=checked]:bg-emerald-500"
+                          />
+                        </div>
+                        
+                        {profile.userStatus === "Not Verified" && (
+                          <div className="mt-4 p-5 bg-gradient-to-r from-amber-600/20 to-orange-600/20 rounded-lg border border-amber-600/30">
+                            <div className="flex items-start">
+                              <Mail className="w-5 h-5 text-amber-400 mt-1 mr-3" />
+                              <div>
+                                <h3 className="text-white font-medium">Verify Your Email</h3>
+                                <p className="text-gray-300 text-sm mt-1 mb-3">Verifying your email enhances account security and enables additional features</p>
+                                <button
+                                  onClick={handleVerifyEmail}
+                                  disabled={loading}
+                                  className="py-2 px-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-black text-sm font-medium hover:opacity-90 transition-opacity"
+                                >
+                                  {loading ? "Sending..." : "Send Verification Email"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="pt-3">
+                          <button
+                            onClick={handleSecurityUpdate}
+                            disabled={loading}
+                            className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90 transition-opacity"
+                          >
+                            {loading ? "Saving..." : "Save Security Settings"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Verification Tab */}
+                {activeTab === "verification" && (
+                  <div className="space-y-6">
+                    <div className="backdrop-blur-sm bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/5">
+                        <h2 className="text-xl font-semibold text-white flex items-center">
+                          <BadgeCheck className="w-5 h-5 mr-2 text-emerald-400" />
+                          Account Verification
+                        </h2>
+                        <p className="text-gray-400 text-sm mt-1">Verify your identity to unlock full platform features</p>
+                      </div>
+                      
+                      <div className="p-6">
+                        {profile.userStatus === "Verified" ? (
+                          <div className="p-6 bg-emerald-500/10 rounded-lg border border-emerald-500/30 text-center">
+                            <div className="w-16 h-16 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
+                              <BadgeCheck className="w-8 h-8 text-emerald-400" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-white mb-2">Your Account is Verified</h3>
+                            <p className="text-gray-300">Your identity has been confirmed. You have full access to all platform features.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            <div className="p-5 bg-gradient-to-r from-amber-600/20 to-orange-600/20 rounded-lg border border-amber-600/30 mb-6">
+                              <h3 className="text-white font-medium flex items-center">
+                                <BadgeCheck className="w-5 h-5 text-amber-400 mr-2" />
+                                Verification Required
+                              </h3>
+                              <p className="text-gray-300 text-sm mt-2">
+                                To access all features and ensure platform security, please verify your identity by uploading a valid government ID.
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-5">
+                              <div>
+                                <label className="block text-gray-400 text-sm mb-2">Front of Government ID (PNG only)</label>
+                                <div className="relative">
+                                  <div className="bg-black/30 border border-dashed border-white/20 rounded-lg p-4 flex flex-col items-center justify-center">
+                                    {frontID ? (
+                                      <div className="flex items-center space-x-2 text-emerald-400">
+                                        <Badge className="w-5 h-5" />
+                                        <span>{frontID.name}</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-6 h-6 text-gray-500 mb-2" />
+                                        <p className="text-gray-400 text-sm">Click to select or drag and drop</p>
+                                      </>
+                                    )}
+                                    <input
+                                      type="file"
+                                      id="front-id"
+                                      accept="image/png"
+                                      onChange={(e) => handleFileChange(e, setFrontID)}
+                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-gray-400 text-sm mb-2">Back of Government ID (PNG only)</label>
+                                <div className="relative">
+                                  <div className="bg-black/30 border border-dashed border-white/20 rounded-lg p-4 flex flex-col items-center justify-center">
+                                    {backID ? (
+                                      <div className="flex items-center space-x-2 text-emerald-400">
+                                        <Badge className="w-5 h-5" />
+                                        <span>{backID.name}</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-6 h-6 text-gray-500 mb-2" />
+                                        <p className="text-gray-400 text-sm">Click to select or drag and drop</p>
+                                      </>
+                                    )}
+                                    <input
+                                      type="file"
+                                      id="back-id"
+                                      accept="image/png"
+                                      onChange={(e) => handleFileChange(e, setBackID)}
+                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="pt-2">
+                                <button
+                                  onClick={handleIDUpload}
+                                  disabled={loading || !frontID || !backID}
+                                  className={`w-full py-3 px-4 rounded-lg ${
+                                    !frontID || !backID
+                                      ? "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                                      : "bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90"
+                                  } transition-all`}
+                                >
+                                  {loading ? "Encrypting & Uploading..." : "Submit ID for Verification"}
+                                </button>
+                                <p className="text-xs text-gray-500 mt-2 text-center">Your ID will be encrypted and securely stored</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </main>
       </div>
 
-      {/* ID Upload Section: Only show for non-verified users */}
-      {/* ID Upload Section: Only show for non-verified users */}
-      {profile.userStatus !== "Verified" && (
-        <div className="id-upload-section mt-8 p-4 bg-xforge-darkgray border border-xforge-teal/20 rounded-lg max-w-md mx-auto">
-          <h3 className="text-lg font-semibold mb-4 text-xforge-teal">Upload Government ID</h3>
-          <div className="mb-3">
-            <label htmlFor="front-id" className="block mb-1 text-xforge-gray">Front of ID (PNG only):</label>
-            <input
-              type="file"
-              id="front-id"
-              accept="image/png"
-              onChange={(e) => handleFileChange(e, setFrontID)}
-              className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="back-id" className="block mb-1 text-xforge-gray">Back of ID (PNG only):</label>
-            <input
-              type="file"
-              id="back-id"
-              accept="image/png"
-              onChange={(e) => handleFileChange(e, setBackID)}
-              className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-xforge-teal/20 file:text-xforge-teal hover:file:bg-xforge-teal/40"
-            />
-          </div>
-          <Button
-            onClick={handleIDUpload}
-            className="bg-gradient-to-r from-xforge-teal to-teal-400 text-xforge-dark hover:brightness-110 w-full"
-            disabled={loading}
-          >
-            {loading ? "Encrypting & Uploading..." : "Submit"}
-          </Button>
-        </div>
-      )}
-
       {/* Logout Confirmation Dialog */}
       <AlertDialog
         open={isLogoutDialogOpen}
         onOpenChange={setIsLogoutDialogOpen}
       >
-        <AlertDialogContent className="bg-xforge-dark border border-xforge-teal/20 text-white">
+        <AlertDialogContent className="bg-[#121520] border border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-            <AlertDialogDescription className="text-xforge-gray">
-              Are you sure you want to logout?
+            <AlertDialogTitle>Sign Out of Your Account?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              You'll need to sign in again to access your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-xforge-darkgray text-white border-xforge-gray hover:bg-xforge-darkgray/80 hover:text-white">
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="bg-white/5 text-white border-white/10 hover:bg-white/10">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLogout}
-              className="bg-xforge-teal text-xforge-dark hover:bg-xforge-teal/90"
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-black hover:opacity-90"
             >
-              Continue
+              Sign Out
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </>
   );
 };
