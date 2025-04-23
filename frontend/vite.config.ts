@@ -4,6 +4,10 @@ import path from "path";
 
 export default defineConfig(({ mode }) => ({
   root: '.', // Ensure Vite looks in the root directory
+  // Add the build configuration
+  build: {
+    outDir: 'dist', // This specifies where Vite will output the build files
+  },
   server: {
     host: "::",
     port: 8080,
