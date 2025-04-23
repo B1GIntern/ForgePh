@@ -213,4 +213,4 @@ const startServer = async () => {
 startServer();
 
 // Export the io instance for use in other files
-module.exports = { io };
+module.exports = { io, app };
