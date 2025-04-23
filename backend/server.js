@@ -177,20 +177,18 @@ io.on("connection", (socket) => {
   });
 });
 
-// Serve static files in production - MODIFIED to always serve static files on Vercel
-// Remove the conditional check to ensure static files are always served
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// Handle all other routes by serving the React app - MODIFIED
-app.get("*", (req, res) => {
-  // Check if the request is for an API route
-  if (req.originalUrl.startsWith('/api/')) {
-    return res.status(404).json({ message: "API endpoint not found" });
-  }
-  
-  // For all other routes, serve the React app
-  res.sendFile(path.resolve(__dirname, "../frontend/dist", "index.html"));
-});
+  // Handle all other routes by serving the React app
+  app.get('*', (req, res) => {
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(404).json({ message: 'API endpoint not found' });
+    }
+    res.sendFile(path.resolve(__dirname, '../frontend/dist', 'index.html'));
+  });
+}
 
 // Use the PORT from environment variables or default to 5000
 const PORT = process.env.PORT || 5000;
