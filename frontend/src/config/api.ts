@@ -1,18 +1,10 @@
-// API configuration for different environments
-const API_CONFIG = {
-  development: {
-    baseURL: 'http://localhost:5001/api',
-  },
-  production: {
-    baseURL: '/api', // In production, API calls will be relative to the current domain
-  },
-};
+// API configuration using environment variables
 
-// Determine current environment
-const environment = import.meta.env.MODE || 'development';
+// Get the API URL from environment variables or use a default
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-// Export the API base URL
-export const API_BASE_URL = API_CONFIG[environment as keyof typeof API_CONFIG].baseURL;
+// Get the socket URL from environment variables
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 // Helper function for API calls
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {

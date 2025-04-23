@@ -29,12 +29,27 @@ const app = express();
 // Create HTTP server
 const server = http.createServer(app);
 
-// Initialize Socket.IO
+// Initialize Socket.IO with enhanced CORS for production
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Be more specific in production
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl, etc)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is allowed
+      const allowedOrigins = process.env.ALLOW_ORIGINS ? 
+        process.env.ALLOW_ORIGINS.split(',') : 
+        [process.env.FRONTEND_URL || '*'];
+        
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        console.log('Socket.IO CORS blocked request from:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["my-custom-header"],
+    allowedHeaders: ["my-custom-header", "Authorization"],
     credentials: true,
   },
 });
@@ -75,11 +90,31 @@ io.use(async (socket, next) => {
 
 // Middleware to parse JSON
 app.use(express.json({ limit: '50mb' }));
-// Use FRONTEND_URL env var for CORS origin in production, fallback to '*' in development
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true
-}));
+
+// Enhanced CORS configuration for production deployment
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is allowed
+    const allowedOrigins = process.env.ALLOW_ORIGINS ? 
+      process.env.ALLOW_ORIGINS.split(',') : 
+      [process.env.FRONTEND_URL || '*'];
+      
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked request from:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 
 // Middleware to check and reset daily redemption count if needed
 app.use(async (req, res, next) => {

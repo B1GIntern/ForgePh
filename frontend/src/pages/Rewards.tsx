@@ -113,7 +113,9 @@ const Rewards: React.FC = () => {
       }
 
       // Then, fetch fresh user data from the server
-      const response = await fetch("http://localhost:5001/api/users/me", {
+      // Import the API configuration
+      const { API_BASE_URL } = await import('../config/api');
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -189,7 +191,8 @@ const Rewards: React.FC = () => {
 
   const fetchRewards = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/auth/rewards");
+      const { API_BASE_URL } = await import('../config/api');
+      const response = await fetch(`${API_BASE_URL}/auth/rewards`);
       if (!response.ok) {
         throw new Error("Failed to fetch rewards");
       }
@@ -206,7 +209,8 @@ const Rewards: React.FC = () => {
 
   const fetchGames = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/games");
+      const { API_BASE_URL } = await import('../config/api');
+      const response = await fetch(`${API_BASE_URL}/games`);
       if (!response.ok) {
         throw new Error("Failed to fetch games");
       }
