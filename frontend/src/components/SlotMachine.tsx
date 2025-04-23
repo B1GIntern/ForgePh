@@ -548,12 +548,12 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
             }
           });
         }
-        
-        addNotification({
+          
+          addNotification({
           title: "Special Prize Won!",
           message: `Congratulations! You've won a ${specialPrize?.name || 'special prize'}!`,
-          type: "points"
-        });
+            type: "points"
+          });
       } else if (allSame) {
         // Three of a kind, regular symbols
         const pointsWon = finalSymbols[0].value * 3;
@@ -569,22 +569,22 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
         // Add points to user
         const addPointsResponse = await axios.post('/api/users/points/add', {
           points: pointsWon,
-          userId: userId
-        }, {
-          headers: { 
-            'Content-Type': 'application/json'
-          }
-        });
-        
+            userId: userId
+          }, {
+            headers: { 
+              'Content-Type': 'application/json'
+            }
+          });
+
         if (addPointsResponse.data.success) {
           onPointsUpdate(addPointsResponse.data.newPoints);
-          
-          addNotification({
+            
+            addNotification({
             title: "You Won!",
             message: `Congratulations! You've won ${pointsWon} points!`,
-            type: "points"
-          });
-        }
+              type: "points"
+            });
+          }
       } else if (hasFreeSpinSymbol) {
         // Free spin won
         setResult("FREE SPIN!");
@@ -594,13 +594,13 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
         await axios.post(`/api/users/game-plays/slotMachine/increment`, {
           userId,
           isFreeSpin: true // This will mark it as a free spin
-        });
-        
-        addNotification({
+          });
+          
+          addNotification({
           title: "Free Spin!",
           message: "You won a free spin! It won't count toward your daily limit.",
-          type: "points"
-        });
+            type: "points"
+          });
         
         // Play win sound
         if (winSound) {
@@ -608,17 +608,17 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
           winSound.play().catch(e => console.error("Error playing sound:", e));
         }
       } else {
-        // No match
+    // No match
         setResult("TRY AGAIN");
         setWin(0);
-        
+      
         // No notification needed for losing
-      }
-      
-      setShowResult(true);
-      
-      // Trigger global user data refresh
-      window.dispatchEvent(new Event('userUpdated'));
+    }
+    
+    setShowResult(true);
+    
+    // Trigger global user data refresh
+    window.dispatchEvent(new Event('userUpdated'));
     } catch (error) {
       console.error('Error processing win:', error);
       addNotification({
