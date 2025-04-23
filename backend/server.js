@@ -75,7 +75,11 @@ io.use(async (socket, next) => {
 
 // Middleware to parse JSON
 app.use(express.json({ limit: '50mb' }));
-app.use(cors());
+// Use FRONTEND_URL env var for CORS origin in production, fallback to '*' in development
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
 
 // Middleware to check and reset daily redemption count if needed
 app.use(async (req, res, next) => {

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon backend/server.js",
     "build": "npm install && npm install --prefix frontend --force && npm run build --prefix frontend",
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "vercel-build": "npm install && npm install --prefix frontend --force && npm run build --prefix frontend"
   },
   "keywords": [],
   "author": "",
