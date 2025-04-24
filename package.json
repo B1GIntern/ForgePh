@@ -4,10 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon backend/server.js",
-    "build": "npm install && npm install --prefix frontend --force && npm run build --prefix frontend",
+    "predev": "node kill-port.js && npm run build --prefix frontend",
+    "dev": "concurrently --kill-others-on-fail --handle-input \"nodemon --config nodemon.json backend/server.js\" \"npm run preview --prefix frontend\"",
+    "server": "nodemon --config nodemon.json backend/server.js",
+    "client": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "build:full": "npm install && npm install --prefix frontend && npm run build --prefix frontend",
     "start": "node backend/server.js",
-    "vercel-build": "npm install && npm install --prefix frontend --force && npm run build --prefix frontend"
+    "vercel-build": "npm install && npm install --prefix frontend && npm run build --prefix frontend"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +37,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "nodemon": "^3.1.9"
   }
 }

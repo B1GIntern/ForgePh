@@ -2,7 +2,7 @@ services:
   - type: web
     name: forgeph-backend
     env: node
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
@@ -20,6 +20,8 @@ services:
       - key: EMAIL_PASS
         sync: false
       - key: FRONTEND_URL
-        value: https://forgeph.vercel.app
+        value: https://forge-philippines.windsurf.build
       - key: SOCKET_CORS_ORIGIN
-        value: https://forgeph.vercel.app
+        value: https://forge-philippines.windsurf.build
+      - key: ALLOW_ORIGINS
+        value: https://forge-philippines.windsurf.build,https://forge-philippines-wz24z.netlify.app

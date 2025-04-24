@@ -39,7 +39,11 @@ const io = socketIo(server, {
       // Check if origin is allowed
       const allowedOrigins = process.env.ALLOW_ORIGINS ? 
         process.env.ALLOW_ORIGINS.split(',') : 
-        [process.env.FRONTEND_URL || '*'];
+        [
+          process.env.FRONTEND_URL || '*',
+          'https://forge-philippines.windsurf.build',
+          'https://forge-philippines-wz24z.netlify.app'
+        ];
         
       if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
         callback(null, true);
@@ -100,7 +104,11 @@ const corsOptions = {
     // Check if origin is allowed
     const allowedOrigins = process.env.ALLOW_ORIGINS ? 
       process.env.ALLOW_ORIGINS.split(',') : 
-      [process.env.FRONTEND_URL || '*'];
+      [
+        process.env.FRONTEND_URL || '*',
+        'https://forge-philippines.windsurf.build',
+        'https://forge-philippines-wz24z.netlify.app'
+      ];
       
     if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
       callback(null, true);
@@ -229,8 +237,8 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Use the PORT from environment variables or default to 5000
-const PORT = process.env.PORT || 5000;
+// Use the PORT from environment variables or default to 5001
+const PORT = process.env.PORT || 5001;
 
 // Connect to the database first, then start the server
 const startServer = async () => {
@@ -239,9 +247,23 @@ const startServer = async () => {
     await connectDB();
 
     // Start server after the database is connected
-    server.listen(PORT, () => {
-      console.log(`Server started at http://localhost:${PORT}`);
-    });
+    const startOnPort = (port) => {
+      server.listen(port)
+        .on('listening', () => {
+          console.log(`Server started at http://localhost:${port}`);
+        })
+        .on('error', (err) => {
+          if (err.code === 'EADDRINUSE') {
+            console.log(`Port ${port} is busy, trying port ${port + 1}...`);
+            startOnPort(port + 1);
+          } else {
+            console.error("Failed to start server:", err);
+            process.exit(1);
+          }
+        });
+    };
+    
+    startOnPort(PORT);
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
