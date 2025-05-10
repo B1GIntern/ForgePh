@@ -18,7 +18,7 @@ import StayOnHomeRoute from './components/StayOnHomeRoute';
 // Pages
 import RetailersLanding from "./pages/RetailersLanding";
 import RetailerRegistration from "./pages/RetailerRegistration";
-import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailers
+import ExclusiveNews from "./pages/ExclusiveNews";  // Import ExclusiveNews for retailerss
 import News from "./pages/News";
 import Products from "./pages/Products";
 import AgeVerification from "./pages/AgeVerification";

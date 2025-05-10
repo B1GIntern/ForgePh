@@ -287,7 +287,7 @@ const Header: React.FC = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menus */}
         <div
           className={`fixed inset-0 z-40 flex flex-col pt-24 pb-8 md:hidden bg-xforge-dark bg-opacity-95 backdrop-blur transition-transform duration-300 ease-in-out ${
             isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
