@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npm run build",
+  "installCommand": "cd frontend && chmod +x vercel-build.sh && ./vercel-build.sh",
+  "buildCommand": "echo 'Using custom install command for both installation and build'",
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "public": true,
