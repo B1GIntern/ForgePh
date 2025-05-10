@@ -5,15 +5,12 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "public": true,
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "env": {
     "FORCE_EMERGENCY_BUILD": "0",
     "NODE_ENV": "production",
     "VITE_API_URL": "https://your-backend-url-on-render.com"
-  },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html", "status": 200 }
-  ]
+  }
 }
