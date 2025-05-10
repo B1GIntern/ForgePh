@@ -1,0 +1,21 @@
+{
+  "name": "forge-philippines-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "node vercel-build.cjs",
+    "start": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.16.0"
+  },
+  "devDependencies": {
+    "vite": "^4.4.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "installCommand": "cd frontend && npm install",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "public": true,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "env": {
+    "FORCE_EMERGENCY_BUILD": "0",
+    "NODE_ENV": "production",
+    "VITE_API_URL": "https://your-backend-url-on-render.com"
+  },
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html", "status": 200 }
+  ]
+}
