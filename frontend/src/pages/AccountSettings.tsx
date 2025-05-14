@@ -107,6 +107,9 @@ const AccountSettings: React.FC = () => {
   const [frontID, setFrontID] = useState<File | null>(null);
   const [backID, setBackID] = useState<File | null>(null);
 
+  // Add loading state details
+  const [loadingState, setLoadingState] = useState("");
+
   // Function to handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: React.Dispatch<React.SetStateAction<File | null>>) => {
     console.log("File input changed", e.target.files);
@@ -251,6 +254,41 @@ const AccountSettings: React.FC = () => {
     );
   }
 
+  // Helper function to compress/resize image if it's too large
+  const compressImage = async (file: File, maxWidth = 1024): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const scaleFactor = maxWidth / img.width;
+          canvas.width = maxWidth;
+          canvas.height = img.height * scaleFactor;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Canvas to Blob conversion failed'));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/png',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/png', 0.8); // 0.8 quality
+        };
+        img.onerror = () => reject(new Error('Image loading failed'));
+      };
+      reader.onerror = () => reject(new Error('File reading failed'));
+    });
+  };
+
   // ID Upload Handler
   const handleIDUpload = async () => {
     console.log("handleIDUpload called", { frontID, backID });
@@ -264,40 +302,181 @@ const AccountSettings: React.FC = () => {
       return;
     }
     
+    // Check file size limitations
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    if (frontID.size > MAX_FILE_SIZE || backID.size > MAX_FILE_SIZE) {
+      addNotification({
+        title: "File Too Large",
+        message: "ID images must be under 5MB each. Please compress your images.",
+        type: "system"
+      });
+      return;
+    }
+    
     const password = "admin123";
     
     try {
       setLoading(true);
-      console.log("Starting encryption of files with test password");
+      setLoadingState("Checking server connection...");
       
-      const [frontEncrypted, backEncrypted] = await Promise.all([
-        encryptFile(frontID, password),
-        encryptFile(backID, password)
-      ]);
+      // First, test the API endpoint with a simple request
+      // Try both potential ports since there might be conflicts
+      const apiBaseUrl = API_BASE_URL.includes('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+      let port5001Working = false;
       
-      console.log("Encryption successful", { frontEncrypted, backEncrypted });
-      const userId = profile.id;
-      console.log("Uploading encrypted ID to backend", { userId });
-      
-      const response = await fetch(`${API_BASE_URL}/government-id/upload`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          front: frontEncrypted,
-          back: backEncrypted
-        })
-      });
-      
-      console.log("Response status:", response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Upload failed with status:", response.status, errorText);
-        throw new Error(`Server responded with ${response.status}: ${errorText}`);
+      try {
+        console.log("Testing API connection to port 5001");
+        const testResponse = await fetch(`http://localhost:5001/api/test`);
+        const testData = await testResponse.json();
+        console.log("API test response from port 5001:", testData);
+        port5001Working = true;
+        setLoadingState("Connection verified on port 5001. Starting encryption...");
+      } catch (testError5001) {
+        console.log("Port 5001 not available, trying port 10000");
+        try {
+          const testResponse = await fetch(`http://localhost:10000/api/test`);
+          const testData = await testResponse.json();
+          console.log("API test response from port 10000:", testData);
+          setLoadingState("Connection verified on port 10000. Starting encryption...");
+        } catch (testError10000) {
+          console.error("API test failed on both ports:", testError5001, testError10000);
+          throw new Error(`Could not connect to server. Please check your internet connection or try again later.`);
+        }
       }
       
-      const result = await response.json();
+      setLoadingState("Preparing files for encryption...");
+      console.log("Starting encryption of files with test password");
+      
+      let frontEncrypted, backEncrypted;
+      let useCompression = false;
+      
+      try {
+        // Encrypt one file at a time to reduce memory pressure
+        setLoadingState("Encrypting front of ID (1/2)...");
+        frontEncrypted = await encryptFile(frontID, password);
+        console.log("Front ID encrypted successfully", {
+          resultType: typeof frontEncrypted,
+          hasEncryptedData: !!frontEncrypted.encryptedData,
+          hasIv: !!frontEncrypted.iv,
+          encryptedDataLength: frontEncrypted.encryptedData?.length || 0
+        });
+        
+        setLoadingState("Encrypting back of ID (2/2)...");
+        backEncrypted = await encryptFile(backID, password);
+        console.log("Back ID encrypted successfully", {
+          resultType: typeof backEncrypted,
+          hasEncryptedData: !!backEncrypted.encryptedData,
+          hasIv: !!backEncrypted.iv,
+          encryptedDataLength: backEncrypted.encryptedData?.length || 0
+        });
+      } catch (encryptError) {
+        console.error("Standard encryption failed:", encryptError);
+        
+        // Try compression as fallback
+        setLoadingState("Compressing images and retrying...");
+        console.log("Trying to compress and re-encrypt...");
+        useCompression = true;
+        
+        try {
+          // Compress the images
+          const compressedFrontID = await compressImage(frontID);
+          const compressedBackID = await compressImage(backID);
+          
+          console.log("Images compressed", {
+            originalFrontSize: frontID.size,
+            compressedFrontSize: compressedFrontID.size,
+            originalBackSize: backID.size,
+            compressedBackSize: compressedBackID.size
+          });
+          
+          // Try encryption again with compressed files
+          frontEncrypted = await encryptFile(compressedFrontID, password);
+          console.log("Compressed front ID encrypted successfully");
+          
+          backEncrypted = await encryptFile(compressedBackID, password);
+          console.log("Compressed back ID encrypted successfully");
+        } catch (compressError) {
+          console.error("Compression and re-encryption failed:", compressError);
+          throw new Error(`Failed to encrypt files even after compression: ${compressError.message}`);
+        }
+      }
+      
+      console.log("Encryption successful");
+      const userId = profile.id;
+      setLoadingState("Uploading to server...");
+      console.log("Uploading encrypted ID to backend", { userId });
+      
+      // Update the endpoint URL to the correct path using the port that worked during testing
+      // Try an alternative endpoint based on the users routes if the first one fails
+      const basePort = port5001Working ? 5001 : 10000;
+      let uploadUrl = `http://localhost:${basePort}/api/government-id/upload`;
+      let uploadResponse = null;
+      
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+      
+      // Log the structure of the data we're sending
+      const requestBody = {
+        userId,
+        front: {
+          encryptedData: frontEncrypted.encryptedData,
+          iv: frontEncrypted.iv
+        },
+        back: {
+          encryptedData: backEncrypted.encryptedData,
+          iv: backEncrypted.iv
+        }
+      };
+      
+      console.log("Sending request body structure:", {
+        userId: requestBody.userId,
+        frontDataLength: requestBody.front.encryptedData.length,
+        frontIvLength: requestBody.front.iv.length,
+        backDataLength: requestBody.back.encryptedData.length,
+        backIvLength: requestBody.back.iv.length
+      });
+      
+      try {
+        console.log("Attempting primary endpoint:", uploadUrl);
+        uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        if (uploadResponse.status === 404) {
+          // If 404, try the alternative endpoint
+          const alternativeUrl = `http://localhost:${basePort}/api/users/upload-government-id`;
+          console.log("Primary endpoint not found, trying alternative:", alternativeUrl);
+          
+          uploadResponse = await fetch(alternativeUrl, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(requestBody)
+          });
+        }
+      } catch (fetchError) {
+        console.error("Fetch error:", fetchError);
+        throw new Error(`Network error: ${fetchError.message}`);
+      }
+      
+      console.log("Response status:", uploadResponse.status);
+      
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error("Upload failed with status:", uploadResponse.status, errorText);
+        throw new Error(`Server responded with ${uploadResponse.status}: ${errorText}`);
+      }
+      
+      const result = await uploadResponse.json();
       console.log("Backend upload result", result);
       if (result.success) {
         addNotification({
@@ -307,6 +486,21 @@ const AccountSettings: React.FC = () => {
         });
         setFrontID(null);
         setBackID(null);
+        
+        // Update user status in the profile
+        setProfile(prev => ({
+          ...prev,
+          userStatus: "Pending"
+        }));
+        
+        // Update in storage
+        const storage = localStorage.getItem("user") ? localStorage : sessionStorage;
+        const storedUser = storage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          parsedUser.userStatus = "Pending";
+          storage.setItem("user", JSON.stringify(parsedUser));
+        }
       } else {
         addNotification({
           title: "Upload Failed",
@@ -316,13 +510,28 @@ const AccountSettings: React.FC = () => {
       }
     } catch (err) {
       console.error("Encryption or upload failed", err);
+      
+      // Provide more specific error messages based on the type of error
+      let errorMessage = "ID verification failed. ";
+      
+      if (err.message && err.message.includes("Server responded with 404")) {
+        errorMessage += "The server endpoint for ID verification is not available. Please try again later or contact support.";
+      } else if (err.message && err.message.includes("Failed to encrypt")) {
+        errorMessage += "There was a problem encrypting your files. Please try again with smaller files.";
+      } else if (err.message && err.message.includes("Failed to fetch")) {
+        errorMessage += "Could not connect to the server. Please check your internet connection and try again.";
+      } else {
+        errorMessage += err.message || "See console for details.";
+      }
+      
       addNotification({
         title: "Error",
-        message: "Encryption or upload failed. See console for details.",
+        message: errorMessage,
         type: "system"
       });
     } finally {
       setLoading(false);
+      setLoadingState("");
     }
   };
 
@@ -1124,7 +1333,7 @@ const AccountSettings: React.FC = () => {
                                       : "bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-medium hover:opacity-90"
                                   } transition-all`}
                                 >
-                                  {loading ? "Encrypting & Uploading..." : "Submit ID for Verification"}
+                                  {loading ? loadingState || "Processing..." : "Submit ID for Verification"}
                                 </button>
                                 <p className="text-xs text-gray-500 mt-2 text-center">Your ID will be encrypted and securely stored</p>
                               </div>

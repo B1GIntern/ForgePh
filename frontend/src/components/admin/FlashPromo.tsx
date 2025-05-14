@@ -533,14 +533,14 @@ const FlashPromo: React.FC<FlashPromoProps> = ({ isAdmin = false, userId, onJoin
                   <TableHead className="text-[#00D6A4] font-bold">Name</TableHead>
                   <TableHead className="text-[#00D6A4] font-bold">Period</TableHead>
                   <TableHead className="text-[#00D6A4] font-bold">Prize</TableHead>
-                  <TableHead className="text-[#00D6A4] font-bold">Participants</TableHead>
-                  <TableHead className="text-[#00D6A4] font-bold">Multiplier</TableHead>
                   <TableHead className="text-[#00D6A4] font-bold">Status</TableHead>
                   <TableHead className="text-[#00D6A4] font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {flashPromos.map((promo) => (
+                {flashPromos
+                  .filter(promo => isAdmin || promo.isActive) // Only show active promos for non-admin users
+                  .map((promo) => (
                   <TableRow key={promo._id} className="hover:bg-[#222] border-b border-[#333]">
                     <TableCell>{promo.name}</TableCell>
                     <TableCell>
@@ -554,18 +554,6 @@ const FlashPromo: React.FC<FlashPromoProps> = ({ isAdmin = false, userId, onJoin
                       </div>
                     </TableCell>
                     <TableCell>{promo.prize}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-[#00D6A4]">{promo.currentParticipants}/{promo.maxParticipants}</span>
-                        <div className="h-1.5 w-24 bg-[#222] rounded-full mt-1">
-                          <div 
-                            className="h-full bg-gradient-to-r from-[#00D6A4] to-cyan-500 rounded-full" 
-                            style={{ width: `${calculateProgress(promo.currentParticipants, promo.maxParticipants)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{promo.multiplier}x</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         promo.isActive
@@ -604,12 +592,16 @@ const FlashPromo: React.FC<FlashPromoProps> = ({ isAdmin = false, userId, onJoin
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={!promo.isActive || promo.currentParticipants >= promo.maxParticipants}
+                            disabled={!promo.isActive || promo.currentParticipants >= promo.maxParticipants || (promo.entries && promo.entries > 0)}
                             onClick={() => handleJoinPromo(promo._id)}
-                            className="border-[#00D6A4] text-[#00D6A4] hover:bg-[#00D6A4]/20"
+                            className={
+                              promo.entries && promo.entries > 0
+                                ? "border-green-500 text-green-400 hover:bg-green-500/20"
+                                : "border-[#00D6A4] text-[#00D6A4] hover:bg-[#00D6A4]/20"
+                            }
                           >
                             {promo.entries && promo.entries > 0 
-                              ? `Entries: ${promo.entries}`
+                              ? `You Have Already Joined ${promo.name}`
                               : 'Join Promo'}
                           </Button>
                         )}

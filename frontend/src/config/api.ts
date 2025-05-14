@@ -1,10 +1,10 @@
 // API configuration using environment variables
 
-// Temporarily force local development URL for testing
-export const API_BASE_URL = 'http://localhost:5001';
+// Use environment variables if available, otherwise fallback to localhost with port 5001
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-// Use environment variables or fallback for socket connections
-export const SOCKET_URL = 'http://localhost:5001';
+// Use environment variables or fallback for socket connections with port 5001
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
 
 // Log the current API configuration
 console.log('API Configuration:', {
@@ -18,9 +18,10 @@ console.log('API Configuration:', {
 
 // Helper function for API calls
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  // Fix URL path by ensuring we don't double-add /api if it's already in the base URL
-  const basePath = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
-  const url = `${basePath}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  // Build the URL correctly
+  const url = endpoint.startsWith('http') 
+    ? endpoint 
+    : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
   console.log(`Making API call to: ${url}`);
   

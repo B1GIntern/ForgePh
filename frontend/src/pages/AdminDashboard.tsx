@@ -1773,18 +1773,45 @@ const AdminDashboard: React.FC = () => {
       const testPassword = "admin123";
       console.log("Using hardcoded password for testing:", testPassword);
       
-      // Client-side decryption using our utility function
-      const frontDecrypted = await decryptImage(
-        selectedSubmission.front.encryptedData,
-        selectedSubmission.front.iv,
-        testPassword // Use the hardcoded password
-      );
+      // Validate the encrypted data
+      if (!selectedSubmission.front?.encryptedData || !selectedSubmission.front?.iv ||
+          !selectedSubmission.back?.encryptedData || !selectedSubmission.back?.iv) {
+        throw new Error("Missing encrypted data or initialization vector");
+      }
       
-      const backDecrypted = await decryptImage(
-        selectedSubmission.back.encryptedData,
-        selectedSubmission.back.iv,
-        testPassword // Use the hardcoded password
-      );
+      console.log("Encrypted data validation:", {
+        frontDataLength: selectedSubmission.front.encryptedData.length,
+        frontIvLength: selectedSubmission.front.iv.length,
+        backDataLength: selectedSubmission.back.encryptedData.length,
+        backIvLength: selectedSubmission.back.iv.length
+      });
+      
+      // Client-side decryption using our utility function
+      let frontDecrypted, backDecrypted;
+      
+      try {
+        frontDecrypted = await decryptImage(
+          selectedSubmission.front.encryptedData,
+          selectedSubmission.front.iv,
+          testPassword // Use the hardcoded password
+        );
+        console.log("Front ID decrypted successfully");
+      } catch (frontError) {
+        console.error("Error decrypting front ID:", frontError);
+        throw new Error(`Failed to decrypt front ID: ${frontError.message}`);
+      }
+      
+      try {
+        backDecrypted = await decryptImage(
+          selectedSubmission.back.encryptedData,
+          selectedSubmission.back.iv,
+          testPassword // Use the hardcoded password
+        );
+        console.log("Back ID decrypted successfully");
+      } catch (backError) {
+        console.error("Error decrypting back ID:", backError);
+        throw new Error(`Failed to decrypt back ID: ${backError.message}`);
+      }
       
       setDecryptedImages({
         front: frontDecrypted,
@@ -1801,7 +1828,7 @@ const AdminDashboard: React.FC = () => {
       console.error("Error decrypting images:", error);
       toast({
         title: "Decryption Failed",
-        description: "Unable to decrypt images. Check your password and try again.",
+        description: error instanceof Error ? error.message : "Unable to decrypt images. Check your password and try again.",
         variant: "destructive"
       });
     } finally {

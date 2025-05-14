@@ -511,6 +511,12 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ userPoints, onPointsUpdate })
           // Show special prize won notification
           toast.success(`Congratulations! You won the ${result.specialPrizeName || 'special prize'}!`);
           setSpecialPrize(result.specialPrize);
+        } else if (result.pointsWon > 0) {
+          // Show points won notification
+          toast.success(`You won ${result.pointsWon} points!`);
+        } else {
+          // Show try again notification
+          toast.info("Better luck next time!");
         }
       } else {
         toast.error(result.message || "Something went wrong processing your spin.");

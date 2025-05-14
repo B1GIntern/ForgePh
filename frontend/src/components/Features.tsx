@@ -77,8 +77,7 @@ const Features: React.FC = () => {
             Engineered For <span className="text-xforge-teal">Excellence</span>
           </h2>
           <p className="max-w-2xl mx-auto text-xforge-lightgray">
-            Every aspect of Forge has been meticulously designed and engineered to deliver an exceptional vaping experience.
-          </p>
+          Every aspect of Forge has been meticulously designed and engineered to deliver an exceptional experience.          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
