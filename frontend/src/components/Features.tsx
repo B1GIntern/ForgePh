@@ -96,11 +96,6 @@ const Features: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <a href="#campaign" className="btn btn-primary">
-            Unlock Special Offers
-          </a>
-        </div>
       </div>
     </section>
   );

@@ -13,22 +13,14 @@ const Hero: React.FC = () => {
       <div className="container relative z-10 flex flex-col items-center justify-center h-[calc(100vh-6rem)] md:flex-row">
         <div className="flex flex-col items-center text-center md:items-start md:text-left md:w-1/2 animate-fade-in-left">
           <span className="px-4 py-1 mb-4 text-sm font-semibold tracking-wider uppercase rounded-full bg-xforge-teal bg-opacity-20 text-xforge-teal">
-            Premium Vaping Experience
+           Unstoppable power. All day long. 
           </span>
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl text-white">
-            Experience The <span className="text-xforge-teal">Future</span> Of Vaping
+             <span className="text-xforge-teal">Forge</span> Your New Experience
           </h1>
           <p className="max-w-md mb-8 text-lg text-xforge-lightgray">
-            Forge combines innovation, elegance, and performance to deliver a vaping experience like no other.
+          X-Forge is precision-crafted from durable, high-grade aluminum for a sleek, premium feel.
           </p>
-          <div className="flex flex-wrap gap-4">
-            <a href="#features" className="btn btn-primary">
-              Explore Features
-            </a>
-            <a href="#register" className="btn btn-outline">
-              Join Now
-            </a>
-          </div>
         </div>
 
         <div className="relative mt-12 md:mt-0 md:w-1/2 animate-fade-in-right">
