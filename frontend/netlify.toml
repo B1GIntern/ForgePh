@@ -1,0 +1,28 @@
+# Simple Netlify configuration
+[build]
+  base = "."
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  VITE_API_URL = "https://forgeph-2.onrender.com/api"
+  VITE_SOCKET_URL = "https://forgeph-2.onrender.com"
+
+# Handle SPA routing
+[[redirects]]
+  from = "/api/*"
+  to = "https://forgeph-2.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/socket.io/*"
+  to = "https://forgeph-2.onrender.com/socket.io/:splat"
+  status = 200
+  force = true
+  headers = {X-From = "Netlify"}
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

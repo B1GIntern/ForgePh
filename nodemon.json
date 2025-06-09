@@ -1,0 +1,7 @@
+{
+  "watch": ["backend/**/*"],
+  "ext": "js,json,env",
+  "ignore": ["node_modules", "frontend"],
+  "delay": "500",
+  "verbose": true
+}

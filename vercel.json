@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "installCommand": "cd frontend && chmod +x vercel-build.sh && ./vercel-build.sh",
+  "buildCommand": "echo 'Using custom install command for both installation and build'",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "public": true,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "FORCE_EMERGENCY_BUILD": "0",
+    "NODE_ENV": "production",
+    "VITE_API_URL": "https://your-backend-url-on-render.com"
+  }
+}
