@@ -40,10 +40,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
-<<<<<<< HEAD
-=======
-    "lightningcss-win32-x64-msvc": "^1.30.0",
->>>>>>> 4feeb60ab07a57434df8595e7b3f09146d841baf
     "nodemon": "^3.1.9"
   }
 }

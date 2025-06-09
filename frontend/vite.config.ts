@@ -30,12 +30,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: '.',
-<<<<<<< HEAD
     css: {
       transformer: 'postcss', // Explicitly use postcss instead of lightningcss
     },
-=======
->>>>>>> 4feeb60ab07a57434df8595e7b3f09146d841baf
   build: {
       outDir: 'dist',
       emptyOutDir: true,
@@ -67,10 +64,7 @@ export default defineConfig(({ mode }) => {
     host: "::",
     port: 8080,
     strictPort: false,
-<<<<<<< HEAD
     open: true, // Automatically open browser
-=======
->>>>>>> 4feeb60ab07a57434df8595e7b3f09146d841baf
     proxy: {
       "/api": {
         target: API_URL,
